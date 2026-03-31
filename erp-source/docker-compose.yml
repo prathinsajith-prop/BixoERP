@@ -27,7 +27,6 @@ x-svc-defaults: &svc-defaults
 
 # ═════════════════════════════════════════════════════════════
 services:
-
   # ─── Backend: Core Service ─────────────────────────────────
   core:
     <<: *svc-defaults
@@ -252,6 +251,8 @@ services:
       context: ./back/services/notification-web
     ports:
       - "3080:80"
+    depends_on:
+      - notification-svc
 
   # ─── Frontend ──────────────────────────────────────────────
   erp-frontend:
