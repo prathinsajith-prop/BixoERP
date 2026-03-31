@@ -11,10 +11,19 @@ Everything runs from the **workspace root** (`bixoERP/`).
 | Docker | 24+ | Docker Desktop or Colima |
 | Docker Compose | v2 (`docker compose`) | Included with Docker Desktop |
 
-If using **Colima** on macOS:
+### Colima (macOS) — minimum resources
+
+This project builds **15 Next.js apps + 16 backend services** in Docker. You need at least 12 GB allocated to avoid out-of-memory crashes mid-build.
+
 ```bash
-colima start --memory 6 --cpu 4
+# Stop any existing Colima instance first
+colima stop
+
+# Start with enough memory for parallel Next.js builds
+colima start --memory 12 --cpu 6 --disk 60
 ```
+
+> **Why 12 GB?** Each Next.js build uses ~1.5–2 GB. With 15 frontends building in parallel that peaks at ~20 GB. Setting `BUILDKIT_MAX_PARALLELISM=3` (used in the build commands below) caps concurrent builds so 12 GB is sufficient.
 
 ---
 
@@ -22,11 +31,14 @@ colima start --memory 6 --cpu 4
 
 ```
 bixoERP/
-├── erp-source/back/infra/docker/docker-compose.yml   ← Step 1: Infrastructure
-└── docker-compose.yml                                 ← Step 2: Application services
+└── erp-source/
+    ├── back/infra/docker/docker-compose.yml   ← Step 1: Infrastructure
+    └── docker-compose.yml                     ← Step 3: Application services
 ```
 
-The app services compose file connects to the infra network (`docker_default`) — so **infra must start first**.
+The app compose file joins the infra network (`docker_default`) — so **infra must start first**.
+
+All commands below assume you are in the workspace root (`bixoERP/`).
 
 ---
 
@@ -35,18 +47,19 @@ The app services compose file connects to the infra network (`docker_default`) �
 ```bash
 cd erp-source/back/infra/docker
 
-docker compose up -d \
-  postgres \
-  redis \
-  kafka \
-  zookeeper
+docker compose up -d postgres redis kafka zookeeper mongodb
 ```
 
-Wait ~20 seconds for Postgres to finish running its init scripts (creates all service databases and the `erp_app` role automatically).
+Wait ~20 seconds for Postgres to finish its init scripts (creates all service databases and the `erp_app` role automatically).
 
-To verify Postgres is ready:
+Verify Postgres is ready:
 ```bash
 docker compose exec postgres pg_isready -U erp
+```
+
+Then go back to the workspace root:
+```bash
+cd -
 ```
 
 ### Optional infra services
@@ -55,68 +68,93 @@ Start these only if the corresponding app service needs them:
 
 ```bash
 # Kafka UI (browse topics at http://localhost:8080)
-docker compose up -d kafka-ui
-
-# MongoDB (notification-svc, integration-svc)
-docker compose up -d mongodb
+docker compose -f erp-source/back/infra/docker/docker-compose.yml up -d kafka-ui
 
 # Elasticsearch (sales-svc, audit-svc)
-docker compose up -d elasticsearch
+docker compose -f erp-source/back/infra/docker/docker-compose.yml up -d elasticsearch
 
 # ClickHouse (report-svc)
-docker compose up -d clickhouse
+docker compose -f erp-source/back/infra/docker/docker-compose.yml up -d clickhouse
 
 # MinIO / S3 (files-svc — console at http://localhost:9002)
-docker compose up -d minio
+docker compose -f erp-source/back/infra/docker/docker-compose.yml up -d minio
 
 # Observability stack (Prometheus, Grafana, Jaeger, Loki)
-docker compose up -d prometheus grafana jaeger loki
+docker compose -f erp-source/back/infra/docker/docker-compose.yml up -d prometheus grafana jaeger loki
 ```
 
 ---
 
-## Step 2 — Run Database Migrations (first time only)
+## Step 2 — Build All Images (first time)
 
-The migrations only need to run once. After that the schema is persisted in the `postgres-data` Docker volume.
+Building all 31 images at once overwhelms memory. Build in two phases instead.
+
+### Phase A — Backend services (16 images, ~5 min)
 
 ```bash
-cd erp-source/back/services/core
-npm install
-npm run migration:run
+BUILDKIT_MAX_PARALLELISM=4 docker compose -f erp-source/docker-compose.yml build \
+  core finance-svc apar-svc hr-svc sales-svc inventory-svc \
+  procurement-svc manufacturing-svc project-svc workflow-svc \
+  notification-svc files-svc integration-svc report-svc audit-svc notification-web
+```
+
+### Phase B — Frontend apps (15 images, ~15 min)
+
+Frontends are built **3 at a time** to stay within memory limits:
+
+```bash
+BUILDKIT_MAX_PARALLELISM=3 docker compose -f erp-source/docker-compose.yml build \
+  erp-frontend hr-frontend finance-frontend
+
+BUILDKIT_MAX_PARALLELISM=3 docker compose -f erp-source/docker-compose.yml build \
+  apar-frontend inventory-frontend procurement-frontend
+
+BUILDKIT_MAX_PARALLELISM=3 docker compose -f erp-source/docker-compose.yml build \
+  manufacturing-frontend sales-frontend projects-frontend
+
+BUILDKIT_MAX_PARALLELISM=3 docker compose -f erp-source/docker-compose.yml build \
+  reports-frontend workflow-frontend notifications-frontend
+
+BUILDKIT_MAX_PARALLELISM=3 docker compose -f erp-source/docker-compose.yml build \
+  files-frontend audit-frontend integrations-frontend
 ```
 
 ---
 
-## Step 3 — Build & Start Application Services
-
-Go back to the workspace root (`bixoERP/`).
-
-### All services at once
+## Step 3 — Start Application Services
 
 ```bash
-cd /path/to/bixoERP
-docker compose up --build -d
+docker compose -f erp-source/docker-compose.yml up -d
 ```
 
-Build takes several minutes on the first run.
+All images are already built from Step 2 so this just creates and starts containers.
 
-### Individual services (faster iteration)
+### Start individual services (faster iteration)
 
 ```bash
-# Backend only
-docker compose up --build -d core hr-svc finance-svc sales-svc
+# A specific backend service
+docker compose -f erp-source/docker-compose.yml up -d core
 
-# A specific service
-docker compose up --build -d core
+# Core + HR for local testing
+docker compose -f erp-source/docker-compose.yml up -d core hr-svc hr-frontend erp-frontend
 ```
 
 ---
 
-## Step 4 — Seed Demo Data (optional)
+## Step 4 — Run Database Migrations (first time only)
+
+Migrations are stored in the `postgres-data` volume — only needed on a fresh install.
 
 ```bash
-cd erp-source/back/services/core
-npm run seed
+docker compose -f erp-source/docker-compose.yml exec core npm run migration:run
+```
+
+---
+
+## Step 5 — Seed Demo Data (optional)
+
+```bash
+docker compose -f erp-source/docker-compose.yml exec core npm run seed
 ```
 
 Creates: 4 users, 4 roles, 41 permissions, 1 organisation.
@@ -194,29 +232,38 @@ Creates: 4 users, 4 roles, 41 permissions, 1 organisation.
 ## Useful Commands
 
 ```bash
-# View running containers
-docker compose ps
+# View running app containers and their status
+docker compose -f erp-source/docker-compose.yml ps
 
 # Follow logs for a service
-docker compose logs -f core
-docker compose logs -f hr-svc
+docker compose -f erp-source/docker-compose.yml logs -f core
+docker compose -f erp-source/docker-compose.yml logs -f hr-svc
 
-# Restart a single service after a code change
-docker compose up --build -d core
+# Rebuild and restart a single service after a code change
+docker compose -f erp-source/docker-compose.yml up --build -d core
 
 # Stop all app services (keeps infra running)
-docker compose down
+docker compose -f erp-source/docker-compose.yml down
 
 # Stop everything including infra
-cd erp-source/back/infra/docker && docker compose down
+docker compose -f erp-source/docker-compose.yml down
+docker compose -f erp-source/back/infra/docker/docker-compose.yml down
 
-# Stop everything AND wipe all data volumes
-cd erp-source/back/infra/docker && docker compose down -v
+# Stop everything AND wipe all data volumes (destructive — loses all DB data)
+docker compose -f erp-source/back/infra/docker/docker-compose.yml down -v
 ```
 
 ---
 
 ## Troubleshooting
+
+### Build fails with `error reading from server: EOF`
+Colima ran out of memory during parallel Next.js builds. Fix:
+```bash
+colima stop
+colima start --memory 12 --cpu 6 --disk 60
+```
+Then use the **Phase A / Phase B** build approach in Step 2 (not `up --build`).
 
 ### Port already in use
 Another service on your machine is occupying a port.
@@ -234,9 +281,9 @@ You're connecting to your local Postgres instead of the Docker one. Make sure `D
 
 ### Container exits immediately
 ```bash
-docker compose logs <service-name>
+docker compose -f erp-source/docker-compose.yml logs <service-name>
 ```
 Common causes: missing environment variable, database not ready yet (add a retry or wait for postgres healthcheck).
 
 ### Colima — containers can't reach each other
-Make sure all services share the same network. The app `docker-compose.yml` uses `docker_default` (the network created by the infra compose). Start infra first so that network exists.
+Infra must be started first so the `docker_default` network exists before the app services try to join it.
