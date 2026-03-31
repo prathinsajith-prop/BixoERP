@@ -1,7 +1,7 @@
 "use client";
 
 import { useCurrentUser, useAuthStore } from "@erp/shell";
-import manifest from "../../../../manifest.json";
+import manifest from "../../../manifest.json";
 
 export default function DebugPage() {
   const user = useCurrentUser();

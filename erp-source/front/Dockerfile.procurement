@@ -6,7 +6,7 @@ COPY package.json package-lock.json turbo.json tsconfig.json ./
 COPY apps/ ./apps/
 COPY packages/ ./packages/
 
-RUN npm ci
+RUN npm ci && npm install --no-save lightningcss-linux-arm64-musl lightningcss-linux-x64-musl @tailwindcss/oxide-linux-arm64-musl @tailwindcss/oxide-linux-x64-musl
 
 ENV DOCKER_ENV=true
 RUN npx turbo build --filter=@erp/procurement-app
