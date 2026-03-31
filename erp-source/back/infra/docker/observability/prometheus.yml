@@ -1,0 +1,83 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "finance-svc"
+    static_configs:
+      - targets: ["host.docker.internal:3001"]
+    metrics_path: /metrics
+
+  - job_name: "apar-svc"
+    static_configs:
+      - targets: ["host.docker.internal:3002"]
+    metrics_path: /metrics
+
+  - job_name: "hr-svc"
+    static_configs:
+      - targets: ["host.docker.internal:3003"]
+    metrics_path: /metrics
+
+  - job_name: "sales-svc"
+    static_configs:
+      - targets: ["host.docker.internal:3004"]
+    metrics_path: /metrics
+
+  - job_name: "inventory-svc"
+    static_configs:
+      - targets: ["host.docker.internal:3005"]
+    metrics_path: /metrics
+
+  - job_name: "procurement-svc"
+    static_configs:
+      - targets: ["host.docker.internal:3006"]
+    metrics_path: /metrics
+
+  - job_name: "manufacturing-svc"
+    static_configs:
+      - targets: ["host.docker.internal:3007"]
+    metrics_path: /metrics
+
+  - job_name: "project-svc"
+    static_configs:
+      - targets: ["host.docker.internal:3008"]
+    metrics_path: /metrics
+
+  - job_name: "workflow-svc"
+    static_configs:
+      - targets: ["host.docker.internal:3009"]
+    metrics_path: /metrics
+
+  - job_name: "notification-svc"
+    static_configs:
+      - targets: ["host.docker.internal:3010"]
+    metrics_path: /metrics
+
+  - job_name: "files-svc"
+    static_configs:
+      - targets: ["host.docker.internal:3011"]
+    metrics_path: /metrics
+
+  - job_name: "integration-svc"
+    static_configs:
+      - targets: ["host.docker.internal:3012"]
+    metrics_path: /metrics
+
+  - job_name: "report-svc"
+    static_configs:
+      - targets: ["host.docker.internal:3013"]
+    metrics_path: /metrics
+
+  - job_name: "audit-svc"
+    static_configs:
+      - targets: ["host.docker.internal:3014"]
+    metrics_path: /metrics
+
+  - job_name: "core"
+    static_configs:
+      - targets: ["host.docker.internal:3015"]
+    metrics_path: /metrics

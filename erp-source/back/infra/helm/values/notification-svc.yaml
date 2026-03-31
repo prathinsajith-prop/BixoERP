@@ -1,0 +1,16 @@
+nameOverride: notification-svc
+
+image:
+  repository: erp/notification-svc
+
+service:
+  port: 3010
+  grpcPort: 50060
+
+database:
+  host: mongodb.erp-infra.svc.cluster.local
+  port: 27017
+  name: notification_db
+
+kafka:
+  groupId: notification-svc

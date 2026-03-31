@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "erp.events.project",
+  "title": "Project Domain Events",
+  "description": "Kafka event contracts for project-svc",
+  "definitions": {
+    "project.created": {
+      "type": "object",
+      "required": ["project_id", "project_code", "name", "manager_id", "budget_amount"],
+      "properties": {
+        "project_id": { "type": "string", "format": "uuid" },
+        "project_code": { "type": "string" },
+        "name": { "type": "string" },
+        "manager_id": { "type": "string", "format": "uuid" },
+        "budget_amount": { "type": "string" },
+        "currency": { "type": "string" },
+        "start_date": { "type": "string", "format": "date" },
+        "end_date": { "type": "string", "format": "date" }
+      }
+    },
+    "project.status_changed": {
+      "type": "object",
+      "required": ["project_id", "project_code", "old_status", "new_status"],
+      "properties": {
+        "project_id": { "type": "string", "format": "uuid" },
+        "project_code": { "type": "string" },
+        "old_status": { "type": "string" },
+        "new_status": { "type": "string" },
+        "changed_by": { "type": "string", "format": "uuid" }
+      }
+    },
+    "project.milestone.reached": {
+      "type": "object",
+      "required": ["milestone_id", "project_id", "name"],
+      "properties": {
+        "milestone_id": { "type": "string", "format": "uuid" },
+        "project_id": { "type": "string", "format": "uuid" },
+        "name": { "type": "string" },
+        "completed_at": { "type": "string", "format": "date-time" },
+        "deliverables_count": { "type": "integer" }
+      }
+    },
+    "project.budget.warning": {
+      "type": "object",
+      "required": ["project_id", "project_code", "budget_amount", "spent_amount", "threshold_percentage"],
+      "properties": {
+        "project_id": { "type": "string", "format": "uuid" },
+        "project_code": { "type": "string" },
+        "budget_amount": { "type": "string" },
+        "spent_amount": { "type": "string" },
+        "remaining_amount": { "type": "string" },
+        "threshold_percentage": { "type": "number" }
+      }
+    },
+    "project.timesheet.submitted": {
+      "type": "object",
+      "required": ["timesheet_id", "employee_id", "project_id", "total_hours", "period_start", "period_end"],
+      "properties": {
+        "timesheet_id": { "type": "string", "format": "uuid" },
+        "employee_id": { "type": "string", "format": "uuid" },
+        "project_id": { "type": "string", "format": "uuid" },
+        "total_hours": { "type": "number" },
+        "billable_hours": { "type": "number" },
+        "period_start": { "type": "string", "format": "date" },
+        "period_end": { "type": "string", "format": "date" }
+      }
+    },
+    "project.task.completed": {
+      "type": "object",
+      "required": ["task_id", "project_id", "title", "assignee_id"],
+      "properties": {
+        "task_id": { "type": "string", "format": "uuid" },
+        "project_id": { "type": "string", "format": "uuid" },
+        "title": { "type": "string" },
+        "assignee_id": { "type": "string", "format": "uuid" },
+        "completed_at": { "type": "string", "format": "date-time" },
+        "actual_hours": { "type": "number" }
+      }
+    }
+  }
+}

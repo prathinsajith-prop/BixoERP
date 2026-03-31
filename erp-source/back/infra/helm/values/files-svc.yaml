@@ -1,0 +1,22 @@
+nameOverride: files-svc
+
+image:
+  repository: erp/files-svc
+
+service:
+  port: 3011
+  grpcPort: 50061
+
+database:
+  host: postgresql.erp-infra.svc.cluster.local
+  port: 5432
+  name: files_db
+
+kafka:
+  groupId: files-svc
+
+extraEnv:
+  - name: S3_ENDPOINT
+    value: ""
+  - name: S3_BUCKET
+    value: ""

@@ -1,0 +1,410 @@
+# ─── ERP Application Services ────────────────────────────────
+# Infrastructure (Kafka, Postgres, Redis, etc.) is already running
+# via back/infra/docker/docker-compose.yml on the "docker_default" network.
+# This compose file builds and runs all application services on that same network.
+
+# ─── Shared environment anchors ──────────────────────────────
+x-common-env: &common-env
+  KAFKA_BROKERS: docker-kafka-1:29092
+  REDIS_HOST: docker-redis-1
+  REDIS_PORT: "6379"
+  JWT_SECRET: change-me-in-production-use-256-bit-key
+  JWT_ISSUER: erp-core
+  NODE_ENV: production
+  KAFKAJS_NO_PARTITIONER_WARNING: "1"
+  OTLP_ENDPOINT: http://docker-jaeger-1:4318
+
+x-pg-env: &pg-env
+  DB_HOST: docker-postgres-1
+  DB_PORT: "5432"
+  DB_USER: erp
+  DB_PASSWORD: erp_dev_password
+
+x-svc-defaults: &svc-defaults
+  restart: unless-stopped
+  networks:
+    - infra
+
+# ═════════════════════════════════════════════════════════════
+services:
+
+  # ─── Backend: Core Service ─────────────────────────────────
+  core:
+    <<: *svc-defaults
+    build:
+      context: ./back/services/core
+    ports:
+      - "3015:3015"
+      - "50065:50065"
+    environment:
+      <<: [*common-env, *pg-env]
+      PORT: "3015"
+      GRPC_PORT: "50065"
+      DB_NAME: auth_db
+      KAFKA_GROUP_ID: core
+      ACCESS_TOKEN_TTL_SECONDS: "900"
+      REFRESH_TOKEN_TTL_DAYS: "30"
+      MAX_LOGIN_ATTEMPTS: "5"
+      LOCK_DURATION_MINUTES: "30"
+      PASSWORD_RESET_TTL_MINUTES: "60"
+      CORS_ORIGIN: "*"
+
+  finance-svc:
+    <<: *svc-defaults
+    build:
+      context: ./back/services/finance-svc
+    ports:
+      - "3001:3001"
+      - "50051:50051"
+    environment:
+      <<: [*common-env, *pg-env]
+      PORT: "3001"
+      GRPC_PORT: "50051"
+      DB_NAME: finance_db
+      KAFKA_GROUP_ID: finance-svc
+
+  apar-svc:
+    <<: *svc-defaults
+    build:
+      context: ./back/services/apar-svc
+    ports:
+      - "3002:3002"
+    environment:
+      <<: [*common-env, *pg-env]
+      PORT: "3002"
+      DB_NAME: apar_db
+      KAFKA_GROUP_ID: apar-svc
+
+  hr-svc:
+    <<: *svc-defaults
+    build:
+      context: ./back/services/hr-svc
+    ports:
+      - "3003:3003"
+    environment:
+      <<: [*common-env, *pg-env]
+      PORT: "3003"
+      DB_NAME: hr_db
+      KAFKA_GROUP_ID: hr-svc
+
+  sales-svc:
+    <<: *svc-defaults
+    build:
+      context: ./back/services/sales-svc
+    ports:
+      - "3004:3004"
+    environment:
+      <<: [*common-env, *pg-env]
+      PORT: "3004"
+      DB_NAME: sales_db
+      KAFKA_GROUP_ID: sales-svc
+      ELASTICSEARCH_URL: http://docker-elasticsearch-1:9200
+
+  inventory-svc:
+    <<: *svc-defaults
+    build:
+      context: ./back/services/inventory-svc
+    ports:
+      - "3005:3005"
+      - "50055:50055"
+    environment:
+      <<: [*common-env, *pg-env]
+      PORT: "3005"
+      GRPC_PORT: "50055"
+      DB_NAME: inventory_db
+      DB_SSL_MODE: disable
+      DB_MAX_CONNS: "20"
+      KAFKA_GROUP_ID: inventory-svc
+      KAFKA_CLIENT_ID: inventory-svc
+      LOG_LEVEL: info
+
+  procurement-svc:
+    <<: *svc-defaults
+    build:
+      context: ./back/services/procurement-svc
+    ports:
+      - "3006:3006"
+    environment:
+      <<: *common-env
+      SERVER_PORT: "3006"
+      POSTGRES_HOST: docker-postgres-1
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: procurement_db
+      POSTGRES_USER: erp
+      POSTGRES_PASSWORD: erp_dev_password
+      KAFKA_GROUP_ID: procurement-svc
+      GRPC_PORT: "50056"
+
+  manufacturing-svc:
+    <<: *svc-defaults
+    build:
+      context: ./back/services/manufacturing-svc
+    ports:
+      - "3007:3007"
+    environment:
+      <<: *common-env
+      SERVER_PORT: "3007"
+      POSTGRES_HOST: docker-postgres-1
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: manufacturing_db
+      POSTGRES_USER: erp
+      POSTGRES_PASSWORD: erp_dev_password
+      KAFKA_GROUP_ID: manufacturing-svc
+
+  project-svc:
+    <<: *svc-defaults
+    build:
+      context: ./back/services/project-svc
+    ports:
+      - "3008:3008"
+    environment:
+      <<: [*common-env, *pg-env]
+      PORT: "3008"
+      DB_NAME: project_db
+      KAFKA_GROUP_ID: project-svc
+
+  workflow-svc:
+    <<: *svc-defaults
+    build:
+      context: ./back/services/workflow-svc
+    ports:
+      - "3009:3009"
+    environment:
+      <<: [*common-env, *pg-env]
+      PORT: "3009"
+      DB_NAME: workflow_db
+      KAFKA_GROUP_ID: workflow-svc
+
+  notification-svc:
+    <<: *svc-defaults
+    build:
+      context: ./back/services/notification-svc
+    ports:
+      - "3010:3010"
+    environment:
+      <<: *common-env
+      PORT: "3010"
+      MONGO_URI: mongodb://erp:erp_dev_password@docker-mongodb-1:27017/notification_db?authSource=admin
+      KAFKA_GROUP_ID: notification-svc
+
+  files-svc:
+    <<: *svc-defaults
+    build:
+      context: ./back/services/files-svc
+    ports:
+      - "3011:3011"
+    environment:
+      <<: [*common-env, *pg-env]
+      PORT: "3011"
+      DB_NAME: files_db
+      KAFKA_GROUP_ID: files-svc
+      S3_ENDPOINT: http://docker-minio-1:9000
+      S3_ACCESS_KEY: erp_minio
+      S3_SECRET_KEY: erp_minio_password
+      S3_BUCKET: erp-files
+      S3_REGION: us-east-1
+
+  integration-svc:
+    <<: *svc-defaults
+    build:
+      context: ./back/services/integration-svc
+    ports:
+      - "3012:3012"
+    environment:
+      <<: *common-env
+      PORT: "3012"
+      MONGO_URI: mongodb://erp:erp_dev_password@docker-mongodb-1:27017/integration_db?authSource=admin
+      KAFKA_GROUP_ID: integration-svc
+
+  report-svc:
+    <<: *svc-defaults
+    build:
+      context: ./back/services/report-svc
+    ports:
+      - "3013:3013"
+    environment:
+      <<: *common-env
+      PORT: "3013"
+      CLICKHOUSE_HOST: docker-clickhouse-1
+      CLICKHOUSE_PORT: "8123"
+      CLICKHOUSE_DATABASE: erp_reports
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ""
+      KAFKA_GROUP_ID: report-svc
+
+  audit-svc:
+    <<: *svc-defaults
+    build:
+      context: ./back/services/audit-svc
+    ports:
+      - "3014:3014"
+    environment:
+      <<: *common-env
+      PORT: "3014"
+      ELASTICSEARCH_URL: http://docker-elasticsearch-1:9200
+      KAFKA_GROUP_ID: audit-svc
+      KAFKA_CLIENT_ID: audit-svc
+      LOG_LEVEL: info
+
+  notification-web:
+    <<: *svc-defaults
+    build:
+      context: ./back/services/notification-web
+    ports:
+      - "3080:80"
+
+  # ─── Frontend ──────────────────────────────────────────────
+  erp-frontend:
+    <<: *svc-defaults
+    build:
+      context: ./front
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+
+  hr-frontend:
+    <<: *svc-defaults
+    build:
+      context: ./front
+      dockerfile: Dockerfile.hr
+    ports:
+      - "4003:4003"
+    environment:
+      NODE_ENV: production
+
+  finance-frontend:
+    <<: *svc-defaults
+    build:
+      context: ./front
+      dockerfile: Dockerfile.finance
+    ports:
+      - "4001:4001"
+    environment:
+      NODE_ENV: production
+
+  apar-frontend:
+    <<: *svc-defaults
+    build:
+      context: ./front
+      dockerfile: Dockerfile.apar
+    ports:
+      - "4002:4002"
+    environment:
+      NODE_ENV: production
+
+  inventory-frontend:
+    <<: *svc-defaults
+    build:
+      context: ./front
+      dockerfile: Dockerfile.inventory
+    ports:
+      - "4004:4004"
+    environment:
+      NODE_ENV: production
+
+  procurement-frontend:
+    <<: *svc-defaults
+    build:
+      context: ./front
+      dockerfile: Dockerfile.procurement
+    ports:
+      - "4005:4005"
+    environment:
+      NODE_ENV: production
+
+  manufacturing-frontend:
+    <<: *svc-defaults
+    build:
+      context: ./front
+      dockerfile: Dockerfile.manufacturing
+    ports:
+      - "4006:4006"
+    environment:
+      NODE_ENV: production
+
+  sales-frontend:
+    <<: *svc-defaults
+    build:
+      context: ./front
+      dockerfile: Dockerfile.sales
+    ports:
+      - "4007:4007"
+    environment:
+      NODE_ENV: production
+
+  projects-frontend:
+    <<: *svc-defaults
+    build:
+      context: ./front
+      dockerfile: Dockerfile.projects
+    ports:
+      - "4008:4008"
+    environment:
+      NODE_ENV: production
+
+  reports-frontend:
+    <<: *svc-defaults
+    build:
+      context: ./front
+      dockerfile: Dockerfile.reports
+    ports:
+      - "4009:4009"
+    environment:
+      NODE_ENV: production
+
+  workflow-frontend:
+    <<: *svc-defaults
+    build:
+      context: ./front
+      dockerfile: Dockerfile.workflow
+    ports:
+      - "4010:4010"
+    environment:
+      NODE_ENV: production
+
+  notifications-frontend:
+    <<: *svc-defaults
+    build:
+      context: ./front
+      dockerfile: Dockerfile.notifications
+    ports:
+      - "4011:4011"
+    environment:
+      NODE_ENV: production
+
+  files-frontend:
+    <<: *svc-defaults
+    build:
+      context: ./front
+      dockerfile: Dockerfile.files
+    ports:
+      - "4012:4012"
+    environment:
+      NODE_ENV: production
+
+  audit-frontend:
+    <<: *svc-defaults
+    build:
+      context: ./front
+      dockerfile: Dockerfile.audit
+    ports:
+      - "4013:4013"
+    environment:
+      NODE_ENV: production
+
+  integrations-frontend:
+    <<: *svc-defaults
+    build:
+      context: ./front
+      dockerfile: Dockerfile.integrations
+    ports:
+      - "4014:4014"
+    environment:
+      NODE_ENV: production
+
+networks:
+  infra:
+    external: true
+    name: docker_default

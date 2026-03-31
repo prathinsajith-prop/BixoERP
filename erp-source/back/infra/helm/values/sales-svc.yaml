@@ -1,0 +1,20 @@
+nameOverride: sales-svc
+
+image:
+  repository: erp/sales-svc
+
+service:
+  port: 3004
+  grpcPort: 50054
+
+database:
+  host: postgresql.erp-infra.svc.cluster.local
+  port: 5432
+  name: sales_db
+
+kafka:
+  groupId: sales-svc
+
+extraEnv:
+  - name: ES_NODE
+    value: "http://elasticsearch.erp-infra.svc.cluster.local:9200"

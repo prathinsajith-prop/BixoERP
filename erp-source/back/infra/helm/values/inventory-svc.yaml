@@ -1,0 +1,22 @@
+nameOverride: inventory-svc
+
+image:
+  repository: erp/inventory-svc
+
+service:
+  port: 3005
+  grpcPort: 50055
+
+database:
+  host: postgresql.erp-infra.svc.cluster.local
+  port: 5432
+  name: inventory_db
+
+kafka:
+  groupId: inventory-svc
+
+resources:
+  requests:
+    memory: 128Mi
+  limits:
+    memory: 256Mi

@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "erp.events.apar",
+  "title": "AP/AR Domain Events",
+  "description": "Kafka event contracts for apar-svc",
+  "definitions": {
+    "apar.vendor_invoice.received": {
+      "type": "object",
+      "required": ["vendor_invoice_id", "invoice_number", "vendor_id", "total_amount", "currency", "due_date"],
+      "properties": {
+        "vendor_invoice_id": { "type": "string", "format": "uuid" },
+        "invoice_number": { "type": "string" },
+        "vendor_id": { "type": "string", "format": "uuid" },
+        "vendor_name": { "type": "string" },
+        "purchase_order_id": { "type": "string", "format": "uuid" },
+        "total_amount": { "type": "string" },
+        "tax_amount": { "type": "string" },
+        "currency": { "type": "string" },
+        "due_date": { "type": "string", "format": "date" }
+      }
+    },
+    "apar.vendor_invoice.approved": {
+      "type": "object",
+      "required": ["vendor_invoice_id", "invoice_number", "approved_by"],
+      "properties": {
+        "vendor_invoice_id": { "type": "string", "format": "uuid" },
+        "invoice_number": { "type": "string" },
+        "approved_by": { "type": "string", "format": "uuid" },
+        "approved_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "apar.payment_run.created": {
+      "type": "object",
+      "required": ["payment_run_id", "payment_count", "total_amount", "currency"],
+      "properties": {
+        "payment_run_id": { "type": "string", "format": "uuid" },
+        "payment_count": { "type": "integer" },
+        "total_amount": { "type": "string" },
+        "currency": { "type": "string" },
+        "scheduled_date": { "type": "string", "format": "date" }
+      }
+    },
+    "apar.payment_run.executed": {
+      "type": "object",
+      "required": ["payment_run_id", "successful_count", "failed_count", "total_paid"],
+      "properties": {
+        "payment_run_id": { "type": "string", "format": "uuid" },
+        "successful_count": { "type": "integer" },
+        "failed_count": { "type": "integer" },
+        "total_paid": { "type": "string" },
+        "executed_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "apar.payment.completed": {
+      "type": "object",
+      "required": ["payment_id", "vendor_id", "amount", "currency", "payment_method"],
+      "properties": {
+        "payment_id": { "type": "string", "format": "uuid" },
+        "vendor_id": { "type": "string", "format": "uuid" },
+        "vendor_invoice_id": { "type": "string", "format": "uuid" },
+        "amount": { "type": "string" },
+        "currency": { "type": "string" },
+        "payment_method": { "type": "string", "enum": ["BANK_TRANSFER", "CHECK", "ACH", "WIRE"] },
+        "payment_reference": { "type": "string" },
+        "paid_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

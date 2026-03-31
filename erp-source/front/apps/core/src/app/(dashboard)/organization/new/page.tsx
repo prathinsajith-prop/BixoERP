@@ -1,0 +1,96 @@
+'use client';
+
+import { useState } from 'react';
+import PageHeader from '@/components/page-header';
+import { useRouter } from 'next/navigation';
+import { authApi } from '@/lib/api/auth';
+
+export default function CreateOrganizationPage() {
+  const router = useRouter();
+  const [form, setForm] = useState({ name: '', slug: '', description: '' });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const update = (field: string, value: string) => setForm((prev) => ({ ...prev, [field]: value }));
+
+  const generateSlug = (name: string) =>
+    name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+  const handleNameChange = (value: string) => {
+    update('name', value);
+    if (!form.slug || form.slug === generateSlug(form.name)) {
+      update('slug', generateSlug(value));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim()) { setError('Organization name is required.'); return; }
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await authApi.createOrganization({
+        name: form.name.trim(),
+        slug: form.slug.trim() || undefined,
+        description: form.description.trim() || undefined,
+      });
+      const orgId = res.data?.data?.id;
+      if (orgId) localStorage.setItem('organizationId', orgId);
+      const data = res.data?.data;
+      if (data?.accessToken) {
+        localStorage.setItem('accessToken', data.accessToken);
+        localStorage.setItem('refreshToken', data.refreshToken);
+        if (data.tenantId) localStorage.setItem('tenantId', data.tenantId);
+      }
+      router.push('/organization');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
+      setError(Array.isArray(msg) ? msg.join(', ') : (msg as string) || 'Failed to create organization.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Create Organization" subtitle="Set up a new organization" />
+      <button onClick={() => router.back()} className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-500 transition hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+        Back
+      </button>
+
+      <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700">
+
+
+        {error && (
+          <div className="mb-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200/60 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-800">{error}</div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Organization Name <span className="text-red-400">*</span>
+            </label>
+            <input type="text" value={form.name} onChange={(e) => handleNameChange(e.target.value)} placeholder="Acme Corporation" className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 dark:focus:ring-blue-900" maxLength={100} autoFocus />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Slug</label>
+            <input type="text" value={form.slug} onChange={(e) => update('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} placeholder="acme-corporation" className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 dark:focus:ring-blue-900" maxLength={100} />
+            <p className="mt-1 text-xs text-gray-400">URL-friendly identifier. Auto-generated from name if left blank.</p>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+            <textarea value={form.description} onChange={(e) => update('description', e.target.value)} placeholder="Brief description of the organization..." rows={3} className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 dark:focus:ring-blue-900 resize-none" maxLength={500} />
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button type="button" onClick={() => router.back()} className="rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">Cancel</button>
+            <button type="submit" disabled={saving || !form.name.trim()} className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50">{saving ? 'Creating...' : 'Create Organization'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

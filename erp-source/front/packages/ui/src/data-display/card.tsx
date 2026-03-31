@@ -1,0 +1,35 @@
+"use client";
+
+import React from "react";
+
+interface CardProps {
+  children: React.ReactNode;
+  className?: string;
+  padding?: boolean;
+}
+
+export function Card({ children, className = "", padding = true }: CardProps) {
+  return (
+    <div className={`bg-white rounded-xl border border-gray-200 shadow-sm ${padding ? "p-6" : ""} ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+interface CardHeaderProps {
+  title: string;
+  description?: string;
+  action?: React.ReactNode;
+}
+
+export function CardHeader({ title, description, action }: CardHeaderProps) {
+  return (
+    <div className="flex items-center justify-between mb-4">
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        {description && <p className="text-sm text-gray-500 mt-0.5">{description}</p>}
+      </div>
+      {action && <div>{action}</div>}
+    </div>
+  );
+}

@@ -1,0 +1,196 @@
+@import "tailwindcss";
+@source "../../../../packages/shell/src";
+@source "../../../../packages/ui/src";
+
+/* Enable class-based dark mode for Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─── Layout & Display System ─────────────────────────────── */
+:root { --base-font-size: 14px; }
+html { font-size: var(--base-font-size); }
+
+html.compact { --spacing-scale: 0.75; }
+html:not(.compact) { --spacing-scale: 1; }
+
+html.compact .p-4  { padding: calc(1rem * 0.75); }
+html.compact .p-6  { padding: calc(1.5rem * 0.75); }
+html.compact .p-8  { padding: calc(2rem * 0.75); }
+html.compact .px-4 { padding-left: calc(1rem * 0.75); padding-right: calc(1rem * 0.75); }
+html.compact .px-6 { padding-left: calc(1.5rem * 0.75); padding-right: calc(1.5rem * 0.75); }
+html.compact .px-8 { padding-left: calc(2rem * 0.75); padding-right: calc(2rem * 0.75); }
+html.compact .py-3 { padding-top: calc(0.75rem * 0.75); padding-bottom: calc(0.75rem * 0.75); }
+html.compact .py-4 { padding-top: calc(1rem * 0.75); padding-bottom: calc(1rem * 0.75); }
+html.compact .py-6 { padding-top: calc(1.5rem * 0.75); padding-bottom: calc(1.5rem * 0.75); }
+html.compact .gap-3 { gap: calc(0.75rem * 0.75); }
+html.compact .gap-4 { gap: calc(1rem * 0.75); }
+html.compact .gap-6 { gap: calc(1.5rem * 0.75); }
+html.compact .space-y-4 > * + * { margin-top: calc(1rem * 0.75); }
+html.compact .space-y-6 > * + * { margin-top: calc(1.5rem * 0.75); }
+html.compact .mb-6 { margin-bottom: calc(1.5rem * 0.75); }
+html.compact .mb-8 { margin-bottom: calc(2rem * 0.75); }
+html.compact .mt-6 { margin-top: calc(1.5rem * 0.75); }
+html.compact .text-sm { font-size: 0.8125rem; }
+html.compact .text-xs { font-size: 0.6875rem; }
+
+html.no-animations *,
+html.no-animations *::before,
+html.no-animations *::after {
+  animation-duration: 0s !important;
+  transition-duration: 0s !important;
+}
+
+html.reduced-motion *,
+html.reduced-motion *::before,
+html.reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.1s !important;
+}
+
+/* ─── Accent Color System ─────────────────────────────────── */
+:root {
+  --accent-50:  #eff6ff;
+  --accent-100: #dbeafe;
+  --accent-200: #bfdbfe;
+  --accent-300: #93c5fd;
+  --accent-400: #60a5fa;
+  --accent-500: #3b82f6;
+  --accent-600: #2563eb;
+  --accent-700: #1d4ed8;
+  --accent-800: #1e40af;
+  --accent-900: #1e3a8a;
+}
+
+/* Accent utility classes using CSS vars */
+.bg-accent-50  { background-color: var(--accent-50); }
+.bg-accent-100 { background-color: var(--accent-100); }
+.bg-accent-200 { background-color: var(--accent-200); }
+.bg-accent-500 { background-color: var(--accent-500); }
+.bg-accent-600 { background-color: var(--accent-600); }
+.bg-accent-700 { background-color: var(--accent-700); }
+
+.hover\:bg-accent-50:hover  { background-color: var(--accent-50); }
+.hover\:bg-accent-100:hover { background-color: var(--accent-100); }
+.hover\:bg-accent-700:hover { background-color: var(--accent-700); }
+
+.text-accent-400 { color: var(--accent-400); }
+.text-accent-500 { color: var(--accent-500); }
+.text-accent-600 { color: var(--accent-600); }
+.text-accent-700 { color: var(--accent-700); }
+.text-accent-800 { color: var(--accent-800); }
+.text-accent-900 { color: var(--accent-900); }
+
+.hover\:text-accent-600:hover { color: var(--accent-600); }
+.hover\:text-accent-700:hover { color: var(--accent-700); }
+.hover\:text-accent-800:hover { color: var(--accent-800); }
+
+.border-accent-100 { border-color: var(--accent-100); }
+.border-accent-200 { border-color: var(--accent-200); }
+.border-accent-300 { border-color: var(--accent-300); }
+.border-accent-400 { border-color: var(--accent-400); }
+.border-accent-500 { border-color: var(--accent-500); }
+.border-accent-600 { border-color: var(--accent-600); }
+
+.focus\:border-accent-500:focus { border-color: var(--accent-500); }
+
+.ring-accent-100 { --tw-ring-color: var(--accent-100); }
+.ring-accent-200 { --tw-ring-color: var(--accent-200); }
+.ring-accent-500 { --tw-ring-color: var(--accent-500); }
+.focus\:ring-accent-500:focus { --tw-ring-color: var(--accent-500); }
+
+.from-accent-500 { --tw-gradient-from: var(--accent-500); }
+.from-accent-600 { --tw-gradient-from: var(--accent-600); }
+.to-accent-500   { --tw-gradient-to: var(--accent-500); }
+.to-accent-600   { --tw-gradient-to: var(--accent-600); }
+
+/* Also remap blue-* utilities to accent for backward compat */
+[class~="bg-blue-50"]   { background-color: var(--accent-50) !important; }
+[class~="bg-blue-100"]  { background-color: var(--accent-100) !important; }
+[class~="bg-blue-200"]  { background-color: var(--accent-200) !important; }
+[class~="bg-blue-500"]  { background-color: var(--accent-500) !important; }
+[class~="bg-blue-600"]  { background-color: var(--accent-600) !important; }
+[class~="bg-blue-700"]  { background-color: var(--accent-700) !important; }
+[class~="hover:bg-blue-50"]:hover  { background-color: var(--accent-50) !important; }
+[class~="hover:bg-blue-100"]:hover { background-color: var(--accent-100) !important; }
+[class~="hover:bg-blue-700"]:hover { background-color: var(--accent-700) !important; }
+[class~="text-blue-500"]  { color: var(--accent-500) !important; }
+[class~="text-blue-600"]  { color: var(--accent-600) !important; }
+[class~="text-blue-700"]  { color: var(--accent-700) !important; }
+[class~="text-blue-800"]  { color: var(--accent-800) !important; }
+[class~="text-blue-900"]  { color: var(--accent-900) !important; }
+[class~="border-blue-200"]  { border-color: var(--accent-200) !important; }
+[class~="border-blue-300"]  { border-color: var(--accent-300) !important; }
+[class~="border-blue-500"]  { border-color: var(--accent-500) !important; }
+[class~="border-blue-600"]  { border-color: var(--accent-600) !important; }
+
+/* ─── Dark Mode Global Overrides ──────────────────────────── */
+html.dark { color-scheme: dark; }
+
+.dark [class~="bg-white"],
+.dark [class*="bg-white/"] { background-color: #1e293b; }
+.dark [class~="bg-gray-50"],
+.dark [class*="bg-gray-50/"],
+.dark [class~="bg-gray-100"] { background-color: #0f172a; }
+.dark [class~="bg-gray-200"] { background-color: #334155; }
+.dark [class~="bg-gray-300"] { background-color: #475569; }
+
+.dark [class~="bg-blue-50"]   { background-color: rgba(59,130,246,0.15); }
+.dark [class~="bg-green-50"]  { background-color: rgba(34,197,94,0.15); }
+.dark [class~="bg-red-50"]    { background-color: rgba(239,68,68,0.15); }
+.dark [class~="bg-yellow-50"] { background-color: rgba(234,179,8,0.15); }
+.dark [class~="bg-orange-50"] { background-color: rgba(249,115,22,0.15); }
+.dark [class~="bg-indigo-50"] { background-color: rgba(99,102,241,0.15); }
+.dark [class~="bg-purple-50"] { background-color: rgba(168,85,247,0.15); }
+
+.dark [class~="hover:bg-gray-50"]:hover,
+.dark [class~="hover:bg-gray-100"]:hover { background-color: #334155 !important; }
+.dark [class~="hover:bg-gray-200"]:hover { background-color: #475569 !important; }
+.dark [class~="hover:bg-white"]:hover { background-color: #334155 !important; }
+
+.dark [class~="text-gray-900"] { color: #f1f5f9; }
+.dark [class~="text-gray-800"] { color: #e2e8f0; }
+.dark [class~="text-gray-700"] { color: #cbd5e1; }
+.dark [class~="text-gray-600"] { color: #94a3b8; }
+.dark [class~="text-gray-500"] { color: #94a3b8; }
+.dark [class~="text-gray-400"] { color: #64748b; }
+
+.dark [class~="text-blue-700"]   { color: #93c5fd; }
+.dark [class~="text-blue-600"]   { color: #60a5fa; }
+.dark [class~="text-green-700"]  { color: #86efac; }
+.dark [class~="text-red-700"]    { color: #fca5a5; }
+.dark [class~="text-red-600"]    { color: #f87171; }
+.dark [class~="text-yellow-700"] { color: #fde68a; }
+
+.dark [class~="border-gray-200"],
+.dark [class*="border-gray-200/"],
+.dark [class~="border-gray-300"] { border-color: #334155; }
+.dark [class~="border-gray-100"],
+.dark [class~="border-gray-50"]  { border-color: #1e293b; }
+
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+.dark select,
+.dark textarea {
+  background-color: #0f172a;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+.dark ::placeholder { color: #64748b; }
+
+.dark [class~="divide-gray-200"] > * + *,
+.dark [class~="divide-gray-100"] > * + * { border-color: #334155; }
+
+.dark [class~="ring-gray-200"],
+.dark [class~="ring-gray-300"] { --tw-ring-color: #334155; }
+.dark [class~="ring-gray-100"] { --tw-ring-color: #1e293b; }
+
+.dark [class*="shadow-sm"],
+.dark [class~="shadow"],
+.dark [class~="shadow-md"],
+.dark [class~="shadow-lg"],
+.dark [class~="shadow-xl"] { --tw-shadow-color: rgba(0,0,0,0.4); }
+
+html.dark { scrollbar-color: #475569 #0f172a; }
+html.dark ::-webkit-scrollbar { width: 8px; height: 8px; }
+html.dark ::-webkit-scrollbar-track { background: #0f172a; }
+html.dark ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+html.dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }

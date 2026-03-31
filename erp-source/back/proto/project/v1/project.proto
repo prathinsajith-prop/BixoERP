@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package erp.project.v1;
+
+option go_package = "github.com/erp/proto/project/v1";
+
+service ProjectService {
+  rpc GetProject (GetProjectRequest) returns (ProjectResponse);
+  rpc GetProjectBudget (GetProjectBudgetRequest) returns (ProjectBudgetResponse);
+  rpc GetTimesheetSummary (GetTimesheetSummaryRequest) returns (TimesheetSummaryResponse);
+}
+
+message GetProjectRequest {
+  string tenant_id = 1;
+  string project_id = 2;
+}
+
+message ProjectResponse {
+  string project_id = 1;
+  string project_code = 2;
+  string name = 3;
+  string status = 4;
+  string manager_id = 5;
+  string start_date = 6;
+  string end_date = 7;
+  string budget_amount = 8;
+  string spent_amount = 9;
+  double completion_percentage = 10;
+}
+
+message GetProjectBudgetRequest {
+  string tenant_id = 1;
+  string project_id = 2;
+}
+
+message ProjectBudgetResponse {
+  string project_id = 1;
+  string allocated_budget = 2;
+  string committed_cost = 3;
+  string actual_cost = 4;
+  string remaining_budget = 5;
+  double variance_percentage = 6;
+}
+
+message GetTimesheetSummaryRequest {
+  string tenant_id = 1;
+  string project_id = 2;
+  string period_start = 3;
+  string period_end = 4;
+}
+
+message TimesheetSummaryResponse {
+  string project_id = 1;
+  double total_hours = 2;
+  double billable_hours = 3;
+  string labor_cost = 4;
+  repeated EmployeeTimeSummary by_employee = 5;
+}
+
+message EmployeeTimeSummary {
+  string employee_id = 1;
+  string employee_name = 2;
+  double hours = 3;
+  string cost = 4;
+}

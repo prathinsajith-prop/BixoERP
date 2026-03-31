@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "plugins": [{ "name": "next" }],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "preserve",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@erp/ui": ["../../packages/ui/src"],
+      "@erp/ui/*": ["../../packages/ui/src/*"],
+      "@erp/shared": ["../../packages/shared/src"],
+      "@erp/shared/*": ["../../packages/shared/src/*"],
+      "@erp/api-client": ["../../packages/api-client/src"],
+      "@erp/api-client/*": ["../../packages/api-client/src/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}

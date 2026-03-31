@@ -1,0 +1,108 @@
+# Default deny all ingress in erp-core namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: erp-core
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+# Allow traffic from gateway namespace to erp-core
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-ingress
+  namespace: erp-core
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: erp-gateway
+---
+# Allow inter-service communication within erp-core
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-intra-namespace
+  namespace: erp-core
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}
+---
+# Allow erp-core to access erp-infra (databases, kafka, redis)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-core-to-infra
+  namespace: erp-infra
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: erp-core
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: erp-platform
+---
+# Default deny in erp-platform
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: erp-platform
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+# Allow gateway to platform services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-ingress
+  namespace: erp-platform
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: erp-gateway
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: erp-core
+---
+# Allow observability to scrape metrics from all namespaces
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-scrape
+  namespace: erp-core
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: erp-observability
+      ports:
+        - protocol: TCP
+          port: 9090

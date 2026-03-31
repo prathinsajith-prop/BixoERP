@@ -1,0 +1,90 @@
+-- Create databases for each service that uses PostgreSQL
+CREATE DATABASE finance_db;
+CREATE DATABASE apar_db;
+CREATE DATABASE hr_db;
+CREATE DATABASE inventory_db;
+CREATE DATABASE procurement_db;
+CREATE DATABASE manufacturing_db;
+CREATE DATABASE sales_db;
+CREATE DATABASE project_db;
+CREATE DATABASE workflow_db;
+CREATE DATABASE files_db;
+CREATE DATABASE auth_db;
+
+-- Create a role for multi-tenant RLS enforcement
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'erp_app') THEN
+    CREATE ROLE erp_app LOGIN PASSWORD 'erp_app_password';
+  END IF;
+END
+$$;
+
+-- Grant connect on all databases
+GRANT CONNECT ON DATABASE finance_db TO erp_app;
+GRANT CONNECT ON DATABASE apar_db TO erp_app;
+GRANT CONNECT ON DATABASE hr_db TO erp_app;
+GRANT CONNECT ON DATABASE inventory_db TO erp_app;
+GRANT CONNECT ON DATABASE procurement_db TO erp_app;
+GRANT CONNECT ON DATABASE manufacturing_db TO erp_app;
+GRANT CONNECT ON DATABASE sales_db TO erp_app;
+GRANT CONNECT ON DATABASE project_db TO erp_app;
+GRANT CONNECT ON DATABASE workflow_db TO erp_app;
+GRANT CONNECT ON DATABASE files_db TO erp_app;
+GRANT CONNECT ON DATABASE auth_db TO erp_app;
+
+-- Grant schema and table privileges on each database
+\connect finance_db
+GRANT ALL ON SCHEMA public TO erp_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO erp_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO erp_app;
+
+\connect apar_db
+GRANT ALL ON SCHEMA public TO erp_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO erp_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO erp_app;
+
+\connect hr_db
+GRANT ALL ON SCHEMA public TO erp_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO erp_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO erp_app;
+
+\connect inventory_db
+GRANT ALL ON SCHEMA public TO erp_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO erp_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO erp_app;
+
+\connect procurement_db
+GRANT ALL ON SCHEMA public TO erp_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO erp_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO erp_app;
+
+\connect manufacturing_db
+GRANT ALL ON SCHEMA public TO erp_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO erp_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO erp_app;
+
+\connect sales_db
+GRANT ALL ON SCHEMA public TO erp_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO erp_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO erp_app;
+
+\connect project_db
+GRANT ALL ON SCHEMA public TO erp_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO erp_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO erp_app;
+
+\connect workflow_db
+GRANT ALL ON SCHEMA public TO erp_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO erp_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO erp_app;
+
+\connect files_db
+GRANT ALL ON SCHEMA public TO erp_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO erp_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO erp_app;
+
+\connect auth_db
+GRANT ALL ON SCHEMA public TO erp_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO erp_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO erp_app;

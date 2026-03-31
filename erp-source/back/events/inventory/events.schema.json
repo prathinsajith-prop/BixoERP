@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "erp.events.inventory",
+  "title": "Inventory Domain Events",
+  "description": "Kafka event contracts for inventory-svc",
+  "definitions": {
+    "inventory.stock.received": {
+      "type": "object",
+      "required": ["movement_id", "item_id", "warehouse_id", "quantity", "reference_type", "reference_id"],
+      "properties": {
+        "movement_id": { "type": "string", "format": "uuid" },
+        "item_id": { "type": "string", "format": "uuid" },
+        "item_code": { "type": "string" },
+        "warehouse_id": { "type": "string", "format": "uuid" },
+        "quantity": { "type": "number" },
+        "unit_cost": { "type": "string" },
+        "reference_type": { "type": "string", "enum": ["PURCHASE_ORDER", "MANUFACTURING", "RETURN", "ADJUSTMENT"] },
+        "reference_id": { "type": "string", "format": "uuid" },
+        "new_on_hand": { "type": "number" }
+      }
+    },
+    "inventory.stock.issued": {
+      "type": "object",
+      "required": ["movement_id", "item_id", "warehouse_id", "quantity", "reference_type", "reference_id"],
+      "properties": {
+        "movement_id": { "type": "string", "format": "uuid" },
+        "item_id": { "type": "string", "format": "uuid" },
+        "item_code": { "type": "string" },
+        "warehouse_id": { "type": "string", "format": "uuid" },
+        "quantity": { "type": "number" },
+        "unit_cost": { "type": "string" },
+        "reference_type": { "type": "string", "enum": ["SALES_ORDER", "MANUFACTURING", "TRANSFER", "ADJUSTMENT"] },
+        "reference_id": { "type": "string", "format": "uuid" },
+        "new_on_hand": { "type": "number" }
+      }
+    },
+    "inventory.stock.transferred": {
+      "type": "object",
+      "required": ["transfer_id", "item_id", "from_warehouse_id", "to_warehouse_id", "quantity"],
+      "properties": {
+        "transfer_id": { "type": "string", "format": "uuid" },
+        "item_id": { "type": "string", "format": "uuid" },
+        "from_warehouse_id": { "type": "string", "format": "uuid" },
+        "to_warehouse_id": { "type": "string", "format": "uuid" },
+        "quantity": { "type": "number" }
+      }
+    },
+    "inventory.stock.below_reorder": {
+      "type": "object",
+      "required": ["item_id", "warehouse_id", "current_quantity", "reorder_point", "reorder_quantity"],
+      "properties": {
+        "item_id": { "type": "string", "format": "uuid" },
+        "item_code": { "type": "string" },
+        "item_name": { "type": "string" },
+        "warehouse_id": { "type": "string", "format": "uuid" },
+        "current_quantity": { "type": "number" },
+        "reorder_point": { "type": "number" },
+        "reorder_quantity": { "type": "number" }
+      }
+    },
+    "inventory.stock.adjusted": {
+      "type": "object",
+      "required": ["adjustment_id", "item_id", "warehouse_id", "old_quantity", "new_quantity", "reason"],
+      "properties": {
+        "adjustment_id": { "type": "string", "format": "uuid" },
+        "item_id": { "type": "string", "format": "uuid" },
+        "warehouse_id": { "type": "string", "format": "uuid" },
+        "old_quantity": { "type": "number" },
+        "new_quantity": { "type": "number" },
+        "reason": { "type": "string" },
+        "adjusted_by": { "type": "string", "format": "uuid" }
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+nameOverride: integration-svc
+
+image:
+  repository: erp/integration-svc
+
+service:
+  port: 3012
+  grpcPort: 50062
+
+database:
+  host: mongodb.erp-infra.svc.cluster.local
+  port: 27017
+  name: integration_db
+
+kafka:
+  groupId: integration-svc

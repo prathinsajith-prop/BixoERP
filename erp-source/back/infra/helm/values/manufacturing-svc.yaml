@@ -1,0 +1,26 @@
+nameOverride: manufacturing-svc
+
+image:
+  repository: erp/manufacturing-svc
+
+service:
+  port: 3007
+  grpcPort: 50057
+
+database:
+  host: postgresql.erp-infra.svc.cluster.local
+  port: 5432
+  name: manufacturing_db
+
+kafka:
+  groupId: manufacturing-svc
+
+resources:
+  requests:
+    memory: 512Mi
+  limits:
+    memory: 1Gi
+
+extraEnv:
+  - name: JAVA_OPTS
+    value: "-Xms256m -Xmx512m"

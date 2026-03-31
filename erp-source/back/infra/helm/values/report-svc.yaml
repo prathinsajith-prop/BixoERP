@@ -1,0 +1,20 @@
+nameOverride: report-svc
+
+image:
+  repository: erp/report-svc
+
+service:
+  port: 3013
+  grpcPort: 0
+
+database:
+  host: clickhouse.erp-infra.svc.cluster.local
+  port: 8123
+  name: erp_reports
+
+kafka:
+  groupId: report-svc
+
+resources:
+  requests:
+    memory: 256Mi

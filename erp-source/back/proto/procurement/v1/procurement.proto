@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package erp.procurement.v1;
+
+option java_package = "com.erp.proto.procurement.v1";
+option go_package = "github.com/erp/proto/procurement/v1";
+
+service ProcurementService {
+  rpc GetPurchaseOrder (GetPurchaseOrderRequest) returns (PurchaseOrderResponse);
+  rpc GetVendor (GetVendorRequest) returns (VendorResponse);
+  rpc GetGoodsReceipt (GetGoodsReceiptRequest) returns (GoodsReceiptResponse);
+}
+
+message GetPurchaseOrderRequest {
+  string tenant_id = 1;
+  string purchase_order_id = 2;
+}
+
+message PurchaseOrderResponse {
+  string purchase_order_id = 1;
+  string po_number = 2;
+  string vendor_id = 3;
+  string vendor_name = 4;
+  string status = 5; // DRAFT, PENDING_APPROVAL, APPROVED, SENT, PARTIALLY_RECEIVED, RECEIVED, CANCELLED
+  string currency = 6;
+  string total_amount = 7;
+  repeated PurchaseOrderLineResponse lines = 8;
+}
+
+message PurchaseOrderLineResponse {
+  string line_id = 1;
+  string item_id = 2;
+  string item_name = 3;
+  double quantity_ordered = 4;
+  double quantity_received = 5;
+  string unit_price = 6;
+  string line_total = 7;
+}
+
+message GetVendorRequest {
+  string tenant_id = 1;
+  string vendor_id = 2;
+}
+
+message VendorResponse {
+  string vendor_id = 1;
+  string vendor_code = 2;
+  string name = 3;
+  string email = 4;
+  string payment_terms = 5;
+  string status = 6;
+}
+
+message GetGoodsReceiptRequest {
+  string tenant_id = 1;
+  string goods_receipt_id = 2;
+}
+
+message GoodsReceiptResponse {
+  string goods_receipt_id = 1;
+  string grn_number = 2;
+  string purchase_order_id = 3;
+  string warehouse_id = 4;
+  string status = 5;
+  repeated GoodsReceiptLineResponse lines = 6;
+}
+
+message GoodsReceiptLineResponse {
+  string line_id = 1;
+  string item_id = 2;
+  double quantity_received = 3;
+  double quantity_accepted = 4;
+  double quantity_rejected = 5;
+}

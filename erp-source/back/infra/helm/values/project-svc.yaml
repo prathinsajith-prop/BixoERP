@@ -1,0 +1,16 @@
+nameOverride: project-svc
+
+image:
+  repository: erp/project-svc
+
+service:
+  port: 3008
+  grpcPort: 50058
+
+database:
+  host: postgresql.erp-infra.svc.cluster.local
+  port: 5432
+  name: project_db
+
+kafka:
+  groupId: project-svc

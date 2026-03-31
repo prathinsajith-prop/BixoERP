@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package erp.finance.v1;
+
+option go_package = "github.com/erp/proto/finance/v1";
+
+service FinanceService {
+  rpc GetAccountBalance (GetAccountBalanceRequest) returns (AccountBalanceResponse);
+  rpc GetTrialBalance (GetTrialBalanceRequest) returns (TrialBalanceResponse);
+  rpc GetPeriodStatus (GetPeriodStatusRequest) returns (PeriodStatusResponse);
+}
+
+message GetAccountBalanceRequest {
+  string tenant_id = 1;
+  string account_id = 2;
+  string as_of_date = 3; // ISO date
+}
+
+message AccountBalanceResponse {
+  string account_id = 1;
+  string account_code = 2;
+  string account_name = 3;
+  string balance = 4; // NUMERIC as string
+  string currency = 5;
+  string normal_balance = 6; // DEBIT or CREDIT
+}
+
+message GetTrialBalanceRequest {
+  string tenant_id = 1;
+  int32 fiscal_year = 2;
+  int32 fiscal_month = 3;
+}
+
+message TrialBalanceResponse {
+  repeated TrialBalanceLine lines = 1;
+  string total_debits = 2;
+  string total_credits = 3;
+}
+
+message TrialBalanceLine {
+  string account_id = 1;
+  string account_code = 2;
+  string account_name = 3;
+  string debit_balance = 4;
+  string credit_balance = 5;
+}
+
+message GetPeriodStatusRequest {
+  string tenant_id = 1;
+  int32 fiscal_year = 2;
+  int32 fiscal_month = 3;
+}
+
+message PeriodStatusResponse {
+  int32 fiscal_year = 1;
+  int32 fiscal_month = 2;
+  string status = 3; // OPEN, SOFT_CLOSED, HARD_CLOSED
+}

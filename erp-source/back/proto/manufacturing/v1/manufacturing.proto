@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package erp.manufacturing.v1;
+
+option java_package = "com.erp.proto.manufacturing.v1";
+option go_package = "github.com/erp/proto/manufacturing/v1";
+
+service ManufacturingService {
+  rpc GetBillOfMaterials (GetBomRequest) returns (BomResponse);
+  rpc GetWorkOrder (GetWorkOrderRequest) returns (WorkOrderResponse);
+  rpc GetProductionCost (GetProductionCostRequest) returns (ProductionCostResponse);
+}
+
+message GetBomRequest {
+  string tenant_id = 1;
+  string bom_id = 2;
+}
+
+message BomResponse {
+  string bom_id = 1;
+  string bom_number = 2;
+  string product_id = 3;
+  string product_name = 4;
+  string status = 5;
+  int32 version = 6;
+  repeated BomLineResponse lines = 7;
+}
+
+message BomLineResponse {
+  string line_id = 1;
+  string material_id = 2;
+  string material_name = 3;
+  double quantity = 4;
+  string unit_of_measure = 5;
+  double scrap_percentage = 6;
+}
+
+message GetWorkOrderRequest {
+  string tenant_id = 1;
+  string work_order_id = 2;
+}
+
+message WorkOrderResponse {
+  string work_order_id = 1;
+  string wo_number = 2;
+  string bom_id = 3;
+  string product_id = 4;
+  double quantity_planned = 5;
+  double quantity_produced = 6;
+  string status = 7; // PLANNED, RELEASED, IN_PROGRESS, COMPLETED, CANCELLED
+  string start_date = 8;
+  string end_date = 9;
+}
+
+message GetProductionCostRequest {
+  string tenant_id = 1;
+  string work_order_id = 2;
+}
+
+message ProductionCostResponse {
+  string work_order_id = 1;
+  string material_cost = 2;
+  string labor_cost = 3;
+  string overhead_cost = 4;
+  string total_cost = 5;
+  string cost_per_unit = 6;
+}

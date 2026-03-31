@@ -1,0 +1,32 @@
+[project]
+name = "report-svc"
+version = "1.0.0"
+description = "CQRS read-model reporting microservice — ClickHouse analytics, dashboards, financial & operational reports"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi==0.115.6",
+    "uvicorn[standard]==0.34.0",
+    "clickhouse-connect==0.8.14",
+    "aiokafka==0.12.0",
+    "redis[hiredis]==5.2.1",
+    "PyJWT==2.10.1",
+    "pydantic==2.10.4",
+    "pydantic-settings==2.7.1",
+    "httpx==0.28.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.4",
+    "pytest-asyncio==0.25.0",
+    "httpx==0.28.1",
+    "ruff==0.8.6",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

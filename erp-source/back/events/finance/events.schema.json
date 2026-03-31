@@ -1,0 +1,97 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "erp.events.finance",
+  "title": "Finance Domain Events",
+  "description": "Kafka event contracts for finance-svc",
+  "definitions": {
+    "finance.journal_entry.posted": {
+      "type": "object",
+      "required": ["journal_entry_id", "entry_number", "fiscal_period", "total_debit", "total_credit", "currency", "line_count"],
+      "properties": {
+        "journal_entry_id": { "type": "string", "format": "uuid" },
+        "entry_number": { "type": "string" },
+        "fiscal_period": { "type": "string", "pattern": "^\\d{4}-\\d{2}$" },
+        "description": { "type": "string" },
+        "total_debit": { "type": "string", "pattern": "^\\d+\\.\\d{4}$" },
+        "total_credit": { "type": "string", "pattern": "^\\d+\\.\\d{4}$" },
+        "currency": { "type": "string", "minLength": 3, "maxLength": 3 },
+        "line_count": { "type": "integer" },
+        "posted_at": { "type": "string", "format": "date-time" },
+        "posted_by": { "type": "string", "format": "uuid" }
+      }
+    },
+    "finance.journal_entry.reversed": {
+      "type": "object",
+      "required": ["journal_entry_id", "reversal_entry_id", "reason"],
+      "properties": {
+        "journal_entry_id": { "type": "string", "format": "uuid" },
+        "reversal_entry_id": { "type": "string", "format": "uuid" },
+        "reason": { "type": "string" },
+        "reversed_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "finance.invoice.created": {
+      "type": "object",
+      "required": ["invoice_id", "invoice_number", "customer_id", "total_amount", "currency", "due_date"],
+      "properties": {
+        "invoice_id": { "type": "string", "format": "uuid" },
+        "invoice_number": { "type": "string" },
+        "customer_id": { "type": "string", "format": "uuid" },
+        "total_amount": { "type": "string" },
+        "tax_amount": { "type": "string" },
+        "currency": { "type": "string", "minLength": 3, "maxLength": 3 },
+        "due_date": { "type": "string", "format": "date" },
+        "line_count": { "type": "integer" }
+      }
+    },
+    "finance.invoice.paid": {
+      "type": "object",
+      "required": ["invoice_id", "invoice_number", "amount_paid", "payment_method"],
+      "properties": {
+        "invoice_id": { "type": "string", "format": "uuid" },
+        "invoice_number": { "type": "string" },
+        "amount_paid": { "type": "string" },
+        "payment_method": { "type": "string", "enum": ["BANK_TRANSFER", "CHECK", "CREDIT_CARD", "CASH"] },
+        "payment_reference": { "type": "string" },
+        "remaining_balance": { "type": "string" },
+        "paid_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "finance.invoice.overdue": {
+      "type": "object",
+      "required": ["invoice_id", "invoice_number", "customer_id", "amount_due", "days_overdue"],
+      "properties": {
+        "invoice_id": { "type": "string", "format": "uuid" },
+        "invoice_number": { "type": "string" },
+        "customer_id": { "type": "string", "format": "uuid" },
+        "amount_due": { "type": "string" },
+        "days_overdue": { "type": "integer" },
+        "aging_bucket": { "type": "string", "enum": ["1-30", "31-60", "61-90", "90+"] }
+      }
+    },
+    "finance.period.closed": {
+      "type": "object",
+      "required": ["fiscal_period", "closed_by"],
+      "properties": {
+        "fiscal_period": { "type": "string", "pattern": "^\\d{4}-\\d{2}$" },
+        "closed_by": { "type": "string", "format": "uuid" },
+        "closed_at": { "type": "string", "format": "date-time" },
+        "journal_entry_count": { "type": "integer" },
+        "total_debits": { "type": "string" },
+        "total_credits": { "type": "string" }
+      }
+    },
+    "finance.budget.exceeded": {
+      "type": "object",
+      "required": ["budget_id", "account_id", "fiscal_period", "budget_amount", "actual_amount"],
+      "properties": {
+        "budget_id": { "type": "string", "format": "uuid" },
+        "account_id": { "type": "string", "format": "uuid" },
+        "fiscal_period": { "type": "string" },
+        "budget_amount": { "type": "string" },
+        "actual_amount": { "type": "string" },
+        "variance_percentage": { "type": "number" }
+      }
+    }
+  }
+}

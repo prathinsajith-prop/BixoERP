@@ -1,0 +1,128 @@
+import { MigrationInterface, QueryRunner } from "typeorm";
+
+export class InitialSchema1774937592686 implements MigrationInterface {
+    name = 'InitialSchema1774937592686'
+
+    public async up(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`CREATE TABLE "users" ("id" uuid NOT NULL, "tenant_id" uuid NOT NULL, "email" character varying(255) NOT NULL, "hashed_password" character varying(255) NOT NULL, "first_name" character varying(100) NOT NULL, "last_name" character varying(100) NOT NULL, "status" character varying(30) NOT NULL DEFAULT 'PENDING_VERIFICATION', "roles" uuid array NOT NULL DEFAULT '{}', "failed_login_attempts" integer NOT NULL DEFAULT '0', "last_login_at" TIMESTAMP WITH TIME ZONE, "password_changed_at" TIMESTAMP WITH TIME ZONE NOT NULL, "email_verified_at" TIMESTAMP WITH TIME ZONE, "locked_until" TIMESTAMP WITH TIME ZONE, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_a3ffb1c0c8416b9fc6f907b7433" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_109638590074998bb72a2f2cf0" ON "users" ("tenant_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_97672ac88f789774dd47f7c8be" ON "users" ("email") `);
+        await queryRunner.query(`CREATE TABLE "roles" ("id" uuid NOT NULL, "tenant_id" uuid NOT NULL, "name" character varying(100) NOT NULL, "description" text NOT NULL DEFAULT '', "permissions" uuid array NOT NULL DEFAULT '{}', "is_system" boolean NOT NULL DEFAULT false, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_c1433d71a4838793a49dcad46ab" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_e59a01f4fe46ebbece575d9a0f" ON "roles" ("tenant_id") `);
+        await queryRunner.query(`CREATE TABLE "permissions" ("id" uuid NOT NULL, "tenant_id" uuid NOT NULL, "resource" character varying(100) NOT NULL, "action" character varying(50) NOT NULL, "description" text NOT NULL DEFAULT '', "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "UQ_97e8245c6892a1bf6b088b8c865" UNIQUE ("tenant_id", "resource", "action"), CONSTRAINT "PK_920331560282b8bd21bb02290df" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_c9d5c0d09e27afdb707a2a8837" ON "permissions" ("tenant_id") `);
+        await queryRunner.query(`CREATE TABLE "refresh_tokens" ("id" uuid NOT NULL, "tenant_id" uuid NOT NULL, "user_id" uuid NOT NULL, "token_hash" character varying(128) NOT NULL, "expires_at" TIMESTAMP WITH TIME ZONE NOT NULL, "revoked_at" TIMESTAMP WITH TIME ZONE, "replaced_by_token_id" uuid, "user_agent" text, "ip_address" character varying(45), "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_7d8bee0204106019488c4c50ffa" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_5a8595644958acb2c80e175778" ON "refresh_tokens" ("tenant_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_3ddc983c5f7bcf132fd8732c3f" ON "refresh_tokens" ("user_id") `);
+        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_a7838d2ba25be1342091b6695f" ON "refresh_tokens" ("token_hash") `);
+        await queryRunner.query(`CREATE TABLE "outbox_events" ("id" uuid NOT NULL, "tenant_id" uuid NOT NULL, "topic" character varying(100) NOT NULL, "payload" jsonb NOT NULL, "published" boolean NOT NULL DEFAULT false, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_6689a16c00d09b8089f6237f1d2" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_d02ad1ef31dd2bf74be842f8a7" ON "outbox_events" ("tenant_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_fb43b8bdeb3e847b99bfdec561" ON "outbox_events" ("published") `);
+        await queryRunner.query(`CREATE TABLE "processed_events" ("event_id" uuid NOT NULL, "event_type" character varying(100) NOT NULL, "processed_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_585a690352092645ee665d70ac2" PRIMARY KEY ("event_id"))`);
+        await queryRunner.query(`CREATE TABLE "user_settings" ("id" uuid NOT NULL, "tenant_id" uuid NOT NULL, "user_id" uuid NOT NULL, "settings" jsonb NOT NULL DEFAULT '{}', "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "UQ_4ed056b9344e6f7d8d46ec4b302" UNIQUE ("user_id"), CONSTRAINT "PK_00f004f5922a0744d174530d639" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_15232ccfa286f53cb415abba2f" ON "user_settings" ("tenant_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_4ed056b9344e6f7d8d46ec4b30" ON "user_settings" ("user_id") `);
+        await queryRunner.query(`CREATE TABLE "user_profiles" ("id" uuid NOT NULL, "tenant_id" uuid NOT NULL, "user_id" uuid NOT NULL, "profile" jsonb NOT NULL DEFAULT '{}', "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "UQ_6ca9503d77ae39b4b5a6cc3ba88" UNIQUE ("user_id"), CONSTRAINT "PK_1ec6662219f4605723f1e41b6cb" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_0047a332edda010ae29c24d0c1" ON "user_profiles" ("tenant_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_6ca9503d77ae39b4b5a6cc3ba8" ON "user_profiles" ("user_id") `);
+        await queryRunner.query(`CREATE TABLE "two_factor_auth" ("id" uuid NOT NULL, "tenant_id" uuid NOT NULL, "user_id" uuid NOT NULL, "encrypted_secret" text NOT NULL, "recovery_codes" text array NOT NULL DEFAULT '{}', "enabled" boolean NOT NULL DEFAULT false, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "UQ_64385b800e675d22928d1e1cecf" UNIQUE ("user_id"), CONSTRAINT "PK_ac930594b4dbe3771cf16cd108d" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_7abbd4fdeb1501e538727e191f" ON "two_factor_auth" ("tenant_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_64385b800e675d22928d1e1cec" ON "two_factor_auth" ("user_id") `);
+        await queryRunner.query(`CREATE TABLE "social_accounts" ("id" uuid NOT NULL, "tenant_id" uuid NOT NULL, "user_id" uuid NOT NULL, "provider" character varying(20) NOT NULL, "provider_account_id" character varying(255) NOT NULL, "email" character varying(255) NOT NULL, "display_name" character varying(255), "avatar_url" text, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "UQ_6c718d4de264fd6b22314c1ebca" UNIQUE ("tenant_id", "provider", "provider_account_id"), CONSTRAINT "PK_e9e58d2d8e9fafa20af914d9750" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_2299331ad1b272f712c291ff74" ON "social_accounts" ("tenant_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_05a0f282d3bed93ca048a7e54d" ON "social_accounts" ("user_id") `);
+        await queryRunner.query(`CREATE TABLE "organizations" ("id" uuid NOT NULL, "name" character varying(200) NOT NULL, "slug" character varying(200) NOT NULL, "description" character varying(500) NOT NULL DEFAULT '', "status" character varying(30) NOT NULL DEFAULT 'ACTIVE', "owner_id" uuid NOT NULL, "primary_color" character varying(7) NOT NULL DEFAULT '#2563eb', "secondary_color" character varying(7) NOT NULL DEFAULT '#1e40af', "accent_color" character varying(7) NOT NULL DEFAULT '#3b82f6', "logo_url" character varying(500) NOT NULL DEFAULT '', "favicon_url" character varying(500) NOT NULL DEFAULT '', "custom_css" text NOT NULL DEFAULT '', "settings" jsonb NOT NULL DEFAULT '{}', "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_6b031fcd0863e3f6b44230163f9" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_963693341bd612aa01ddf3a4b6" ON "organizations" ("slug") `);
+        await queryRunner.query(`CREATE TABLE "user_organizations" ("id" uuid NOT NULL, "user_id" uuid NOT NULL, "organization_id" uuid NOT NULL, "role" character varying(30) NOT NULL DEFAULT 'MEMBER', "joined_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_51ed3f60fdf013ee5041d2d4d3d" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_6881b23cd1a8924e4bf61515fb" ON "user_organizations" ("user_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_9dae16cdea66aeba1eb6f6ddf2" ON "user_organizations" ("organization_id") `);
+        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_f143fa57706c0fb840301ad704" ON "user_organizations" ("user_id", "organization_id") `);
+        await queryRunner.query(`CREATE TABLE "departments" ("id" uuid NOT NULL, "tenant_id" uuid NOT NULL, "organization_id" uuid NOT NULL, "division_id" uuid, "name" character varying(200) NOT NULL, "code" character varying(50) NOT NULL, "description" text NOT NULL DEFAULT '', "head_user_id" uuid, "status" character varying(20) NOT NULL DEFAULT 'ACTIVE', "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_839517a681a86bb84cbcc6a1e9d" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_146fd7019eea73f8ee7bbb52d4" ON "departments" ("tenant_id") `);
+        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_9177ae9ab774a6ebaa54fd6511" ON "departments" ("tenant_id", "organization_id", "code") `);
+        await queryRunner.query(`CREATE INDEX "IDX_a3bcd684d8fa220d369ef028da" ON "departments" ("tenant_id", "organization_id") `);
+        await queryRunner.query(`CREATE TABLE "divisions" ("id" uuid NOT NULL, "tenant_id" uuid NOT NULL, "organization_id" uuid NOT NULL, "name" character varying(200) NOT NULL, "code" character varying(50) NOT NULL, "description" text NOT NULL DEFAULT '', "head_user_id" uuid, "status" character varying(20) NOT NULL DEFAULT 'ACTIVE', "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_c1f864477b3fd0954564108ed96" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_02df2984882dd84bc75cac9c78" ON "divisions" ("tenant_id") `);
+        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_087fd0134100768c4794f57846" ON "divisions" ("tenant_id", "organization_id", "code") `);
+        await queryRunner.query(`CREATE INDEX "IDX_1640b2c83adb4c88b81a5a8de7" ON "divisions" ("tenant_id", "organization_id") `);
+        await queryRunner.query(`CREATE TABLE "teams" ("id" uuid NOT NULL, "tenant_id" uuid NOT NULL, "organization_id" uuid NOT NULL, "department_id" uuid, "name" character varying(200) NOT NULL, "code" character varying(50) NOT NULL, "description" text NOT NULL DEFAULT '', "lead_user_id" uuid, "status" character varying(20) NOT NULL DEFAULT 'ACTIVE', "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_7e5523774a38b08a6236d322403" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_11c78d7c145fb2c24ae04b17c0" ON "teams" ("tenant_id") `);
+        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_cb962c7a77a445da42523ce236" ON "teams" ("tenant_id", "organization_id", "code") `);
+        await queryRunner.query(`CREATE INDEX "IDX_6efec8361674597724a1a030d5" ON "teams" ("tenant_id", "organization_id") `);
+        await queryRunner.query(`CREATE TABLE "audit_logs" ("id" uuid NOT NULL, "tenant_id" uuid NOT NULL, "user_id" uuid NOT NULL, "user_name" character varying(200) NOT NULL DEFAULT '', "action" character varying(100) NOT NULL, "description" text NOT NULL DEFAULT '', "entity_type" character varying(100) NOT NULL DEFAULT '', "entity_id" character varying(100) NOT NULL DEFAULT '', "ip_address" character varying(50) NOT NULL DEFAULT '', "metadata" jsonb NOT NULL DEFAULT '{}', "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_1bb179d048bbc581caa3b013439" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_6f18d459490bb48923b1f40bdb" ON "audit_logs" ("tenant_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_bd2726fd31b35443f2245b93ba" ON "audit_logs" ("user_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_cee5459245f652b75eb2759b4c" ON "audit_logs" ("action") `);
+        await queryRunner.query(`CREATE INDEX "IDX_2cd10fda8276bb995288acfbfb" ON "audit_logs" ("created_at") `);
+        await queryRunner.query(`CREATE TABLE "manager_assignments" ("id" uuid NOT NULL, "tenant_id" uuid NOT NULL, "entity_type" character varying(30) NOT NULL, "entity_id" uuid NOT NULL, "user_id" uuid NOT NULL, "role" character varying(30) NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_36601d6a36d75606ba535cb033a" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_12d3484e8dc804cb77993942c4" ON "manager_assignments" ("tenant_id") `);
+        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_b052b5fd2dfac33bcdc53633f8" ON "manager_assignments" ("tenant_id", "entity_type", "entity_id", "user_id", "role") `);
+        await queryRunner.query(`CREATE INDEX "IDX_33f37fadf3ac9dbc78f20c364f" ON "manager_assignments" ("tenant_id", "user_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_93873a50fa47ce7ae4956932ad" ON "manager_assignments" ("tenant_id", "entity_type", "entity_id") `);
+        await queryRunner.query(`CREATE TABLE "manager_settings" ("id" uuid NOT NULL, "tenant_id" uuid NOT NULL, "user_id" uuid NOT NULL, "entity_type" character varying(30) NOT NULL DEFAULT 'global', "entity_id" uuid, "notify_member_join" boolean NOT NULL DEFAULT true, "notify_member_leave" boolean NOT NULL DEFAULT true, "notify_task_assigned" boolean NOT NULL DEFAULT true, "notify_approval_request" boolean NOT NULL DEFAULT true, "notify_escalation" boolean NOT NULL DEFAULT true, "notify_report_ready" boolean NOT NULL DEFAULT true, "auto_approve_leave" boolean NOT NULL DEFAULT false, "auto_approve_expense" boolean NOT NULL DEFAULT false, "delegate_to_user_id" uuid, "delegation_active" boolean NOT NULL DEFAULT false, "visible_in_directory" boolean NOT NULL DEFAULT true, "receive_weekly_summary" boolean NOT NULL DEFAULT true, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_4315792e0ca8a0f054a0d9de980" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_bd69a8625f85cb291d1bf0a0cb" ON "manager_settings" ("tenant_id") `);
+        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_abe0ddcfd86e26c67e40df9c84" ON "manager_settings" ("tenant_id", "user_id", "entity_type", "entity_id") `);
+    }
+
+    public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`DROP INDEX "public"."IDX_abe0ddcfd86e26c67e40df9c84"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_bd69a8625f85cb291d1bf0a0cb"`);
+        await queryRunner.query(`DROP TABLE "manager_settings"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_93873a50fa47ce7ae4956932ad"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_33f37fadf3ac9dbc78f20c364f"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_b052b5fd2dfac33bcdc53633f8"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_12d3484e8dc804cb77993942c4"`);
+        await queryRunner.query(`DROP TABLE "manager_assignments"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_2cd10fda8276bb995288acfbfb"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_cee5459245f652b75eb2759b4c"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_bd2726fd31b35443f2245b93ba"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_6f18d459490bb48923b1f40bdb"`);
+        await queryRunner.query(`DROP TABLE "audit_logs"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_6efec8361674597724a1a030d5"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_cb962c7a77a445da42523ce236"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_11c78d7c145fb2c24ae04b17c0"`);
+        await queryRunner.query(`DROP TABLE "teams"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_1640b2c83adb4c88b81a5a8de7"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_087fd0134100768c4794f57846"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_02df2984882dd84bc75cac9c78"`);
+        await queryRunner.query(`DROP TABLE "divisions"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_a3bcd684d8fa220d369ef028da"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_9177ae9ab774a6ebaa54fd6511"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_146fd7019eea73f8ee7bbb52d4"`);
+        await queryRunner.query(`DROP TABLE "departments"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_f143fa57706c0fb840301ad704"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_9dae16cdea66aeba1eb6f6ddf2"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_6881b23cd1a8924e4bf61515fb"`);
+        await queryRunner.query(`DROP TABLE "user_organizations"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_963693341bd612aa01ddf3a4b6"`);
+        await queryRunner.query(`DROP TABLE "organizations"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_05a0f282d3bed93ca048a7e54d"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_2299331ad1b272f712c291ff74"`);
+        await queryRunner.query(`DROP TABLE "social_accounts"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_64385b800e675d22928d1e1cec"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_7abbd4fdeb1501e538727e191f"`);
+        await queryRunner.query(`DROP TABLE "two_factor_auth"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_6ca9503d77ae39b4b5a6cc3ba8"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_0047a332edda010ae29c24d0c1"`);
+        await queryRunner.query(`DROP TABLE "user_profiles"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_4ed056b9344e6f7d8d46ec4b30"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_15232ccfa286f53cb415abba2f"`);
+        await queryRunner.query(`DROP TABLE "user_settings"`);
+        await queryRunner.query(`DROP TABLE "processed_events"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_fb43b8bdeb3e847b99bfdec561"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_d02ad1ef31dd2bf74be842f8a7"`);
+        await queryRunner.query(`DROP TABLE "outbox_events"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_a7838d2ba25be1342091b6695f"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_3ddc983c5f7bcf132fd8732c3f"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_5a8595644958acb2c80e175778"`);
+        await queryRunner.query(`DROP TABLE "refresh_tokens"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_c9d5c0d09e27afdb707a2a8837"`);
+        await queryRunner.query(`DROP TABLE "permissions"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_e59a01f4fe46ebbece575d9a0f"`);
+        await queryRunner.query(`DROP TABLE "roles"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_97672ac88f789774dd47f7c8be"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_109638590074998bb72a2f2cf0"`);
+        await queryRunner.query(`DROP TABLE "users"`);
+    }
+
+}

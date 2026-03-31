@@ -1,0 +1,26 @@
+nameOverride: procurement-svc
+
+image:
+  repository: erp/procurement-svc
+
+service:
+  port: 3006
+  grpcPort: 50056
+
+database:
+  host: postgresql.erp-infra.svc.cluster.local
+  port: 5432
+  name: procurement_db
+
+kafka:
+  groupId: procurement-svc
+
+resources:
+  requests:
+    memory: 512Mi
+  limits:
+    memory: 1Gi
+
+extraEnv:
+  - name: JAVA_OPTS
+    value: "-Xms256m -Xmx512m"

@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "ES2022"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "paths": {
+      "@erp/ui": ["./packages/ui/src"],
+      "@erp/ui/*": ["./packages/ui/src/*"],
+      "@erp/api-client": ["./packages/api-client/src"],
+      "@erp/api-client/*": ["./packages/api-client/src/*"],
+      "@erp/shared": ["./packages/shared/src"],
+      "@erp/shared/*": ["./packages/shared/src/*"]
+    }
+  },
+  "exclude": ["node_modules"]
+}

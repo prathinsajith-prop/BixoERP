@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package erp.sales.v1;
+
+option go_package = "github.com/erp/proto/sales/v1";
+
+service SalesService {
+  rpc GetSalesOrder (GetSalesOrderRequest) returns (SalesOrderResponse);
+  rpc GetCustomer (GetCustomerRequest) returns (CustomerResponse);
+  rpc GetCustomerOutstanding (GetCustomerOutstandingRequest) returns (CustomerOutstandingResponse);
+}
+
+message GetSalesOrderRequest {
+  string tenant_id = 1;
+  string order_id = 2;
+}
+
+message SalesOrderResponse {
+  string order_id = 1;
+  string order_number = 2;
+  string customer_id = 3;
+  string customer_name = 4;
+  string status = 5; // DRAFT, CONFIRMED, SHIPPED, DELIVERED, CANCELLED
+  string currency = 6;
+  string total_amount = 7;
+  string tax_amount = 8;
+  repeated SalesOrderLineResponse lines = 9;
+}
+
+message SalesOrderLineResponse {
+  string line_id = 1;
+  string item_id = 2;
+  string item_name = 3;
+  double quantity = 4;
+  string unit_price = 5;
+  string line_total = 6;
+}
+
+message GetCustomerRequest {
+  string tenant_id = 1;
+  string customer_id = 2;
+}
+
+message CustomerResponse {
+  string customer_id = 1;
+  string customer_code = 2;
+  string name = 3;
+  string email = 4;
+  string phone = 5;
+  string credit_limit = 6;
+  string status = 7;
+}
+
+message GetCustomerOutstandingRequest {
+  string tenant_id = 1;
+  string customer_id = 2;
+}
+
+message CustomerOutstandingResponse {
+  string customer_id = 1;
+  string total_outstanding = 2;
+  string credit_limit = 3;
+  string available_credit = 4;
+}

@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "erp.events.sales",
+  "title": "Sales Domain Events",
+  "description": "Kafka event contracts for sales-svc",
+  "definitions": {
+    "sales.order.created": {
+      "type": "object",
+      "required": ["order_id", "order_number", "customer_id", "total_amount", "currency"],
+      "properties": {
+        "order_id": { "type": "string", "format": "uuid" },
+        "order_number": { "type": "string" },
+        "customer_id": { "type": "string", "format": "uuid" },
+        "customer_name": { "type": "string" },
+        "total_amount": { "type": "string" },
+        "tax_amount": { "type": "string" },
+        "currency": { "type": "string", "minLength": 3, "maxLength": 3 },
+        "line_count": { "type": "integer" }
+      }
+    },
+    "sales.order.confirmed": {
+      "type": "object",
+      "required": ["order_id", "order_number", "customer_id", "total_amount", "currency", "lines"],
+      "properties": {
+        "order_id": { "type": "string", "format": "uuid" },
+        "order_number": { "type": "string" },
+        "customer_id": { "type": "string", "format": "uuid" },
+        "total_amount": { "type": "string" },
+        "currency": { "type": "string" },
+        "confirmed_at": { "type": "string", "format": "date-time" },
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "item_id": { "type": "string", "format": "uuid" },
+              "quantity": { "type": "number" },
+              "unit_price": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "sales.order.shipped": {
+      "type": "object",
+      "required": ["order_id", "order_number", "shipment_id"],
+      "properties": {
+        "order_id": { "type": "string", "format": "uuid" },
+        "order_number": { "type": "string" },
+        "shipment_id": { "type": "string" },
+        "carrier": { "type": "string" },
+        "tracking_number": { "type": "string" },
+        "shipped_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "sales.order.cancelled": {
+      "type": "object",
+      "required": ["order_id", "order_number", "reason"],
+      "properties": {
+        "order_id": { "type": "string", "format": "uuid" },
+        "order_number": { "type": "string" },
+        "reason": { "type": "string" },
+        "cancelled_by": { "type": "string", "format": "uuid" },
+        "cancelled_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "sales.quotation.created": {
+      "type": "object",
+      "required": ["quotation_id", "quotation_number", "customer_id", "total_amount"],
+      "properties": {
+        "quotation_id": { "type": "string", "format": "uuid" },
+        "quotation_number": { "type": "string" },
+        "customer_id": { "type": "string", "format": "uuid" },
+        "total_amount": { "type": "string" },
+        "valid_until": { "type": "string", "format": "date" }
+      }
+    },
+    "sales.quotation.accepted": {
+      "type": "object",
+      "required": ["quotation_id", "quotation_number", "order_id"],
+      "properties": {
+        "quotation_id": { "type": "string", "format": "uuid" },
+        "quotation_number": { "type": "string" },
+        "order_id": { "type": "string", "format": "uuid" },
+        "accepted_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "erp.events.procurement",
+  "title": "Procurement Domain Events",
+  "description": "Kafka event contracts for procurement-svc",
+  "definitions": {
+    "procurement.purchase_order.created": {
+      "type": "object",
+      "required": ["purchase_order_id", "po_number", "vendor_id", "total_amount", "currency"],
+      "properties": {
+        "purchase_order_id": { "type": "string", "format": "uuid" },
+        "po_number": { "type": "string" },
+        "vendor_id": { "type": "string", "format": "uuid" },
+        "vendor_name": { "type": "string" },
+        "total_amount": { "type": "string" },
+        "currency": { "type": "string" },
+        "line_count": { "type": "integer" },
+        "expected_delivery_date": { "type": "string", "format": "date" }
+      }
+    },
+    "procurement.purchase_order.approved": {
+      "type": "object",
+      "required": ["purchase_order_id", "po_number", "approved_by"],
+      "properties": {
+        "purchase_order_id": { "type": "string", "format": "uuid" },
+        "po_number": { "type": "string" },
+        "approved_by": { "type": "string", "format": "uuid" },
+        "approved_at": { "type": "string", "format": "date-time" },
+        "total_amount": { "type": "string" }
+      }
+    },
+    "procurement.purchase_order.sent": {
+      "type": "object",
+      "required": ["purchase_order_id", "po_number", "vendor_id"],
+      "properties": {
+        "purchase_order_id": { "type": "string", "format": "uuid" },
+        "po_number": { "type": "string" },
+        "vendor_id": { "type": "string", "format": "uuid" },
+        "sent_at": { "type": "string", "format": "date-time" },
+        "sent_via": { "type": "string", "enum": ["EMAIL", "EDI", "API"] }
+      }
+    },
+    "procurement.goods_receipt.created": {
+      "type": "object",
+      "required": ["goods_receipt_id", "grn_number", "purchase_order_id", "warehouse_id"],
+      "properties": {
+        "goods_receipt_id": { "type": "string", "format": "uuid" },
+        "grn_number": { "type": "string" },
+        "purchase_order_id": { "type": "string", "format": "uuid" },
+        "warehouse_id": { "type": "string", "format": "uuid" },
+        "received_at": { "type": "string", "format": "date-time" },
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "item_id": { "type": "string", "format": "uuid" },
+              "quantity_received": { "type": "number" },
+              "quantity_accepted": { "type": "number" },
+              "quantity_rejected": { "type": "number" }
+            }
+          }
+        }
+      }
+    },
+    "procurement.three_way_match.completed": {
+      "type": "object",
+      "required": ["match_id", "purchase_order_id", "goods_receipt_id", "vendor_invoice_id", "result"],
+      "properties": {
+        "match_id": { "type": "string", "format": "uuid" },
+        "purchase_order_id": { "type": "string", "format": "uuid" },
+        "goods_receipt_id": { "type": "string", "format": "uuid" },
+        "vendor_invoice_id": { "type": "string", "format": "uuid" },
+        "result": { "type": "string", "enum": ["MATCHED", "QUANTITY_MISMATCH", "PRICE_MISMATCH", "BOTH_MISMATCH"] },
+        "po_amount": { "type": "string" },
+        "grn_amount": { "type": "string" },
+        "invoice_amount": { "type": "string" }
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+from enum import StrEnum
+
+
+class ReportType(StrEnum):
+    FINANCIAL = "FINANCIAL"
+    OPERATIONAL = "OPERATIONAL"
+    CUSTOM = "CUSTOM"
+
+
+class PeriodType(StrEnum):
+    DAILY = "DAILY"
+    WEEKLY = "WEEKLY"
+    MONTHLY = "MONTHLY"
+    YEARLY = "YEARLY"
+
+
+class FinancialReportKind(StrEnum):
+    PROFIT_AND_LOSS = "PROFIT_AND_LOSS"
+    BALANCE_SHEET = "BALANCE_SHEET"
+    TRIAL_BALANCE = "TRIAL_BALANCE"
+    CASH_FLOW = "CASH_FLOW"
+
+
+class OperationalReportKind(StrEnum):
+    SALES_ANALYTICS = "SALES_ANALYTICS"
+    INVENTORY_TURNOVER = "INVENTORY_TURNOVER"
+    PROCUREMENT_SPEND = "PROCUREMENT_SPEND"

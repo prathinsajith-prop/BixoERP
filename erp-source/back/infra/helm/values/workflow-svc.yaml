@@ -1,0 +1,16 @@
+nameOverride: workflow-svc
+
+image:
+  repository: erp/workflow-svc
+
+service:
+  port: 3009
+  grpcPort: 50059
+
+database:
+  host: postgresql.erp-infra.svc.cluster.local
+  port: 5432
+  name: workflow_db
+
+kafka:
+  groupId: workflow-svc

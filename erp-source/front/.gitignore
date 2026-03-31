@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Next.js build output
+apps/*/.next/
+apps/*/out/
+packages/*/dist/
+dist/
+
+# Turbo cache
+.turbo/
+apps/*/.turbo/
+packages/*/.turbo/
+
+# TypeScript
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+!.env.example
+
+# Logs
+npm-debug.log*
+*.log
+
+# Coverage
+coverage/
+.nyc_output/
+
+# OS & Editor
+.DS_Store
+.idea/
+*.swp
+*.swo

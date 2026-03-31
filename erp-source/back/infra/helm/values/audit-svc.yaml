@@ -1,0 +1,21 @@
+nameOverride: audit-svc
+
+image:
+  repository: erp/audit-svc
+
+service:
+  port: 3014
+  grpcPort: 50064
+
+kafka:
+  groupId: audit-svc
+
+resources:
+  requests:
+    memory: 128Mi
+  limits:
+    memory: 256Mi
+
+extraEnv:
+  - name: ES_NODE
+    value: "http://elasticsearch.erp-infra.svc.cluster.local:9200"

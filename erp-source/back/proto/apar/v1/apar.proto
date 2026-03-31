@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package erp.apar.v1;
+
+option go_package = "github.com/erp/proto/apar/v1";
+
+service AparService {
+  rpc GetVendorBalance (GetVendorBalanceRequest) returns (VendorBalanceResponse);
+  rpc GetPaymentStatus (GetPaymentStatusRequest) returns (PaymentStatusResponse);
+}
+
+message GetVendorBalanceRequest {
+  string tenant_id = 1;
+  string vendor_id = 2;
+}
+
+message VendorBalanceResponse {
+  string vendor_id = 1;
+  string total_outstanding = 2;
+  string total_overdue = 3;
+  int32 invoice_count = 4;
+}
+
+message GetPaymentStatusRequest {
+  string tenant_id = 1;
+  string payment_id = 2;
+}
+
+message PaymentStatusResponse {
+  string payment_id = 1;
+  string status = 2; // PENDING, APPROVED, PROCESSING, COMPLETED, FAILED
+  string amount = 3;
+  string currency = 4;
+  string payment_date = 5;
+}

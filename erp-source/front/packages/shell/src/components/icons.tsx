@@ -1,0 +1,111 @@
+"use client";
+
+import React from "react";
+import {
+  Activity,
+  ArrowLeftRight,
+  ArrowRightLeft,
+  Banknote,
+  BarChart3,
+  Bell,
+  BookOpen,
+  Building2,
+  Calendar,
+  CalendarOff,
+  CheckSquare,
+  ChevronDown,
+  ChevronRight,
+  ClipboardList,
+  Clock,
+  CreditCard,
+  Factory,
+  FileText,
+  FileX,
+  FolderKanban,
+  FolderOpen,
+  GitBranch,
+  Key,
+  LayoutDashboard,
+  Layers,
+  Link,
+  List,
+  Menu,
+  Package,
+  PackageCheck,
+  PiggyBank,
+  Plug,
+  Receipt,
+  Send,
+  Settings,
+  Shield,
+  ShoppingBag,
+  ShoppingCart,
+  Timer,
+  TrendingUp,
+  Truck,
+  Upload,
+  Users,
+  Warehouse,
+  X,
+} from "lucide-react";
+
+/**
+ * Centralized icon registry mapping string names (from module config)
+ * to actual lucide-react icon components.
+ */
+export const iconMap: Record<string, React.ElementType> = {
+  Activity,
+  ArrowLeftRight,
+  ArrowRightLeft,
+  Banknote,
+  BarChart3,
+  Bell,
+  BookOpen,
+  Building2,
+  Calendar,
+  CalendarOff,
+  CheckSquare,
+  ChevronDown,
+  ChevronRight,
+  ClipboardList,
+  Clock,
+  CreditCard,
+  Factory,
+  FileText,
+  FileX,
+  FolderKanban,
+  FolderOpen,
+  GitBranch,
+  Key,
+  LayoutDashboard,
+  Layers,
+  Link,
+  List,
+  Menu,
+  Package,
+  PackageCheck,
+  PiggyBank,
+  Plug,
+  Receipt,
+  Send,
+  Settings,
+  Shield,
+  ShoppingBag,
+  ShoppingCart,
+  Timer,
+  TrendingUp,
+  Truck,
+  Upload,
+  Users,
+  Warehouse,
+  X,
+};
+
+/**
+ * Resolve an icon by name, returning a rendered React element.
+ * Falls back to LayoutDashboard if not found.
+ */
+export function getIcon(name: string, className = "w-5 h-5"): React.ReactElement {
+  const Icon = iconMap[name] || LayoutDashboard;
+  return <Icon className={className} />;
+}

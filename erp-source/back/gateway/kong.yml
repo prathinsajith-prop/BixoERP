@@ -1,0 +1,352 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+  # ─── Finance Service ───────────────────────────────
+  - name: finance-svc
+    url: http://finance-svc:3001
+    routes:
+      - name: finance-routes
+        paths:
+          - /api/v1/finance
+        strip_path: false
+        protocols:
+          - http
+          - https
+
+  # ─── AP/AR Service ─────────────────────────────────
+  - name: apar-svc
+    url: http://apar-svc:3002
+    routes:
+      - name: apar-routes
+        paths:
+          - /api/v1/apar
+        strip_path: false
+        protocols:
+          - http
+          - https
+
+  # ─── HR Service ────────────────────────────────────
+  - name: hr-svc
+    url: http://hr-svc:3003
+    routes:
+      - name: hr-routes
+        paths:
+          - /api/v1/hr
+        strip_path: false
+        protocols:
+          - http
+          - https
+
+  # ─── Sales Service ─────────────────────────────────
+  - name: sales-svc
+    url: http://sales-svc:3004
+    routes:
+      - name: sales-routes
+        paths:
+          - /api/v1/sales
+        strip_path: false
+        protocols:
+          - http
+          - https
+
+  # ─── Inventory Service ─────────────────────────────
+  - name: inventory-svc
+    url: http://inventory-svc:3005
+    routes:
+      - name: inventory-routes
+        paths:
+          - /api/v1/inventory
+        strip_path: false
+        protocols:
+          - http
+          - https
+
+  # ─── Procurement Service ───────────────────────────
+  - name: procurement-svc
+    url: http://procurement-svc:3006
+    routes:
+      - name: procurement-routes
+        paths:
+          - /api/v1/procurement
+        strip_path: false
+        protocols:
+          - http
+          - https
+
+  # ─── Manufacturing Service ─────────────────────────
+  - name: manufacturing-svc
+    url: http://manufacturing-svc:3007
+    routes:
+      - name: manufacturing-routes
+        paths:
+          - /api/v1/manufacturing
+        strip_path: false
+        protocols:
+          - http
+          - https
+
+  # ─── Project Service ───────────────────────────────
+  - name: project-svc
+    url: http://project-svc:3008
+    routes:
+      - name: project-routes
+        paths:
+          - /api/v1/projects
+        strip_path: false
+        protocols:
+          - http
+          - https
+
+  # ─── Workflow Service ──────────────────────────────
+  - name: workflow-svc
+    url: http://workflow-svc:3009
+    routes:
+      - name: workflow-routes
+        paths:
+          - /api/v1/workflow
+        strip_path: false
+        protocols:
+          - http
+          - https
+
+  # ─── Notification Service ──────────────────────────
+  - name: notification-svc
+    url: http://notification-svc:3010
+    routes:
+      - name: notification-routes
+        paths:
+          - /api/v1/notifications
+        strip_path: false
+        protocols:
+          - http
+          - https
+
+  # ─── Files Service ─────────────────────────────────
+  - name: files-svc
+    url: http://files-svc:3011
+    routes:
+      - name: files-routes
+        paths:
+          - /api/v1/files
+        strip_path: false
+        protocols:
+          - http
+          - https
+
+  # ─── Integration Service ───────────────────────────
+  - name: integration-svc
+    url: http://integration-svc:3012
+    routes:
+      - name: integration-routes
+        paths:
+          - /api/v1/integrations
+        strip_path: false
+        protocols:
+          - http
+          - https
+
+  # ─── Report Service ────────────────────────────────
+  - name: report-svc
+    url: http://report-svc:3013
+    routes:
+      - name: report-routes
+        paths:
+          - /api/v1/reports
+        strip_path: false
+        protocols:
+          - http
+          - https
+
+  # ─── Audit Service ─────────────────────────────────
+  - name: audit-svc
+    url: http://audit-svc:3014
+    routes:
+      - name: audit-routes
+        paths:
+          - /api/v1/audit
+        strip_path: false
+        protocols:
+          - http
+          - https
+
+  # ─── Auth Service ──────────────────────────────────
+  - name: core
+    url: http://core:3015
+    routes:
+      - name: auth-routes
+        paths:
+          - /api/v1/auth
+        strip_path: false
+        protocols:
+          - http
+          - https
+
+# ─── Global Plugins ──────────────────────────────────
+plugins:
+  # JWT Authentication
+  - name: jwt
+    config:
+      uri_param_names:
+        - jwt
+      claims_to_verify:
+        - exp
+      key_claim_name: iss
+      header_names:
+        - Authorization
+      run_on_preflight: true
+
+  # Rate Limiting
+  - name: rate-limiting
+    config:
+      minute: 120
+      hour: 5000
+      policy: redis
+      redis:
+        host: redis
+        port: 6379
+      fault_tolerant: true
+      hide_client_headers: false
+
+  # CORS
+  - name: cors
+    config:
+      origins:
+        - "*"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      headers:
+        - Accept
+        - Authorization
+        - Content-Type
+        - X-Tenant-Id
+        - X-Request-Id
+        - X-Correlation-Id
+      exposed_headers:
+        - X-Request-Id
+        - X-Correlation-Id
+      credentials: true
+      max_age: 3600
+
+  # Request Size Limiting
+  - name: request-size-limiting
+    config:
+      allowed_payload_size: 10
+      size_unit: megabytes
+
+  # Request Transformer — add correlation ID
+  - name: correlation-id
+    config:
+      header_name: X-Correlation-Id
+      generator: uuid#counter
+      echo_downstream: true
+
+  # IP Restriction (optional, for admin routes)
+  # Uncomment and configure for production
+  # - name: ip-restriction
+  #   service: audit-svc
+  #   config:
+  #     allow:
+  #       - 10.0.0.0/8
+  #       - 172.16.0.0/12
+
+  # Prometheus metrics
+  - name: prometheus
+    config:
+      status_code_metrics: true
+      latency_metrics: true
+      bandwidth_metrics: true
+      upstream_health_metrics: true
+
+  # Response Transformer — security headers
+  - name: response-transformer
+    config:
+      add:
+        headers:
+          - "X-Content-Type-Options: nosniff"
+          - "X-Frame-Options: DENY"
+          - "X-XSS-Protection: 1; mode=block"
+          - "Strict-Transport-Security: max-age=31536000; includeSubDomains"
+          - "Cache-Control: no-store"
+
+# ─── Consumers (API clients) ────────────────────────
+consumers:
+  - username: erp-web-app
+    jwt_secrets:
+      - key: erp-web-app
+        algorithm: HS256
+  - username: erp-mobile-app
+    jwt_secrets:
+      - key: erp-mobile-app
+        algorithm: HS256
+  - username: erp-integration
+    jwt_secrets:
+      - key: erp-integration
+        algorithm: HS256
+
+# ─── Upstreams with Health Checks ────────────────────
+upstreams:
+  - name: finance-svc
+    targets:
+      - target: finance-svc:3001
+        weight: 100
+    healthchecks:
+      active:
+        healthy:
+          interval: 10
+          successes: 3
+        unhealthy:
+          interval: 5
+          http_failures: 3
+        http_path: /health
+        timeout: 5
+
+  - name: sales-svc
+    targets:
+      - target: sales-svc:3004
+        weight: 100
+    healthchecks:
+      active:
+        healthy:
+          interval: 10
+          successes: 3
+        unhealthy:
+          interval: 5
+          http_failures: 3
+        http_path: /health
+        timeout: 5
+
+  - name: inventory-svc
+    targets:
+      - target: inventory-svc:3005
+        weight: 100
+    healthchecks:
+      active:
+        healthy:
+          interval: 10
+          successes: 3
+        unhealthy:
+          interval: 5
+          http_failures: 3
+        http_path: /health
+        timeout: 5
+
+  - name: core
+    targets:
+      - target: core:3015
+        weight: 100
+    healthchecks:
+      active:
+        healthy:
+          interval: 10
+          successes: 3
+        unhealthy:
+          interval: 5
+          http_failures: 3
+        http_path: /health
+        timeout: 5

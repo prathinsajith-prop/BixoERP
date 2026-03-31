@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "erp.events.workflow",
+  "title": "Workflow Domain Events",
+  "description": "Kafka event contracts for workflow-svc",
+  "definitions": {
+    "workflow.approval.requested": {
+      "type": "object",
+      "required": ["approval_request_id", "workflow_definition_id", "entity_type", "entity_id", "requester_id"],
+      "properties": {
+        "approval_request_id": { "type": "string", "format": "uuid" },
+        "workflow_definition_id": { "type": "string", "format": "uuid" },
+        "entity_type": { "type": "string" },
+        "entity_id": { "type": "string", "format": "uuid" },
+        "requester_id": { "type": "string", "format": "uuid" },
+        "current_step": { "type": "integer" },
+        "total_steps": { "type": "integer" },
+        "current_approver_id": { "type": "string", "format": "uuid" }
+      }
+    },
+    "workflow.approval.approved": {
+      "type": "object",
+      "required": ["approval_request_id", "entity_type", "entity_id", "approver_id", "step"],
+      "properties": {
+        "approval_request_id": { "type": "string", "format": "uuid" },
+        "entity_type": { "type": "string" },
+        "entity_id": { "type": "string", "format": "uuid" },
+        "approver_id": { "type": "string", "format": "uuid" },
+        "step": { "type": "integer" },
+        "is_final_approval": { "type": "boolean" },
+        "comments": { "type": "string" }
+      }
+    },
+    "workflow.approval.rejected": {
+      "type": "object",
+      "required": ["approval_request_id", "entity_type", "entity_id", "rejector_id", "reason"],
+      "properties": {
+        "approval_request_id": { "type": "string", "format": "uuid" },
+        "entity_type": { "type": "string" },
+        "entity_id": { "type": "string", "format": "uuid" },
+        "rejector_id": { "type": "string", "format": "uuid" },
+        "step": { "type": "integer" },
+        "reason": { "type": "string" }
+      }
+    },
+    "workflow.approval.escalated": {
+      "type": "object",
+      "required": ["approval_request_id", "entity_type", "entity_id", "escalated_to_id", "reason"],
+      "properties": {
+        "approval_request_id": { "type": "string", "format": "uuid" },
+        "entity_type": { "type": "string" },
+        "entity_id": { "type": "string", "format": "uuid" },
+        "escalated_from_id": { "type": "string", "format": "uuid" },
+        "escalated_to_id": { "type": "string", "format": "uuid" },
+        "reason": { "type": "string", "enum": ["TIMEOUT", "MANUAL", "DELEGATION"] },
+        "overdue_hours": { "type": "number" }
+      }
+    },
+    "workflow.approval.completed": {
+      "type": "object",
+      "required": ["approval_request_id", "entity_type", "entity_id", "final_status"],
+      "properties": {
+        "approval_request_id": { "type": "string", "format": "uuid" },
+        "entity_type": { "type": "string" },
+        "entity_id": { "type": "string", "format": "uuid" },
+        "final_status": { "type": "string", "enum": ["APPROVED", "REJECTED"] },
+        "total_steps_completed": { "type": "integer" },
+        "duration_hours": { "type": "number" }
+      }
+    }
+  }
+}

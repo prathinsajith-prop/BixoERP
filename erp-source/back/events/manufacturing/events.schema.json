@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "erp.events.manufacturing",
+  "title": "Manufacturing Domain Events",
+  "description": "Kafka event contracts for manufacturing-svc",
+  "definitions": {
+    "manufacturing.work_order.created": {
+      "type": "object",
+      "required": ["work_order_id", "wo_number", "bom_id", "product_id", "quantity_planned"],
+      "properties": {
+        "work_order_id": { "type": "string", "format": "uuid" },
+        "wo_number": { "type": "string" },
+        "bom_id": { "type": "string", "format": "uuid" },
+        "product_id": { "type": "string", "format": "uuid" },
+        "quantity_planned": { "type": "number" },
+        "planned_start_date": { "type": "string", "format": "date" },
+        "planned_end_date": { "type": "string", "format": "date" }
+      }
+    },
+    "manufacturing.work_order.released": {
+      "type": "object",
+      "required": ["work_order_id", "wo_number"],
+      "properties": {
+        "work_order_id": { "type": "string", "format": "uuid" },
+        "wo_number": { "type": "string" },
+        "released_at": { "type": "string", "format": "date-time" },
+        "material_requirements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "item_id": { "type": "string", "format": "uuid" },
+              "quantity_required": { "type": "number" }
+            }
+          }
+        }
+      }
+    },
+    "manufacturing.work_order.completed": {
+      "type": "object",
+      "required": ["work_order_id", "wo_number", "product_id", "quantity_produced"],
+      "properties": {
+        "work_order_id": { "type": "string", "format": "uuid" },
+        "wo_number": { "type": "string" },
+        "product_id": { "type": "string", "format": "uuid" },
+        "quantity_produced": { "type": "number" },
+        "quantity_rejected": { "type": "number" },
+        "completed_at": { "type": "string", "format": "date-time" },
+        "total_cost": { "type": "string" },
+        "cost_per_unit": { "type": "string" }
+      }
+    },
+    "manufacturing.quality_check.passed": {
+      "type": "object",
+      "required": ["quality_check_id", "work_order_id", "result"],
+      "properties": {
+        "quality_check_id": { "type": "string", "format": "uuid" },
+        "work_order_id": { "type": "string", "format": "uuid" },
+        "result": { "type": "string", "enum": ["PASSED", "PASSED_WITH_DEVIATION"] },
+        "inspector_id": { "type": "string", "format": "uuid" },
+        "checked_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "manufacturing.quality_check.failed": {
+      "type": "object",
+      "required": ["quality_check_id", "work_order_id", "defect_type", "quantity_rejected"],
+      "properties": {
+        "quality_check_id": { "type": "string", "format": "uuid" },
+        "work_order_id": { "type": "string", "format": "uuid" },
+        "defect_type": { "type": "string" },
+        "quantity_rejected": { "type": "number" },
+        "disposition": { "type": "string", "enum": ["REWORK", "SCRAP", "USE_AS_IS", "RETURN_TO_VENDOR"] },
+        "inspector_id": { "type": "string", "format": "uuid" }
+      }
+    },
+    "manufacturing.material.consumed": {
+      "type": "object",
+      "required": ["work_order_id", "item_id", "quantity_consumed", "warehouse_id"],
+      "properties": {
+        "work_order_id": { "type": "string", "format": "uuid" },
+        "item_id": { "type": "string", "format": "uuid" },
+        "quantity_consumed": { "type": "number" },
+        "warehouse_id": { "type": "string", "format": "uuid" },
+        "consumed_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

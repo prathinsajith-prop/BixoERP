@@ -1,0 +1,101 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "erp.events.auth",
+  "title": "Auth Domain Events",
+  "description": "Kafka event contracts for core",
+  "definitions": {
+    "auth.user.registered": {
+      "type": "object",
+      "required": ["user_id", "email", "first_name", "last_name"],
+      "properties": {
+        "user_id": { "type": "string", "format": "uuid" },
+        "email": { "type": "string", "format": "email" },
+        "first_name": { "type": "string" },
+        "last_name": { "type": "string" },
+        "registered_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "auth.user.logged_in": {
+      "type": "object",
+      "required": ["user_id", "email"],
+      "properties": {
+        "user_id": { "type": "string", "format": "uuid" },
+        "email": { "type": "string", "format": "email" },
+        "ip_address": { "type": "string" },
+        "user_agent": { "type": "string" },
+        "logged_in_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "auth.user.locked": {
+      "type": "object",
+      "required": ["user_id", "email", "failed_attempts"],
+      "properties": {
+        "user_id": { "type": "string", "format": "uuid" },
+        "email": { "type": "string", "format": "email" },
+        "failed_attempts": { "type": "integer" },
+        "locked_at": { "type": "string", "format": "date-time" },
+        "lock_expires_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "auth.user.password_changed": {
+      "type": "object",
+      "required": ["user_id", "email"],
+      "properties": {
+        "user_id": { "type": "string", "format": "uuid" },
+        "email": { "type": "string", "format": "email" },
+        "changed_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "auth.user.role_assigned": {
+      "type": "object",
+      "required": ["user_id", "role_id", "role_name"],
+      "properties": {
+        "user_id": { "type": "string", "format": "uuid" },
+        "role_id": { "type": "string", "format": "uuid" },
+        "role_name": { "type": "string" },
+        "assigned_at": { "type": "string", "format": "date-time" },
+        "assigned_by": { "type": "string", "format": "uuid" }
+      }
+    },
+    "auth.password_reset.requested": {
+      "type": "object",
+      "required": ["user_id", "email"],
+      "properties": {
+        "user_id": { "type": "string", "format": "uuid" },
+        "email": { "type": "string", "format": "email" },
+        "expires_at": { "type": "string", "format": "date-time" },
+        "requested_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "auth.password_reset.completed": {
+      "type": "object",
+      "required": ["user_id", "email"],
+      "properties": {
+        "user_id": { "type": "string", "format": "uuid" },
+        "email": { "type": "string", "format": "email" },
+        "completed_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "auth.role.created": {
+      "type": "object",
+      "required": ["role_id", "name"],
+      "properties": {
+        "role_id": { "type": "string", "format": "uuid" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "is_system_role": { "type": "boolean" },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "auth.role.updated": {
+      "type": "object",
+      "required": ["role_id", "name"],
+      "properties": {
+        "role_id": { "type": "string", "format": "uuid" },
+        "name": { "type": "string" },
+        "permission_count": { "type": "integer" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

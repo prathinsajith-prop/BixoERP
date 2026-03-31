@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package erp.workflow.v1;
+
+option go_package = "github.com/erp/proto/workflow/v1";
+
+service WorkflowService {
+  rpc GetApprovalStatus (GetApprovalStatusRequest) returns (ApprovalStatusResponse);
+  rpc GetPendingApprovals (GetPendingApprovalsRequest) returns (PendingApprovalsResponse);
+}
+
+message GetApprovalStatusRequest {
+  string tenant_id = 1;
+  string request_id = 2;
+}
+
+message ApprovalStatusResponse {
+  string request_id = 1;
+  string status = 2; // PENDING, APPROVED, REJECTED, ESCALATED, CANCELLED
+  string current_step = 3;
+  int32 total_steps = 4;
+  int32 completed_steps = 5;
+  string submitted_by = 6;
+  string submitted_at = 7;
+}
+
+message GetPendingApprovalsRequest {
+  string tenant_id = 1;
+  string approver_id = 2;
+}
+
+message PendingApprovalsResponse {
+  repeated PendingApproval approvals = 1;
+}
+
+message PendingApproval {
+  string request_id = 1;
+  string entity_type = 2;
+  string entity_id = 3;
+  string submitted_by = 4;
+  string submitted_at = 5;
+  string description = 6;
+}

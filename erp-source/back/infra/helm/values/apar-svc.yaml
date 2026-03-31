@@ -1,0 +1,16 @@
+nameOverride: apar-svc
+
+image:
+  repository: erp/apar-svc
+
+service:
+  port: 3002
+  grpcPort: 50052
+
+database:
+  host: postgresql.erp-infra.svc.cluster.local
+  port: 5432
+  name: apar_db
+
+kafka:
+  groupId: apar-svc

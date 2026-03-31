@@ -1,0 +1,29 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY package.json package-lock.json turbo.json tsconfig.json ./
+COPY apps/ ./apps/
+COPY packages/ ./packages/
+
+RUN npm ci
+
+ENV DOCKER_ENV=true
+RUN npx turbo build --filter=@erp/sales-app
+
+FROM node:20-alpine AS runner
+
+RUN addgroup -g 1001 -S appgroup && adduser -S appuser -u 1001
+
+WORKDIR /app
+
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/sales ./apps/sales
+COPY --from=builder /app/packages ./packages
+
+USER appuser
+EXPOSE 4007
+
+WORKDIR /app/apps/sales
+CMD ["npx", "next", "start", "-p", "4007"]

@@ -1,0 +1,16 @@
+nameOverride: hr-svc
+
+image:
+  repository: erp/hr-svc
+
+service:
+  port: 3003
+  grpcPort: 50053
+
+database:
+  host: postgresql.erp-infra.svc.cluster.local
+  port: 5432
+  name: hr_db
+
+kafka:
+  groupId: hr-svc
