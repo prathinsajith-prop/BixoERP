@@ -68,6 +68,7 @@ export class JwtTokenService implements TokenService {
 
     return {
       sub: body.sub,
+      jti: body.jti,
       tenantId: body.tenantId,
       email: body.email,
       roles: body.roles,

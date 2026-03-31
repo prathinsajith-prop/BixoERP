@@ -2,6 +2,7 @@ export const TOKEN_SERVICE = Symbol('TOKEN_SERVICE');
 
 export interface AccessTokenPayload {
   sub: string;        // user ID
+  jti?: string;       // JWT ID for blacklisting
   tenantId: string;
   email: string;
   roles: string[];

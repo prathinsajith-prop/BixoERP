@@ -123,10 +123,10 @@ Creates: 4 users, 4 roles, 41 permissions, 1 organisation.
 
 | Email | Password | Role |
 |-------|----------|------|
-| admin@erp.local | Password123! | Super Admin |
-| manager@erp.local | Password123! | Manager |
-| hr@erp.local | Password123! | HR |
-| user@erp.local | Password123! | Employee |
+| admin@erp.com | Admin@123 | Super Admin |
+| finance@erp.com | Finance@123 | Finance |
+| hr@erp.com | HrUser@123 | HR |
+| sales@erp.com | Sales@123 | Sales |
 
 ---
 
