@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { OrganizationRepository } from '../../../domain/repository/organization.repository';
 import { Organization, OrganizationStatus } from '../../../domain/entity/organization.entity';
 import { OrganizationOrmEntity } from '../entity/organization.orm-entity';
@@ -10,7 +10,7 @@ export class PostgresOrganizationRepository implements OrganizationRepository {
   constructor(
     @InjectRepository(OrganizationOrmEntity)
     private readonly repo: Repository<OrganizationOrmEntity>,
-  ) {}
+  ) { }
 
   async findById(id: string): Promise<Organization | null> {
     const row = await this.repo.findOne({ where: { id } });
@@ -65,6 +65,12 @@ export class PostgresOrganizationRepository implements OrganizationRepository {
       custom_css: org.customCss,
       settings: org.settings,
     });
+  }
+
+  async findByIds(ids: string[]): Promise<Organization[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.repo.find({ where: { id: In(ids) } });
+    return rows.map((r) => this.toDomain(r));
   }
 
   async delete(id: string): Promise<void> {

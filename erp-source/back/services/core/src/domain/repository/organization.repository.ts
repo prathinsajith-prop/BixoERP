@@ -4,6 +4,7 @@ export const ORGANIZATION_REPOSITORY = Symbol('ORGANIZATION_REPOSITORY');
 
 export interface OrganizationRepository {
   findById(id: string): Promise<Organization | null>;
+  findByIds(ids: string[]): Promise<Organization[]>;
   findBySlug(slug: string): Promise<Organization | null>;
   findAll(page: number, limit: number): Promise<{ organizations: Organization[]; total: number }>;
   save(org: Organization): Promise<void>;

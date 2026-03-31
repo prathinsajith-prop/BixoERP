@@ -26,7 +26,7 @@ export class LeaveController {
     private readonly requestLeave: RequestLeaveUseCase,
     @Inject(LEAVE_REQUEST_REPOSITORY) private readonly leaveRepo: LeaveRequestRepository,
     @Inject(EMPLOYEE_REPOSITORY) private readonly employeeRepo: EmployeeRepository,
-  ) {}
+  ) { }
 
   @Post('request')
   @HttpCode(HttpStatus.CREATED)
@@ -51,7 +51,8 @@ export class LeaveController {
   @ApiOperation({ summary: 'List leave requests for current tenant' })
   async listRequests(@TenantId() tenantId: string) {
     const requests = await this.leaveRepo.findAll(tenantId);
-    const employees = await this.employeeRepo.findAll(tenantId);
+    const employeeIds = [...new Set(requests.map((r) => r.employeeId))];
+    const employees = await this.employeeRepo.findByIds(employeeIds, tenantId);
     const empMap = new Map(employees.map((e) => [e.id, e]));
     return requests.map((lr) => this.toResponse(lr, empMap.get(lr.employeeId)?.fullName));
   }

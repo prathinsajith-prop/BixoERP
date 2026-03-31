@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { Employee, EmployeeProps } from '../../../domain/entities/employee.entity';
 import { EmployeeRepository } from '../../../domain/repositories/employee.repository';
 import { EmployeeOrmEntity } from '../entities/employee.orm-entity';
@@ -14,7 +14,7 @@ export class PostgresEmployeeRepository implements EmployeeRepository {
     @InjectRepository(EmployeeOrmEntity)
     private readonly repo: Repository<EmployeeOrmEntity>,
     private readonly dataSource: DataSource,
-  ) {}
+  ) { }
 
   async findById(id: string, tenantId: string): Promise<Employee | null> {
     const row = await this.repo.findOne({ where: { id, tenantId } });
@@ -68,11 +68,20 @@ export class PostgresEmployeeRepository implements EmployeeRepository {
   async nextEmployeeNumber(tenantId: string): Promise<string> {
     const result = await this.repo
       .createQueryBuilder('e')
-      .select('COUNT(*)', 'count')
+      .select(
+        "COALESCE(MAX(CAST(SUBSTRING(e.employee_number FROM 5) AS INTEGER)), 0)",
+        'max_seq',
+      )
       .where('e.tenant_id = :tenantId', { tenantId })
-      .getRawOne();
-    const seq = parseInt(result.count, 10) + 1;
+      .getRawOne<{ max_seq: string }>();
+    const seq = parseInt(result?.max_seq ?? '0', 10) + 1;
     return `EMP-${String(seq).padStart(6, '0')}`;
+  }
+
+  async findByIds(ids: string[], tenantId: string): Promise<Employee[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.repo.find({ where: { id: In(ids), tenantId } });
+    return rows.map((r) => this.toDomain(r));
   }
 
   async existsByEmail(email: string, tenantId: string): Promise<boolean> {
@@ -87,7 +96,29 @@ export class PostgresEmployeeRepository implements EmployeeRepository {
     await queryRunner.startTransaction();
 
     try {
+      // Serialise employee-number generation per tenant. The advisory lock is
+      // automatically released when the transaction commits or rolls back.
+      await queryRunner.query(
+        'SELECT pg_advisory_xact_lock(hashtext($1))',
+        [employee.tenantId],
+      );
+
+      // Generate the next number inside the transaction so it is consistent
+      // under concurrent inserts. MAX avoids the gaps that COUNT(*) would
+      // produce after deletions.
+      const seqResult = await queryRunner.manager
+        .getRepository(EmployeeOrmEntity)
+        .createQueryBuilder('e')
+        .select(
+          "COALESCE(MAX(CAST(SUBSTRING(e.employee_number FROM 5) AS INTEGER)), 0)",
+          'max_seq',
+        )
+        .where('e.tenant_id = :tenantId', { tenantId: employee.tenantId })
+        .getRawOne<{ max_seq: string }>();
+
+      const seq = parseInt(seqResult?.max_seq ?? '0', 10) + 1;
       const entity = this.toOrm(employee);
+      entity.employeeNumber = `EMP-${String(seq).padStart(6, '0')}`;
       const savedEntity = await queryRunner.manager.save(EmployeeOrmEntity, entity);
 
       // Write domain events to the outbox table in the same transaction

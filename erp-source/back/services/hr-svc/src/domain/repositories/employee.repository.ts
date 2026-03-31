@@ -2,6 +2,7 @@ import { Employee } from '../entities/employee.entity';
 
 export interface EmployeeRepository {
   findById(id: string, tenantId: string): Promise<Employee | null>;
+  findByIds(ids: string[], tenantId: string): Promise<Employee[]>;
   findByEmployeeNumber(employeeNumber: string, tenantId: string): Promise<Employee | null>;
   findByEmail(email: string, tenantId: string): Promise<Employee | null>;
   findByDepartment(departmentId: string, tenantId: string): Promise<Employee[]>;

@@ -47,7 +47,7 @@ export class AdminController {
     @Inject(ORGANIZATION_REPOSITORY) private readonly orgRepo: OrganizationRepository,
     private readonly twoFactorRepo: PostgresTwoFactorRepository,
     private readonly profileRepo: PostgresUserProfileRepository,
-  ) {}
+  ) { }
 
   // ─── Users ─────────────────────────────────────────
 
@@ -117,8 +117,8 @@ export class AdminController {
 
     // Resolve organization details
     const orgIds = userOrgs.map((uo) => uo.organizationId);
-    const orgs = await Promise.all(orgIds.map((id) => this.orgRepo.findById(id)));
-    const orgMap = new Map(orgs.filter(Boolean).map((o) => [o!.id, o!]));
+    const orgs = await this.orgRepo.findByIds(orgIds);
+    const orgMap = new Map(orgs.map((o) => [o.id, o]));
 
     return {
       statusCode: 200,
