@@ -40,10 +40,18 @@ else
   done
 fi
 
-echo ">>> Building: ${TARGETS[*]}"
-DOCKER_BUILDKIT=1 docker compose -f "$COMPOSE_FILE" build --parallel "${TARGETS[@]}"
+TOTAL=${#TARGETS[@]}
+CURRENT=0
 
-echo ">>> Restarting: ${TARGETS[*]}"
-docker compose -f "$COMPOSE_FILE" up -d --no-deps "${TARGETS[@]}"
+for svc in "${TARGETS[@]}"; do
+  CURRENT=$((CURRENT + 1))
+  echo ""
+  echo ">>> [$CURRENT/$TOTAL] Building: $svc"
+  DOCKER_BUILDKIT=1 docker compose -f "$COMPOSE_FILE" build "$svc"
 
-echo ">>> Done."
+  echo ">>> [$CURRENT/$TOTAL] Starting: $svc"
+  docker compose -f "$COMPOSE_FILE" up -d --no-deps "$svc"
+done
+
+echo ""
+echo ">>> Done. ($TOTAL services rebuilt)"
