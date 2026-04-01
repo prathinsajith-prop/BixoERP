@@ -122,11 +122,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const [accentColor, setAccentState] = useState(() => {
     if (typeof window === "undefined") return "blue";
-    try {
-      return localStorage.getItem("accentColor") || "blue";
-    } catch {
-      return "blue";
-    }
+    return ls("accentColor", "blue");
   });
 
   const [compactMode, setCompactState] = useState(() => ls("compactMode", false));
@@ -175,6 +171,24 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     applyAccentToDOM(accentColor);
     applyLayoutToDOM({ compactMode, fontSize, animationsEnabled, reducedMotion });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key === "accentColor" && e.newValue !== null) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          setAccentState(parsed);
+          applyAccentToDOM(parsed);
+        } catch { /* noop */ }
+      }
+      if (e.key === "theme" && e.newValue !== null) {
+        setThemeState(e.newValue);
+        applyThemeToDOM(e.newValue);
+      }
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, []);
 
   useEffect(() => {
     if (theme !== "system") return;
