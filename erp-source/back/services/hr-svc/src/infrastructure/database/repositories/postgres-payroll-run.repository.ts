@@ -13,7 +13,7 @@ export class PostgresPayrollRunRepository implements PayrollRunRepository {
   constructor(
     @InjectRepository(PayrollRunOrmEntity) private readonly repo: Repository<PayrollRunOrmEntity>,
     private readonly dataSource: DataSource,
-  ) {}
+  ) { }
 
   async findById(id: string, tenantId: string): Promise<PayrollRun | null> {
     const row = await this.repo.findOne({ where: { id, tenantId }, relations: ['lines'] });
@@ -28,7 +28,6 @@ export class PostgresPayrollRunRepository implements PayrollRunRepository {
   async findByPeriod(periodYear: number, periodMonth: number, tenantId: string): Promise<PayrollRun[]> {
     const rows = await this.repo.find({
       where: { periodYear, periodMonth, tenantId },
-      relations: ['lines'],
       order: { createdAt: 'DESC' },
     });
     return rows.map((r) => this.toDomain(r));
@@ -37,7 +36,6 @@ export class PostgresPayrollRunRepository implements PayrollRunRepository {
   async findAll(tenantId: string): Promise<PayrollRun[]> {
     const rows = await this.repo.find({
       where: { tenantId },
-      relations: ['lines'],
       order: { createdAt: 'DESC' },
     });
     return rows.map((r) => this.toDomain(r));
@@ -74,9 +72,9 @@ export class PostgresPayrollRunRepository implements PayrollRunRepository {
       entity.lines = [];
       const savedRun = await queryRunner.manager.save(PayrollRunOrmEntity, entity);
 
-      for (const line of lines) {
-        line.payrollRunId = savedRun.id;
-        await queryRunner.manager.save(PayrollLineOrmEntity, line);
+      if (lines.length > 0) {
+        lines.forEach((l) => { l.payrollRunId = savedRun.id; });
+        await queryRunner.manager.save(PayrollLineOrmEntity, lines);
       }
 
       const domainEvents = payrollRun.domainEvents;

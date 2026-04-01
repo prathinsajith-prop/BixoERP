@@ -178,6 +178,24 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key === "accentColor" && e.newValue !== null) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          setAccentState(parsed);
+          applyAccentToDOM(parsed);
+        } catch { /* noop */ }
+      }
+      if (e.key === "theme" && e.newValue !== null) {
+        setThemeState(e.newValue);
+        applyThemeToDOM(e.newValue);
+      }
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, []);
+
+  useEffect(() => {
     if (theme !== "system") return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = () => applyThemeToDOM("system");

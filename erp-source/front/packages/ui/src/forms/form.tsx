@@ -2,13 +2,13 @@
 
 import React from "react";
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface InputProps extends React.ComponentPropsWithRef<"input"> {
   label?: string;
   error?: string;
   helperText?: string;
 }
 
-export function Input({ label, error, helperText, className = "", id, ...props }: InputProps) {
+export function Input({ label, error, helperText, className = "", id, ref, ...props }: InputProps) {
   const inputId = id || label?.toLowerCase().replace(/\s/g, "-");
   return (
     <div className="space-y-1">
@@ -18,6 +18,7 @@ export function Input({ label, error, helperText, className = "", id, ...props }
         </label>
       )}
       <input
+        ref={ref}
         id={inputId}
         className={`gogo-input block w-full px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none ${
           error
@@ -33,13 +34,13 @@ export function Input({ label, error, helperText, className = "", id, ...props }
   );
 }
 
-interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+interface SelectProps extends React.ComponentPropsWithRef<"select"> {
   label?: string;
   error?: string;
   options: { value: string; label: string }[];
 }
 
-export function Select({ label, error, options, className = "", id, ...props }: SelectProps) {
+export function Select({ label, error, options, className = "", id, ref, ...props }: SelectProps) {
   const selectId = id || label?.toLowerCase().replace(/\s/g, "-");
   return (
     <div className="space-y-1">
@@ -49,6 +50,7 @@ export function Select({ label, error, options, className = "", id, ...props }: 
         </label>
       )}
       <select
+        ref={ref}
         id={selectId}
         className={`gogo-input block w-full px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none ${
           error
@@ -69,12 +71,12 @@ export function Select({ label, error, options, className = "", id, ...props }: 
   );
 }
 
-interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+interface TextareaProps extends React.ComponentPropsWithRef<"textarea"> {
   label?: string;
   error?: string;
 }
 
-export function Textarea({ label, error, className = "", id, ...props }: TextareaProps) {
+export function Textarea({ label, error, className = "", id, ref, ...props }: TextareaProps) {
   const textareaId = id || label?.toLowerCase().replace(/\s/g, "-");
   return (
     <div className="space-y-1">
@@ -84,6 +86,7 @@ export function Textarea({ label, error, className = "", id, ...props }: Textare
         </label>
       )}
       <textarea
+        ref={ref}
         id={textareaId}
         className={`gogo-input block w-full px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none ${
           error
