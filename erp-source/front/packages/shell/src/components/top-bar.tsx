@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { AppSelector } from './app-selector';
 import { AlertsDropdown } from './alerts-dropdown';
 import { authApi } from '../lib/api/auth';
+import { useAuthStore } from '../store/auth';
 import { usePageTitleState } from '../context/page-title';
 import { useModuleMenu } from '../hooks/use-module-menu';
 
@@ -44,7 +45,7 @@ function OrgSelector() {
       setOrgs(list);
       const storedId = typeof window !== 'undefined' ? localStorage.getItem('organizationId') : null;
       setCurrentOrg(list.find((o) => o.id === storedId) || list[0] || null);
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   const handleSwitch = async (org: Org) => {
@@ -52,11 +53,11 @@ function OrgSelector() {
     setSwitching(org.id);
     try {
       const res = await authApi.switchOrganization({ organizationId: org.id });
-      const data = (res as { data?: { data?: { accessToken?: string; refreshToken?: string; tenantId?: string } } }).data?.data;
+      const data = (res as { data?: { data?: { accessToken?: string; tenantId?: string } } }).data?.data;
       if (data?.accessToken) {
-        localStorage.setItem('accessToken', data.accessToken);
-        localStorage.setItem('refreshToken', data.refreshToken || '');
-        if (data.tenantId) localStorage.setItem('tenantId', data.tenantId);
+        // Access token stored in memory only — cookie is set server-side automatically
+        useAuthStore.setState({ accessToken: data.accessToken, fullAccessToken: data.accessToken, isAuthenticated: true });
+        if (data.tenantId) sessionStorage.setItem('tenantId', data.tenantId);
       }
       localStorage.setItem('organizationId', org.id);
       window.location.reload();
@@ -75,9 +76,8 @@ function OrgSelector() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className={`flex items-center gap-2 rounded-xl px-2 py-1.5 transition-all hover:bg-gray-100 dark:hover:bg-white/10 ${
-          open ? 'bg-gray-100 dark:bg-white/10' : ''
-        }`}
+        className={`flex items-center gap-2 rounded-xl px-2 py-1.5 transition-all hover:bg-gray-100 dark:hover:bg-white/10 ${open ? 'bg-gray-100 dark:bg-white/10' : ''
+          }`}
       >
         <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${gradient} text-[11px] font-bold text-white`}>
           {initial}
@@ -98,9 +98,8 @@ function OrgSelector() {
             const isSwitching = switching === org.id;
             return (
               <button key={org.id || idx} onClick={() => handleSwitch(org)} disabled={isSwitching}
-                className={`flex w-full items-center gap-2.5 px-3 py-2 text-left transition ${
-                  isActive ? 'bg-blue-50/60 dark:bg-blue-900/20' : 'hover:bg-gray-50 dark:hover:bg-white/5'
-                } ${isSwitching ? 'opacity-60' : ''}`}>
+                className={`flex w-full items-center gap-2.5 px-3 py-2 text-left transition ${isActive ? 'bg-blue-50/60 dark:bg-blue-900/20' : 'hover:bg-gray-50 dark:hover:bg-white/5'
+                  } ${isSwitching ? 'opacity-60' : ''}`}>
                 <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${ORG_GRADIENTS[idx % ORG_GRADIENTS.length]} text-[11px] font-bold text-white`}>
                   {org.name?.charAt(0)?.toUpperCase() || 'O'}
                 </div>

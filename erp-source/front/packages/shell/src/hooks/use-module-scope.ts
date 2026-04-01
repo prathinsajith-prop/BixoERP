@@ -20,10 +20,9 @@ export function useModuleScope(moduleId: string) {
     // Already scoped for this module
     if (activeModule === moduleId) return;
 
-    // Save the current full token if we haven't yet
+    // Save the current full token in memory only (never localStorage)
     const tokenToPreserve = fullAccessToken || accessToken;
     if (tokenToPreserve && !fullAccessToken) {
-      localStorage.setItem("fullAccessToken", tokenToPreserve);
       useAuthStore.setState({ fullAccessToken: tokenToPreserve });
     }
 
@@ -34,20 +33,19 @@ export function useModuleScope(moduleId: string) {
     requested.current = true;
 
     // Temporarily set full token as active so the API call authenticates with full permissions
-    localStorage.setItem("accessToken", requestToken);
     useAuthStore.setState({ accessToken: requestToken });
 
     authApi
       .scopeToken({ module: moduleId })
       .then(({ data }) => {
         const scopedToken = data.data.accessToken;
-        localStorage.setItem("accessToken", scopedToken);
-        localStorage.setItem("activeModule", moduleId);
+        // Scoped access token stays in memory; only non-sensitive module ID goes to sessionStorage
+        sessionStorage.setItem("activeModule", moduleId);
         useAuthStore.setState({ accessToken: scopedToken, activeModule: moduleId });
       })
       .catch(() => {
         // If scoping fails, keep the full token
-        localStorage.setItem("activeModule", moduleId);
+        sessionStorage.setItem("activeModule", moduleId);
         useAuthStore.setState({ activeModule: moduleId });
       });
   }, [moduleId]);

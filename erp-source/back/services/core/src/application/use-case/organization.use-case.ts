@@ -219,6 +219,9 @@ export class OrganizationUseCase {
     );
     if (!membership) throw new NotMemberException();
 
+    // Enforce: membership must be active — inactive/invited members cannot switch in
+    if (!membership.isActive()) throw new NotMemberException();
+
     const org = await this.orgRepo.findById(cmd.targetOrganizationId);
     if (!org) throw new OrganizationNotFoundException();
 
@@ -245,9 +248,13 @@ export class OrganizationUseCase {
     const roleNames = roles.map((r) => r.name);
 
     // Generate new tokens scoped to the target organization
+    // Include org_id and org_role from the verified membership so all downstream
+    // services can enforce tenant isolation without trusting client input.
     const accessToken = this.tokenService.generateAccessToken({
       sub: userEntity.id,
       tenantId: targetTenantId,
+      orgId: targetTenantId,
+      orgRole: membership.role,
       email: userEntity.email.value,
       roles: roleNames,
       permissions: permissionCodes,

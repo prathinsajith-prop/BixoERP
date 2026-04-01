@@ -54,5 +54,10 @@ export default new DataSource({
     ManagerAssignmentOrmEntity,
     ManagerSettingsOrmEntity,
   ],
-  migrations: ['src/infrastructure/persistence/migration/*.ts'],
+  // In Docker the TS sources aren't present — use compiled JS; locally ts-node picks up .ts
+  migrations: [
+    process.env.NODE_ENV === 'production'
+      ? 'dist/infrastructure/persistence/migration/*.js'
+      : 'src/infrastructure/persistence/migration/*.ts',
+  ],
 });

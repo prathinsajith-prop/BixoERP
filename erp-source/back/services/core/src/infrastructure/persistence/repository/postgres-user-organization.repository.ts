@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserOrganizationRepository } from '../../../domain/repository/user-organization.repository';
 import { UserOrganization } from '../../../domain/entity/user-organization.entity';
-import { OrgMemberRole } from '../../../domain/entity/user-organization.entity';
+import { OrgMemberRole, OrgMemberStatus } from '../../../domain/entity/user-organization.entity';
 import { UserOrganizationOrmEntity } from '../entity/user-organization.orm-entity';
 
 @Injectable()
@@ -11,7 +11,7 @@ export class PostgresUserOrganizationRepository implements UserOrganizationRepos
   constructor(
     @InjectRepository(UserOrganizationOrmEntity)
     private readonly repo: Repository<UserOrganizationOrmEntity>,
-  ) {}
+  ) { }
 
   async findByUserId(userId: string): Promise<UserOrganization[]> {
     const rows = await this.repo.find({ where: { user_id: userId } });
@@ -36,6 +36,7 @@ export class PostgresUserOrganizationRepository implements UserOrganizationRepos
       user_id: uo.userId,
       organization_id: uo.organizationId,
       role: uo.role,
+      status: uo.status,
     });
     await this.repo.save(entity);
   }
@@ -50,6 +51,7 @@ export class PostgresUserOrganizationRepository implements UserOrganizationRepos
       userId: row.user_id,
       organizationId: row.organization_id,
       role: row.role as OrgMemberRole,
+      status: (row.status as OrgMemberStatus) ?? OrgMemberStatus.ACTIVE,
       joinedAt: row.joined_at,
     });
   }

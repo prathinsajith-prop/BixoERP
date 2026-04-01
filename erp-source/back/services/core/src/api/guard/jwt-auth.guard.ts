@@ -33,6 +33,8 @@ export class JwtAuthGuard implements CanActivate {
 
       request.user = payload;
       request.tenantId = payload.tenantId;
+      request.orgId = payload.orgId ?? payload.tenantId;
+      request.orgRole = payload.orgRole ?? null;
       return true;
     } catch (err) {
       throw new UnauthorizedException((err as Error).message || 'Invalid token');

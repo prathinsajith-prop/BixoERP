@@ -31,9 +31,14 @@ class JWTMiddleware(BaseHTTPMiddleware):
         token = auth_header[7:]
         try:
             payload = _decode_jwt(token)
+            tenant_id = payload.get("tenant_id") or payload.get("tenantId", "")
+            # org_id falls back to tenant_id for backward compatibility
+            org_id = payload.get("org_id") or payload.get("orgId") or tenant_id
             request.state.user = {
                 "user_id": payload.get("sub", ""),
-                "tenant_id": payload["tenant_id"],
+                "tenant_id": tenant_id,
+                "org_id": org_id,
+                "org_role": payload.get("org_role") or payload.get("orgRole"),
                 "roles": payload.get("roles", []),
                 "email": payload.get("email", ""),
             }

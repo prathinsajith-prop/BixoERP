@@ -7,6 +7,7 @@ import { z } from 'zod';
 import PageHeader from '@/components/page-header';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
+import { useAuthStore } from '@/store/auth';
 
 const orgSchema = z.object({
   name: z.string().min(1, 'Organization name is required'),
@@ -57,9 +58,9 @@ export default function CreateOrganizationPage() {
       if (orgId) localStorage.setItem('organizationId', orgId);
       const resData = res.data?.data;
       if (resData?.accessToken) {
-        localStorage.setItem('accessToken', resData.accessToken);
-        localStorage.setItem('refreshToken', resData.refreshToken);
-        if (resData.tenantId) localStorage.setItem('tenantId', resData.tenantId);
+        // Access token in memory only; refresh cookie set server-side automatically
+        useAuthStore.setState({ accessToken: resData.accessToken, isAuthenticated: true });
+        if (resData.tenantId) sessionStorage.setItem('tenantId', resData.tenantId);
       }
       router.push('/organization');
     } catch (err: unknown) {

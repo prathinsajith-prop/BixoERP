@@ -54,6 +54,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             String userId = claims.getSubject();
             String tenantId = claims.get("tenant_id", String.class);
+            // org_id falls back to tenant_id for backward compatibility
+            String orgIdRaw = claims.get("org_id", String.class);
+            String orgId = (orgIdRaw != null && !orgIdRaw.isEmpty()) ? orgIdRaw : tenantId;
+            String orgRole = claims.get("org_role", String.class);
 
             if (userId == null || tenantId == null) {
                 filterChain.doFilter(request, response);
@@ -63,6 +67,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Map<String, Object> details = new HashMap<>();
             details.put("user_id", UUID.fromString(userId));
             details.put("tenant_id", UUID.fromString(tenantId));
+            details.put("org_id", UUID.fromString(orgId));
+            details.put("org_role", orgRole);
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());

@@ -50,21 +50,20 @@ export function AppSelector() {
     if (!hasModuleAccess(userPermissions, moduleId) || switching) return;
     setSwitching(moduleId);
     try {
-      // Restore full token before requesting a scoped one
+      // Restore full token in memory before requesting a scoped one
       if (fullToken) {
-        localStorage.setItem('accessToken', fullToken);
         useAuthStore.setState({ accessToken: fullToken });
       }
       const { data } = await authApi.scopeToken({ module: moduleId });
       const scopedToken = data.data.accessToken;
-      localStorage.setItem('accessToken', scopedToken);
-      localStorage.setItem('activeModule', moduleId);
+      // Scoped token in memory only
+      sessionStorage.setItem('activeModule', moduleId);
       useAuthStore.setState({ accessToken: scopedToken, activeModule: moduleId });
       setOpen(false);
       window.location.href = path;
     } catch {
       // Fallback: navigate without scoping if endpoint unavailable
-      localStorage.setItem('activeModule', moduleId);
+      sessionStorage.setItem('activeModule', moduleId);
       useAuthStore.setState({ activeModule: moduleId });
       setOpen(false);
       window.location.href = path;
@@ -95,7 +94,6 @@ export function AppSelector() {
               <button
                 onClick={() => {
                   if (fullToken) {
-                    localStorage.setItem('accessToken', fullToken);
                     useAuthStore.setState({ accessToken: fullToken, activeModule: undefined });
                   }
                   setOpen(false);
@@ -113,7 +111,6 @@ export function AppSelector() {
               <button
                 onClick={() => {
                   if (fullToken) {
-                    localStorage.setItem('accessToken', fullToken);
                     useAuthStore.setState({ accessToken: fullToken, activeModule: undefined });
                   }
                   setOpen(false);
@@ -146,8 +143,8 @@ export function AppSelector() {
                   disabled={!allowed || switching === mod.id}
                   title={allowed ? mod.name : `No access to ${mod.name}`}
                   className={`group flex flex-col items-center gap-1.5 rounded-xl px-2 py-3 transition ${allowed
-                      ? 'hover:bg-gray-100/80 dark:hover:bg-white/10 cursor-pointer'
-                      : 'opacity-40 cursor-not-allowed'
+                    ? 'hover:bg-gray-100/80 dark:hover:bg-white/10 cursor-pointer'
+                    : 'opacity-40 cursor-not-allowed'
                     }`}
                 >
                   <span className={`relative flex h-11 w-11 items-center justify-center rounded-full ${color} text-white shadow-sm transition ${allowed ? 'group-hover:shadow-md group-hover:scale-105' : 'grayscale'}`}>

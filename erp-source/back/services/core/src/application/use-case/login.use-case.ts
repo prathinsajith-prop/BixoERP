@@ -4,7 +4,8 @@ import { USER_REPOSITORY, UserRepository } from '../../domain/repository/user.re
 import { ROLE_REPOSITORY, RoleRepository } from '../../domain/repository/role.repository';
 import { PERMISSION_REPOSITORY, PermissionRepository } from '../../domain/repository/permission.repository';
 import { REFRESH_TOKEN_REPOSITORY, RefreshTokenRepository } from '../../domain/repository/refresh-token.repository';
-import { TOKEN_SERVICE, TokenService, TokenPair } from '../port/token-service.port';
+import { USER_ORGANIZATION_REPOSITORY, UserOrganizationRepository } from '../../domain/repository/user-organization.repository';
+import { TOKEN_SERVICE, TokenService } from '../port/token-service.port';
 import { EVENT_PUBLISHER, EventPublisher } from '../port/event-publisher.port';
 import { CACHE_PORT, CachePort } from '../port/cache.port';
 import { RefreshToken } from '../../domain/entity/refresh-token.entity';
@@ -45,6 +46,7 @@ export class LoginUseCase {
     @Inject(ROLE_REPOSITORY) private readonly roleRepo: RoleRepository,
     @Inject(PERMISSION_REPOSITORY) private readonly permissionRepo: PermissionRepository,
     @Inject(REFRESH_TOKEN_REPOSITORY) private readonly refreshTokenRepo: RefreshTokenRepository,
+    @Inject(USER_ORGANIZATION_REPOSITORY) private readonly userOrgRepo: UserOrganizationRepository,
     @Inject(TOKEN_SERVICE) private readonly tokenService: TokenService,
     @Inject(EVENT_PUBLISHER) private readonly eventPublisher: EventPublisher,
     @Inject(CACHE_PORT) private readonly cache: CachePort,
@@ -118,9 +120,14 @@ export class LoginUseCase {
     }
 
     // Generate access token
+    // Look up the user's active org membership to embed org_id + org_role
+    const memberships = await this.userOrgRepo.findByUserId(user.id);
+    const activeMembership = memberships.find((m) => m.isActive()) ?? memberships[0] ?? null;
     const accessToken = this.tokenService.generateAccessToken({
       sub: user.id,
       tenantId: user.tenantId,
+      orgId: activeMembership?.organizationId ?? user.tenantId,
+      orgRole: activeMembership?.role ?? undefined,
       email: user.email.value,
       roles: roleNames,
       permissions: permissionCodes,
