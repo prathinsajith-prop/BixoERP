@@ -13,11 +13,19 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500",
-  secondary: "bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500",
-  danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
-  ghost: "bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-500",
-  outline: "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-blue-500",
+  primary: "text-white hover:opacity-90 focus:ring-2 focus:ring-offset-2",
+  secondary: "bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500 focus:ring-2 focus:ring-offset-2",
+  danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 focus:ring-2 focus:ring-offset-2",
+  ghost: "bg-transparent hover:bg-gray-100 focus:ring-gray-500 focus:ring-2 dark:hover:bg-white/10",
+  outline: "border bg-transparent hover:bg-gray-50 focus:ring-2 focus:ring-offset-2",
+};
+
+const variantInlineStyles: Record<ButtonVariant, React.CSSProperties> = {
+  primary: { backgroundColor: 'var(--gogo-primary)', color: '#fff' },
+  secondary: {},
+  danger: {},
+  ghost: { color: 'var(--gogo-text-primary)' },
+  outline: { borderColor: 'var(--gogo-divider)', color: 'var(--gogo-text-primary)' },
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -37,7 +45,8 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      className={`gogo-btn inline-flex items-center justify-center font-medium transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      style={{ borderRadius: 'var(--radius-button)', fontSize: 'var(--font-size-body)', fontWeight: 'var(--font-weight-btn)', ...variantInlineStyles[variant] }}
       disabled={disabled || loading}
       {...props}
     >

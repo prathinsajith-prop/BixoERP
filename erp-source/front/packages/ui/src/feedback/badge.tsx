@@ -13,7 +13,8 @@ export function StatusBadge({ status, label, className = "" }: BadgeProps) {
   const colorClass = statusColor(status);
   return (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${colorClass} ${className}`}
+      className={`gogo-chip inline-flex items-center px-2.5 py-0.5 text-xs font-medium capitalize ${colorClass} ${className}`}
+      style={{ borderRadius: 'var(--radius-chip)', fontWeight: 'var(--font-weight-btn)' }}
     >
       {label || status.replace(/-/g, " ")}
     </span>

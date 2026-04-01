@@ -8,7 +8,8 @@
     ".": "./src/index.ts",
     "./components/*": "./src/components/*.tsx",
     "./hooks/*": "./src/hooks/*.ts",
-    "./service-registry": "./src/service-registry.ts"
+    "./service-registry": "./src/service-registry.ts",
+    "./styles/gogo-tokens.css": "./src/styles/gogo-tokens.css"
   },
   "scripts": {
     "type-check": "tsc --noEmit",

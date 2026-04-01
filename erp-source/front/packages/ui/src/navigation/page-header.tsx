@@ -11,18 +11,18 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, actions, breadcrumbs }: PageHeaderProps) {
   return (
-    <div className="mb-6">
+    <div className="mb-6 pt-2">
       {breadcrumbs && breadcrumbs.length > 0 && (
-        <nav className="mb-2 flex items-center gap-1 text-sm text-gray-500">
+        <nav className="mb-2 flex items-center gap-1 text-sm" style={{ color: 'var(--gogo-text-secondary)' }}>
           {breadcrumbs.map((crumb, i) => (
             <React.Fragment key={i}>
               {i > 0 && <span className="mx-1">/</span>}
               {crumb.href ? (
-                <a href={crumb.href} className="hover:text-gray-700 transition-colors">
+                <a href={crumb.href} className="transition-colors hover:opacity-80" style={{ color: 'var(--gogo-text-secondary)' }}>
                   {crumb.label}
                 </a>
               ) : (
-                <span className="text-gray-900 font-medium">{crumb.label}</span>
+                <span className="font-medium" style={{ color: 'var(--gogo-text-primary)' }}>{crumb.label}</span>
               )}
             </React.Fragment>
           ))}
@@ -30,8 +30,8 @@ export function PageHeader({ title, description, actions, breadcrumbs }: PageHea
       )}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-          {description && <p className="mt-1 text-sm text-gray-500">{description}</p>}
+          <h1 className="text-xl font-bold" style={{ color: 'var(--gogo-text-primary)', fontFamily: 'var(--font-gogo)' }}>{title}</h1>
+          {description && <p className="mt-1 text-sm" style={{ color: 'var(--gogo-text-secondary)' }}>{description}</p>}
         </div>
         {actions && <div className="flex items-center gap-3">{actions}</div>}
       </div>

@@ -19,11 +19,12 @@ export function Input({ label, error, helperText, className = "", id, ...props }
       )}
       <input
         id={inputId}
-        className={`block w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0 ${
+        className={`gogo-input block w-full px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none ${
           error
-            ? "border-red-300 focus:border-red-400 focus:ring-red-200"
-            : "border-gray-300 focus:border-blue-400 focus:ring-blue-200"
+            ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-200"
+            : ""
         } ${className}`}
+        style={!error ? { borderRadius: 'var(--radius-input)', border: '1px solid var(--gogo-divider)', backgroundColor: 'var(--gogo-surface)', color: 'var(--gogo-text-primary)' } : { borderRadius: 'var(--radius-input)' }}
         {...props}
       />
       {error && <p className="text-xs text-red-600">{error}</p>}
@@ -49,11 +50,12 @@ export function Select({ label, error, options, className = "", id, ...props }: 
       )}
       <select
         id={selectId}
-        className={`block w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0 ${
+        className={`gogo-input block w-full px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none ${
           error
-            ? "border-red-300 focus:border-red-400 focus:ring-red-200"
-            : "border-gray-300 focus:border-blue-400 focus:ring-blue-200"
+            ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-200"
+            : ""
         } ${className}`}
+        style={!error ? { borderRadius: 'var(--radius-input)', border: '1px solid var(--gogo-divider)', backgroundColor: 'var(--gogo-surface)', color: 'var(--gogo-text-primary)' } : { borderRadius: 'var(--radius-input)' }}
         {...props}
       >
         {options.map((opt) => (
@@ -83,11 +85,12 @@ export function Textarea({ label, error, className = "", id, ...props }: Textare
       )}
       <textarea
         id={textareaId}
-        className={`block w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0 ${
+        className={`gogo-input block w-full px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none ${
           error
-            ? "border-red-300 focus:border-red-400 focus:ring-red-200"
-            : "border-gray-300 focus:border-blue-400 focus:ring-blue-200"
+            ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-200"
+            : ""
         } ${className}`}
+        style={!error ? { borderRadius: 'var(--radius-input)', border: '1px solid var(--gogo-divider)', backgroundColor: 'var(--gogo-surface)', color: 'var(--gogo-text-primary)' } : { borderRadius: 'var(--radius-input)' }}
         {...props}
       />
       {error && <p className="text-xs text-red-600">{error}</p>}

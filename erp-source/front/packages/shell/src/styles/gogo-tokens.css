@@ -1,0 +1,203 @@
+/* ============================================================
+   Gogo MUI Admin — Design Tokens for Bixo ERP
+   Single source of truth for all Gogo visual values.
+
+   Import order in each app's globals.css:
+     @import '@erp/shell/styles/gogo-tokens.css';   ← first, before @tailwind
+
+   Font: loaded once here — do NOT add next/font/google in any layout.tsx
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap');
+
+/* ── Light Mode ─────────────────────────────────────────────── */
+:root {
+  /* --- Gogo structural palette (fixed, not overridden by accent switcher) --- */
+  --gogo-primary:        #922c88;
+  --gogo-primary-dark:   #6d2166;
+  --gogo-primary-light:  #b14fa5;
+  --gogo-secondary:      #e91e63;
+  --gogo-secondary-light:#f06292;
+
+  --gogo-bg-default:     #f7f7f7;
+  --gogo-surface:        #ffffff;
+  --gogo-text-primary:   #2b2b2b;
+  --gogo-text-secondary: #757575;
+  --gogo-divider:        rgba(0, 0, 0, 0.12);
+  --gogo-grey-100:       #f5f5f5;
+  --gogo-grey-200:       #eeeeee;
+
+  /* --- Shape --- */
+  --radius-card:    12px;
+  --radius-button:   8px;
+  --radius-input:    8px;
+  --radius-modal:   16px;
+  --radius-sidebar: 24px;
+  --radius-chip:     6px;
+
+  /* --- Shadows --- */
+  --shadow-card:  0 1px 15px 1px rgba(69, 65, 78, 0.08);
+  --shadow-hover: 0 4px 20px rgba(69, 65, 78, 0.12);
+  --shadow-header:0 1px 3px 0 rgba(0, 0, 0, 0.10), 0 1px 2px -1px rgba(0, 0, 0, 0.10);
+
+  /* --- Layout dimensions --- */
+  --gogo-header-height:     80px;
+  --gogo-sidebar-width:     80px;
+  --gogo-table-row-height:  48px;
+
+  /* --- Typography --- */
+  --font-gogo: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-size-body:    14px;
+  --line-height-body:  1.5;
+  --font-size-h6:      16px;
+  --font-weight-h6:    600;
+  --font-weight-btn:   500;
+}
+
+/* ── Dark Mode — every light token that differs must be re-declared ── */
+.dark {
+  --gogo-primary:        #b14fa5;
+  --gogo-primary-dark:   #922c88;
+  --gogo-primary-light:  #c770bd;
+  --gogo-secondary:      #f06292;
+  --gogo-secondary-light:#f48fb1;
+
+  --gogo-bg-default:     #121212;
+  --gogo-surface:        #1e1e1e;
+  --gogo-text-primary:   #ffffff;
+  --gogo-text-secondary: #b0b0b0;
+  --gogo-divider:        rgba(255, 255, 255, 0.12);
+  --gogo-grey-100:       #2a2a2a;
+  --gogo-grey-200:       #333333;
+
+  /* Shadows are lighter on dark backgrounds */
+  --shadow-card:  0 1px 15px 1px rgba(0, 0, 0, 0.30);
+  --shadow-hover: 0 4px 20px rgba(0, 0, 0, 0.40);
+  --shadow-header:0 1px 3px 0 rgba(0, 0, 0, 0.40), 0 1px 2px -1px rgba(0, 0, 0, 0.30);
+}
+
+/* ── Global base rules ─────────────────────────────────────── */
+html {
+  font-size: var(--font-size-body);
+}
+
+body {
+  font-family: var(--font-gogo);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  background-color: var(--gogo-bg-default);
+  color: var(--gogo-text-primary);
+}
+
+/* ── Gogo structural utility classes ───────────────────────── */
+
+/* Header */
+.gogo-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  height: var(--gogo-header-height);
+  background-color: var(--gogo-surface);
+  box-shadow: var(--shadow-header);
+  border-bottom-left-radius:  var(--radius-sidebar);
+  border-bottom-right-radius: var(--radius-sidebar);
+}
+
+/* Sidebar rail */
+.gogo-sidebar {
+  background-color: var(--gogo-surface);
+  box-shadow: var(--shadow-card);
+}
+
+/* Primary sidebar item */
+.gogo-sidebar-item {
+  color: var(--gogo-text-secondary);
+  border-radius: var(--radius-sidebar);
+  transition: background-color 0.2s, color 0.2s;
+}
+.gogo-sidebar-item:hover {
+  background-color: var(--gogo-grey-100);
+  color: var(--gogo-primary);
+}
+.gogo-sidebar-item.active {
+  background-color: var(--gogo-primary);
+  color: #ffffff;
+}
+
+/* Card */
+.gogo-card {
+  background-color: var(--gogo-surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s;
+}
+.gogo-card:hover {
+  box-shadow: var(--shadow-hover);
+}
+
+/* Button */
+.gogo-btn {
+  border-radius: var(--radius-button);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-btn);
+  text-transform: none;
+}
+.gogo-btn-primary {
+  background-color: var(--gogo-primary);
+  color: #ffffff;
+}
+.gogo-btn-primary:hover {
+  background-color: var(--gogo-primary-dark);
+}
+
+/* Input / Select */
+.gogo-input {
+  border-radius: var(--radius-input);
+  border: 1px solid var(--gogo-divider);
+  background-color: var(--gogo-surface);
+  color: var(--gogo-text-primary);
+  font-size: var(--font-size-body);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.gogo-input:focus {
+  outline: none;
+  border-color: var(--gogo-primary);
+  box-shadow: 0 0 0 3px rgba(146, 44, 136, 0.12);
+}
+
+/* Badge / Chip */
+.gogo-chip {
+  border-radius: var(--radius-chip);
+  font-weight: var(--font-weight-btn);
+  font-size: 0.8125rem;
+}
+
+/* Table */
+.gogo-table thead tr th {
+  background-color: var(--gogo-grey-100);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gogo-text-secondary);
+  border-bottom: 2px solid var(--gogo-divider);
+}
+.gogo-table tbody tr {
+  height: var(--gogo-table-row-height);
+  border-bottom: 1px solid var(--gogo-divider);
+  transition: background-color 0.15s;
+}
+.gogo-table tbody tr:hover {
+  background-color: var(--gogo-grey-100);
+}
+.dark .gogo-table tbody tr:hover {
+  background-color: var(--gogo-grey-100);
+}
+
+/* Main content offset */
+.gogo-main-content {
+  background-color: var(--gogo-bg-default);
+  min-height: 100dvh;
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}

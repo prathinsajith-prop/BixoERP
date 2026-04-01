@@ -49,9 +49,10 @@ function SidebarIcon({ icon, label, onClick, active, badge }: {
       title={label}
       className={`group relative flex h-10 w-10 items-center justify-center rounded-xl transition-all
         ${active
-          ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25'
+          ? 'text-white shadow-md'
           : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white'
         }`}
+      style={active ? { backgroundColor: 'var(--gogo-primary)', boxShadow: '0 4px 12px rgba(146,44,136,0.30)' } : undefined}
     >
       {icon}
       {badge !== undefined && badge > 0 && (
@@ -96,8 +97,9 @@ function AdminLink({ icon, label, path, active }: { icon: ReactNode; label: stri
   return (
     <a href={path}
       className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition
-        ${active ? 'bg-blue-50 font-medium text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
-          : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5'}`}>
+        ${active ? 'font-medium dark:text-purple-300'
+          : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5'}`}
+      style={active ? { backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 8%, transparent)', color: 'var(--gogo-primary)' } : undefined}>
       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">{icon}</span>
       {label}
     </a>
@@ -125,9 +127,10 @@ function SidebarOrgSwitcher({ onToggle, active }: { onToggle: () => void; active
       title={currentOrg?.name || 'Switch Organization'}
       className={`group relative flex h-10 w-10 items-center justify-center rounded-xl transition-all
         ${active
-          ? 'ring-2 ring-blue-500 ring-offset-1 dark:ring-offset-gray-900'
+          ? 'ring-2 ring-offset-1 dark:ring-offset-gray-900'
           : 'ring-1 ring-gray-200 hover:ring-gray-300 dark:ring-gray-700 dark:hover:ring-gray-600'
         }`}
+      style={active ? { '--tw-ring-color': 'var(--gogo-primary)' } as React.CSSProperties : undefined}
     >
       <div className={`flex h-full w-full items-center justify-center rounded-xl bg-gradient-to-br ${orgGradient(idx)} text-xs font-bold text-white`}>
         {initial}
@@ -182,16 +185,17 @@ function OrgSwitcher() {
         const isSwitching = switching === org.id;
         return (
           <button key={org.id || idx} onClick={() => handleSwitch(org)} disabled={isSwitching}
-            className={`flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition ${isActive ? 'bg-blue-50/60 dark:bg-blue-900/20' : 'hover:bg-gray-50 dark:hover:bg-white/5'} ${isSwitching ? 'opacity-60' : ''}`}>
+            className={`flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition ${isSwitching ? 'opacity-60' : ''}`}
+            style={isActive ? { backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 10%, transparent)' } : undefined}>
             <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${orgGradient(idx)} text-[11px] font-bold text-white`}>
               {org.name?.charAt(0)?.toUpperCase() || 'O'}
             </div>
             <div className="min-w-0 flex-1">
-              <p className={`truncate text-sm font-medium ${isActive ? 'text-blue-900 dark:text-blue-200' : 'text-gray-700 dark:text-gray-300'}`}>{org.name}</p>
+              <p className={`truncate text-sm font-medium ${isActive ? 'dark:text-purple-200' : 'text-gray-700 dark:text-gray-300'}`} style={isActive ? { color: 'var(--gogo-primary-dark)' } : undefined}>{org.name}</p>
             </div>
             {org.role && <span className={`shrink-0 rounded-full px-1.5 py-px text-[9px] font-bold uppercase tracking-wide ${roleColors[org.role] || roleColors.Member}`}>{org.role}</span>}
-            {isActive && <svg className="h-3.5 w-3.5 shrink-0 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
-            {isSwitching && <svg className="h-3.5 w-3.5 shrink-0 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
+            {isActive && <svg className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--gogo-primary)' }} fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
+            {isSwitching && <svg className="h-3.5 w-3.5 shrink-0 animate-spin" style={{ color: 'var(--gogo-primary)' }} fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
           </button>
         );
       })}
@@ -264,10 +268,10 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
   return (
     <aside className="fixed bottom-0 left-0 right-0 z-40 flex md:bottom-3 md:left-3 md:right-auto md:top-3">
       {/* Icon rail */}
-      <div className="flex h-14 w-full flex-row items-center justify-around bg-white/95 ring-1 ring-gray-200/60 backdrop-blur-xl dark:bg-gray-900/95 dark:ring-gray-700/60 dark:shadow-none md:h-auto md:w-[56px] md:flex-col md:justify-start md:rounded-2xl md:py-3 md:shadow-lg md:shadow-gray-900/5">
+      <div className="gogo-sidebar flex h-14 w-full flex-row items-center justify-around bg-white/95 ring-1 ring-gray-200/60 backdrop-blur-xl dark:bg-gray-900/95 dark:ring-gray-700/60 dark:shadow-none md:h-auto md:w-[80px] md:flex-col md:justify-start md:rounded-2xl md:py-3 md:shadow-lg">
 
         {/* Logo */}
-        <a href="/" className="mb-4 hidden h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-md shadow-blue-500/25 ring-1 ring-white/20 md:flex" title={APP_NAME}>
+        <a href="/" className="mb-4 hidden h-10 w-10 items-center justify-center rounded-xl shadow-md ring-1 ring-white/20 md:flex" style={{ background: 'linear-gradient(135deg, var(--gogo-primary) 0%, var(--gogo-secondary) 100%)' }} title={APP_NAME}>
           <span className="text-sm font-extrabold tracking-wide text-white">B</span>
         </a>
 
@@ -326,12 +330,14 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
         {/* Profile avatar */}
         <button onClick={() => toggle('profile')} title="Profile" className={`md:mt-2 md:mb-1 ${hasModuleMenu ? 'hidden md:block' : ''}`}>
           {avatarUrl ? (
-            <img src={avatarUrl} alt={displayName} className={`h-9 w-9 rounded-full object-cover ring-2 transition ${activePanel === 'profile' ? 'ring-blue-500' : 'ring-transparent hover:ring-gray-300 dark:hover:ring-gray-600'}`} />
+            <img src={avatarUrl} alt={displayName} className={`h-9 w-9 rounded-full object-cover ring-2 transition ${activePanel === 'profile' ? '' : 'ring-transparent hover:ring-gray-300 dark:hover:ring-gray-600'}`}
+              style={activePanel === 'profile' ? { '--tw-ring-color': 'var(--gogo-primary)' } as React.CSSProperties : undefined} />
           ) : (
-            <div className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold transition
-              ${activePanel === 'profile'
-                ? 'bg-blue-600 text-white ring-2 ring-blue-500'
-                : 'bg-blue-100 text-blue-700 ring-2 ring-transparent hover:ring-gray-300 dark:bg-blue-900/30 dark:text-blue-300'}`}>
+            <div className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold ring-2 transition
+              ${activePanel === 'profile' ? 'text-white' : 'ring-transparent hover:ring-gray-300 dark:hover:ring-gray-600'}`}
+              style={activePanel === 'profile'
+                ? { backgroundColor: 'var(--gogo-primary)', '--tw-ring-color': 'var(--gogo-primary)' } as React.CSSProperties
+                : { backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 12%, #fff)', color: 'var(--gogo-primary-dark)' }}>
               {initial}
             </div>
           )}

@@ -8,10 +8,10 @@
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",
     "lint": "eslint \"{src,test}/**/*.ts\" --fix",
-    "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
-    "migration:generate": "npm run typeorm -- migration:generate -d src/infrastructure/persistence/data-source.ts",
-    "migration:run": "npm run typeorm -- migration:run -d src/infrastructure/persistence/data-source.ts",
-    "seed": "npx ts-node -r tsconfig-paths/register src/infrastructure/persistence/seed.ts"
+    "typeorm": "node ./node_modules/typeorm/cli.js",
+    "migration:generate": "npm run typeorm -- migration:generate -d dist/infrastructure/persistence/data-source.js",
+    "migration:run": "npm run typeorm -- migration:run -d dist/infrastructure/persistence/data-source.js",
+    "seed": "node dist/infrastructure/persistence/seed.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
@@ -29,6 +29,8 @@
     "qrcode": "^1.5.4",
     "reflect-metadata": "^0.2.1",
     "rxjs": "^7.8.1",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
     "typeorm": "^0.3.19",
     "zod": "^3.22.4"
   },
@@ -39,8 +41,6 @@
     "@types/express": "^4.17.21",
     "@types/node": "^20.11.0",
     "@types/qrcode": "^1.5.6",
-    "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.3.3"
   }
 }
