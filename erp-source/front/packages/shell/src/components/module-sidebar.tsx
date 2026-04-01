@@ -266,7 +266,7 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
-    <aside className="fixed bottom-0 left-0 right-0 z-40 flex md:bottom-3 md:left-3 md:right-auto md:top-3">
+    <aside className="fixed bottom-0 left-0 right-0 z-40 flex md:bottom-3 md:left-0 md:right-auto md:top-3">
       {/* Icon rail */}
       <div className="gogo-sidebar flex h-14 w-full flex-row items-center justify-around bg-white/95 ring-1 ring-gray-200/60 backdrop-blur-xl dark:bg-gray-900/95 dark:ring-gray-700/60 dark:shadow-none md:h-auto md:w-[80px] md:flex-col md:justify-start md:rounded-2xl md:py-3 md:shadow-lg">
 
