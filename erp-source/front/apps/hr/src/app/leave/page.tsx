@@ -2,8 +2,28 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Plus } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Modal, Button, Input, Select, Textarea, LoadingSpinner, EmptyState } from "@erp/ui";
 import { api, type LeaveRequestResponse, type EmployeeResponse } from "../../lib/api";
+
+const submitSchema = z.object({
+  employeeId: z.string().min(1, "Please select an employee"),
+  leaveType: z.string().min(1, "Please select a leave type"),
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().min(1, "End date is required"),
+  reason: z.string().optional(),
+}).refine((d) => new Date(d.endDate) >= new Date(d.startDate), {
+  message: "End date must be on or after start date",
+  path: ["endDate"],
+});
+type SubmitFormData = z.infer<typeof submitSchema>;
+
+const rejectSchema = z.object({
+  reason: z.string().min(3, "Please provide a rejection reason (min. 3 characters)"),
+});
+type RejectFormData = z.infer<typeof rejectSchema>;
 
 const statusStyles: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-800",
@@ -34,10 +54,18 @@ export default function LeaveRequestsPage() {
   const [employees, setEmployees] = useState<EmployeeResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [tab, setTab] = useState<"all" | "pending">("all");
   const [showSubmit, setShowSubmit] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const submitForm = useForm<SubmitFormData>({
+    resolver: zodResolver(submitSchema),
+  });
+  const rejectForm = useForm<RejectFormData>({
+    resolver: zodResolver(rejectSchema),
+  });
 
   const load = useCallback(async () => {
     try {
@@ -53,58 +81,64 @@ export default function LeaveRequestsPage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let ignore = false;
+    setLoading(true);
+    Promise.all([api.leave.list(), api.employees.list()])
+      .then(([reqs, emps]) => {
+        if (!ignore) { setRequests(reqs); setEmployees(emps); setError(null); }
+      })
+      .catch((err: unknown) => {
+        if (!ignore) setError((err as { message?: string }).message ?? 'Failed to load leave requests');
+      })
+      .finally(() => { if (!ignore) setLoading(false); });
+    return () => { ignore = true; };
+  }, []);
 
   const filtered = tab === "pending" ? requests.filter((r) => r.status === "PENDING") : requests;
 
   async function handleApprove(id: string) {
     setActionLoading(id);
+    setActionError(null);
     try {
       await api.leave.approve(id);
       load();
     } catch (err: unknown) {
-      alert((err as { message?: string }).message ?? "Failed to approve");
+      setActionError((err as { message?: string }).message ?? "Failed to approve leave request");
     } finally {
       setActionLoading(null);
     }
   }
 
-  async function handleReject(id: string) {
-    const reason = prompt("Rejection reason:");
-    if (!reason) return;
-    setActionLoading(id);
+  function openRejectModal(id: string) {
+    rejectForm.reset();
+    setRejectingId(id);
+  }
+
+  async function onReject(data: RejectFormData) {
+    if (!rejectingId) return;
+    setActionError(null);
     try {
-      await api.leave.reject(id, reason);
+      await api.leave.reject(rejectingId, data.reason);
+      setRejectingId(null);
       load();
     } catch (err: unknown) {
-      alert((err as { message?: string }).message ?? "Failed to reject");
-    } finally {
-      setActionLoading(null);
+      setActionError((err as { message?: string }).message ?? "Failed to reject leave request");
     }
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const startDate = fd.get("startDate") as string;
-    const endDate = fd.get("endDate") as string;
-    setSaving(true);
-    try {
-      await api.leave.submit({
-        employeeId: fd.get("employeeId"),
-        leaveType: fd.get("leaveType"),
-        startDate,
-        endDate,
-        totalDays: daysBetween(startDate, endDate),
-        reason: fd.get("reason") || undefined,
-      });
-      setShowSubmit(false);
-      load();
-    } catch (err: unknown) {
-      alert((err as { message?: string }).message ?? "Failed to submit leave request");
-    } finally {
-      setSaving(false);
-    }
+  async function onSubmit(data: SubmitFormData) {
+    await api.leave.submit({
+      employeeId: data.employeeId,
+      leaveType: data.leaveType,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      totalDays: daysBetween(data.startDate, data.endDate),
+      reason: data.reason || undefined,
+    });
+    setShowSubmit(false);
+    submitForm.reset();
+    load();
   }
 
   if (loading) return <LoadingSpinner />;
@@ -126,6 +160,10 @@ export default function LeaveRequestsPage() {
           Submit Request
         </Button>
       </div>
+
+      {actionError && (
+        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{actionError}</p>
+      )}
 
       <div className="flex gap-2">
         <button
@@ -178,7 +216,7 @@ export default function LeaveRequestsPage() {
                           className="text-xs text-green-600 hover:text-green-700 font-medium disabled:opacity-50"
                         >Approve</button>
                         <button
-                          onClick={() => handleReject(lr.id)}
+                          onClick={() => openRejectModal(lr.id)}
                           disabled={actionLoading === lr.id}
                           className="text-xs text-red-600 hover:text-red-700 font-medium disabled:opacity-50"
                         >Reject</button>
@@ -192,26 +230,53 @@ export default function LeaveRequestsPage() {
         </div>
       )}
 
-      <Modal open={showSubmit} onClose={() => setShowSubmit(false)} title="Submit Leave Request" size="lg">
-        <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Submit leave request modal */}
+      <Modal open={showSubmit} onClose={() => { setShowSubmit(false); submitForm.reset(); }} title="Submit Leave Request" size="lg">
+        <form onSubmit={submitForm.handleSubmit(onSubmit)} className="space-y-4">
+          {submitForm.formState.errors.root && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{submitForm.formState.errors.root.message}</p>
+          )}
           <Select
             label="Employee"
-            name="employeeId"
-            required
+            error={submitForm.formState.errors.employeeId?.message}
             options={[
               { value: "", label: "Select employee" },
               ...employees.filter((e) => e.status === "ACTIVE").map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}` })),
             ]}
+            {...submitForm.register("employeeId")}
           />
-          <Select label="Leave Type" name="leaveType" required options={leaveTypeOptions} />
+          <Select
+            label="Leave Type"
+            error={submitForm.formState.errors.leaveType?.message}
+            options={leaveTypeOptions}
+            {...submitForm.register("leaveType")}
+          />
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Start Date" name="startDate" type="date" required />
-            <Input label="End Date" name="endDate" type="date" required />
+            <Input label="Start Date" type="date" error={submitForm.formState.errors.startDate?.message} {...submitForm.register("startDate")} />
+            <Input label="End Date" type="date" error={submitForm.formState.errors.endDate?.message} {...submitForm.register("endDate")} />
           </div>
-          <Textarea label="Reason" name="reason" rows={3} placeholder="Optional reason for leave" />
+          <Textarea label="Reason" rows={3} placeholder="Optional reason for leave" {...submitForm.register("reason")} />
           <div className="flex justify-end gap-3 pt-4">
-            <Button variant="outline" type="button" onClick={() => setShowSubmit(false)}>Cancel</Button>
-            <Button type="submit" loading={saving}>Submit Request</Button>
+            <Button variant="outline" type="button" onClick={() => { setShowSubmit(false); submitForm.reset(); }}>Cancel</Button>
+            <Button type="submit" loading={submitForm.formState.isSubmitting}>Submit Request</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Reject leave request modal */}
+      <Modal open={rejectingId !== null} onClose={() => setRejectingId(null)} title="Reject Leave Request">
+        <form onSubmit={rejectForm.handleSubmit(onReject)} className="space-y-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400">Please provide a reason for rejecting this leave request.</p>
+          <Textarea
+            label="Rejection Reason"
+            rows={3}
+            placeholder="e.g. Insufficient team coverage during this period"
+            error={rejectForm.formState.errors.reason?.message}
+            {...rejectForm.register("reason")}
+          />
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="outline" type="button" onClick={() => setRejectingId(null)}>Cancel</Button>
+            <Button type="submit" loading={rejectForm.formState.isSubmitting} className="bg-red-600 hover:bg-red-700">Reject Request</Button>
           </div>
         </form>
       </Modal>

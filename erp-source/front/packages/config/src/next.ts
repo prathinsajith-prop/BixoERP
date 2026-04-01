@@ -56,6 +56,7 @@ export function createServiceConfig(
 ): NextConfig {
   return {
     basePath: `/${moduleId}`,
+    output: 'standalone',
     transpilePackages: SHARED_PACKAGES,
     ...overrides,
   };
@@ -66,6 +67,7 @@ export function createServiceConfig(
  */
 export function createPortalConfig(overrides: Partial<NextConfig> = {}): NextConfig {
   return {
+    output: 'standalone',
     transpilePackages: SHARED_PACKAGES,
     async rewrites() {
       const apiRewrites = SERVICE_ROUTES.map(({ path, host, port }) => ({
