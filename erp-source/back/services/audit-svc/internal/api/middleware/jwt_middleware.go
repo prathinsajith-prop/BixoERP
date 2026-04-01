@@ -56,8 +56,20 @@ func (m *JWTMiddleware) Handle(c *fiber.Ctx) error {
 	userIDStr, _ := claims["sub"].(string)
 	userID, _ := uuid.Parse(userIDStr)
 
+	// Extract org_id — falls back to tenant_id for backward compatibility
+	orgIDStr, _ := claims["org_id"].(string)
+	if orgIDStr == "" {
+		orgIDStr = tenantIDStr
+	}
+	orgID, _ := uuid.Parse(orgIDStr)
+
+	// Extract org_role from membership claim
+	orgRole, _ := claims["org_role"].(string)
+
 	c.Locals("tenant_id", tenantID)
 	c.Locals("user_id", userID)
+	c.Locals("org_id", orgID)
+	c.Locals("org_role", orgRole)
 	c.Locals("claims", claims)
 
 	return c.Next()

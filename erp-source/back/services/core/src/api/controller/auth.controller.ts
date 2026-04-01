@@ -3,12 +3,13 @@ import {
   Post,
   Body,
   Req,
+  Res,
   HttpCode,
   HttpStatus,
   UseGuards,
   Inject,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { ZodValidationPipe } from '../pipe/zod-validation.pipe';
 import {
   RegisterDto,
@@ -41,7 +42,7 @@ export class AuthController {
     private readonly passwordResetUseCase: PasswordResetUseCase,
     private readonly twoFactorUseCase: TwoFactorUseCase,
     @Inject(TOKEN_SERVICE) private readonly tokenService: TokenService,
-  ) {}
+  ) { }
 
   @Post('register')
   async register(
@@ -63,6 +64,7 @@ export class AuthController {
   async login(
     @Body(new ZodValidationPipe(LoginDto)) dto: LoginDto,
     @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
   ) {
     const tenantId = req.headers['x-tenant-id'] as string | undefined;
     const result = await this.loginUseCase.execute({
@@ -85,21 +87,65 @@ export class AuthController {
       };
     }
 
-    return { statusCode: 200, data: result };
+    // Set the refresh token as an HttpOnly, Secure, SameSite=Strict cookie.
+    // This makes it inaccessible to JavaScript — immune to XSS token theft.
+    if (result.refreshToken) {
+      res.cookie('__erp_rt', result.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/api/v1/auth',       // scoped: only sent to auth endpoints
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in ms
+      });
+    }
+
+    // Never send the refresh token in the response body
+    return {
+      statusCode: 200,
+      data: {
+        accessToken: result.accessToken,
+        expiresIn: result.expiresIn,
+        tenantId: result.tenantId,
+      },
+    };
   }
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refresh(
-    @Body(new ZodValidationPipe(RefreshTokenDto)) dto: RefreshTokenDto,
     @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
   ) {
+    // Read refresh token exclusively from the HttpOnly cookie — never from body.
+    // This prevents any client-side script (XSS) from injecting a forged token.
+    const refreshToken: string | undefined = req.cookies?.['__erp_rt'];
+    if (!refreshToken) {
+      res.status(401).json({ statusCode: 401, message: 'No refresh token' });
+      return;
+    }
+
     const result = await this.refreshTokenUseCase.execute({
-      refreshToken: dto.refreshToken,
+      refreshToken,
       userAgent: req.headers['user-agent'],
       ipAddress: req.ip,
     });
-    return { statusCode: 200, data: result };
+
+    // Re-issue the cookie with the rotated refresh token
+    res.cookie('__erp_rt', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/api/v1/auth',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
+    return {
+      statusCode: 200,
+      data: {
+        accessToken: result.accessToken,
+        expiresIn: result.expiresIn,
+      },
+    };
   }
 
   @Post('logout')
@@ -108,12 +154,21 @@ export class AuthController {
   async logout(
     @TenantId() tenantId: string,
     @CurrentUser() user: any,
-    @Body() body: { refreshToken?: string },
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
   ) {
+    const refreshToken: string | undefined = req.cookies?.['__erp_rt'];
     await this.logoutUseCase.execute({
       tenantId,
       userId: user.sub,
-      refreshToken: body?.refreshToken,
+      refreshToken,
+    });
+    // Immediately expire the cookie
+    res.clearCookie('__erp_rt', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/api/v1/auth',
     });
   }
 

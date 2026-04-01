@@ -8,11 +8,12 @@ import {
   Param,
   Query,
   Req,
+  Res,
   UseGuards,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { JwtAuthGuard } from '../guard/jwt-auth.guard';
 import { PermissionsGuard, RequirePermissions } from '../guard/permissions.guard';
 import { ZodValidationPipe } from '../pipe/zod-validation.pipe';
@@ -34,7 +35,7 @@ export class OrganizationController {
   constructor(
     private readonly orgUseCase: OrganizationUseCase,
     private readonly auditLog: AuditLogService,
-  ) {}
+  ) { }
 
   // ─── Superuser: Create Organization ───────────────────────────
 
@@ -82,6 +83,7 @@ export class OrganizationController {
     @TenantId() tenantId: string,
     @CurrentUser() user: { sub: string },
     @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.orgUseCase.switchOrganization({
       userId: user.sub,
@@ -90,7 +92,24 @@ export class OrganizationController {
       userAgent: req.headers['user-agent'],
       ipAddress: req.ip,
     });
-    return { statusCode: 200, data: result };
+
+    // Re-issue the HttpOnly cookie with the new org's refresh token
+    res.cookie('__erp_rt', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/api/v1/auth',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
+    return {
+      statusCode: 200,
+      data: {
+        accessToken: result.accessToken,
+        expiresIn: result.expiresIn,
+        tenantId: result.tenantId,
+      },
+    };
   }
 
   // ─── Superuser: List Organizations ────────────────────────────
@@ -172,7 +191,7 @@ export class OrganizationController {
       entityId: id,
       ipAddress: req.ip ?? '',
       metadata: { changes: changeset },
-    }).catch(() => {});
+    }).catch(() => { });
   }
 
   // ─── Branding: Get ────────────────────────────────────────────
@@ -214,7 +233,7 @@ export class OrganizationController {
       entityId: id,
       ipAddress: req.ip ?? '',
       metadata: { changes: changeset },
-    }).catch(() => {});
+    }).catch(() => { });
     return { statusCode: 200, message: 'Branding updated' };
   }
 
@@ -256,7 +275,7 @@ export class OrganizationController {
       entityId: id,
       ipAddress: req.ip ?? '',
       metadata: { changes: changeset },
-    }).catch(() => {});
+    }).catch(() => { });
     return { statusCode: 200, message: 'Settings updated' };
   }
 
@@ -314,7 +333,7 @@ export class OrganizationController {
       entityType: 'organization',
       entityId: id,
       ipAddress: req.ip ?? '',
-    }).catch(() => {});
+    }).catch(() => { });
   }
 
   // ─── Superuser: Remove Member ─────────────────────────────────
@@ -339,7 +358,7 @@ export class OrganizationController {
       entityType: 'organization',
       entityId: id,
       ipAddress: req.ip ?? '',
-    }).catch(() => {});
+    }).catch(() => { });
   }
 
   // ─── Superuser: List Members ──────────────────────────────────

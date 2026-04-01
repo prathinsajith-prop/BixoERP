@@ -1,14 +1,16 @@
 import axios from 'axios';
+import { useAuthStore } from '@/store/auth';
 
 const api = axios.create({
   baseURL: '/api/v1/auth',
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
 });
 
 api.interceptors.request.use((config) => {
-  const tenantId = localStorage.getItem('tenantId');
+  const tenantId = sessionStorage.getItem('tenantId');
   if (tenantId) config.headers['X-Tenant-Id'] = tenantId;
-  const token = localStorage.getItem('accessToken');
+  const token = useAuthStore.getState().accessToken;
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -16,6 +18,7 @@ api.interceptors.request.use((config) => {
 const refreshClient = axios.create({
   baseURL: '/api/v1/auth',
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
 });
 
 let isRefreshing = false;
@@ -41,12 +44,9 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) throw new Error('No refresh token');
-        const { data } = await refreshClient.post('/refresh', { refreshToken });
+        const { data } = await refreshClient.post('/refresh');
         const newAccessToken = data.data.accessToken;
-        localStorage.setItem('accessToken', newAccessToken);
-        localStorage.setItem('refreshToken', data.data.refreshToken);
+        useAuthStore.setState({ accessToken: newAccessToken, isAuthenticated: true });
         refreshQueue.forEach((p) => p.resolve(newAccessToken));
         refreshQueue = [];
         original.headers.Authorization = `Bearer ${newAccessToken}`;
@@ -54,9 +54,8 @@ api.interceptors.response.use(
       } catch (refreshError) {
         refreshQueue.forEach((p) => p.reject(error));
         refreshQueue = [];
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('tenantId');
+        useAuthStore.setState({ accessToken: null, isAuthenticated: false });
+        sessionStorage.removeItem('tenantId');
         window.location.href = '/login';
       } finally {
         isRefreshing = false;
@@ -66,11 +65,12 @@ api.interceptors.response.use(
   },
 );
 
+
 export const authApi = {
   login: (body: { email: string; password: string }) => api.post('/login', body),
   register: (body: { email: string; password: string; firstName: string; lastName: string }) => api.post('/register', body),
-  logout: (refreshToken: string) => api.post('/logout', { refreshToken }),
-  refreshToken: (refreshToken: string) => api.post('/refresh', { refreshToken }),
+  logout: () => api.post('/logout'),
+  silentRefresh: () => refreshClient.post('/refresh'),
   changePassword: (body: { currentPassword: string; newPassword: string }) => api.post('/change-password', body),
   getProfile: () => api.get('/profile'),
   updateProfile: (body: Record<string, unknown>) => api.put('/profile', body),

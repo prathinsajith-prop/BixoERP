@@ -45,7 +45,7 @@ def _decode_jwt(token: str) -> dict[str, Any]:
     if payload.get("iss") and payload["iss"] != settings.jwt_issuer:
         raise ValueError("Invalid issuer")
 
-    if not payload.get("tenant_id"):
+    if not payload.get("tenant_id") and not payload.get("tenantId"):
         raise ValueError("Missing tenant_id in JWT")
 
     return payload

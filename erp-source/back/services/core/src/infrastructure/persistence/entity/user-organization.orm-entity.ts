@@ -23,6 +23,9 @@ export class UserOrganizationOrmEntity {
   @Column({ length: 30, default: 'MEMBER' })
   role: string;
 
+  @Column({ length: 20, default: 'active' })
+  status: string;
+
   @CreateDateColumn({ type: 'timestamptz' })
   joined_at: Date;
 }

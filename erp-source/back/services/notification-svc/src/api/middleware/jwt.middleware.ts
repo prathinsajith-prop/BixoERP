@@ -25,6 +25,8 @@ export class JwtMiddleware implements NestMiddleware {
       (req as any).user = {
         userId: payload.sub,
         tenantId: payload.tenantId || payload.tenant_id,
+        orgId: payload.org_id ?? payload.orgId ?? payload.tenantId ?? payload.tenant_id,
+        orgRole: payload.org_role ?? payload.orgRole ?? null,
         roles: payload.roles || [],
         email: payload.email,
       };

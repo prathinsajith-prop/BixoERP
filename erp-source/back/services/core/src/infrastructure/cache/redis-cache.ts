@@ -14,13 +14,21 @@ export class RedisCache implements CachePort, OnModuleInit, OnModuleDestroy {
       port: this.config.get<number>('redis.port'),
       keyPrefix: 'auth:',
       maxRetriesPerRequest: 3,
-      enableOfflineQueue: false,
-      lazyConnect: true,
+      enableOfflineQueue: true,
+      retryStrategy: (times) => Math.min(times * 200, 3000),
+      reconnectOnError: () => true,
     });
+
+    this.client.on('error', (err) => this.logger.error(`Redis error: ${err.message}`));
+    this.client.on('reconnecting', () => this.logger.warn('Redis reconnecting…'));
   }
 
   async onModuleInit(): Promise<void> {
-    this.logger.log('Redis connected');
+    await new Promise<void>((resolve, reject) => {
+      if (this.client.status === 'ready') { this.logger.log('Redis connected'); resolve(); return; }
+      this.client.once('ready', () => { this.logger.log('Redis connected'); resolve(); });
+      this.client.once('error', reject);
+    });
   }
 
   async onModuleDestroy(): Promise<void> {

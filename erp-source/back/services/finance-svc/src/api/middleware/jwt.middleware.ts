@@ -29,7 +29,9 @@ export class JwtMiddleware implements NestMiddleware {
       const payload = this.verifyToken(token);
       (req as any).user = {
         userId: payload.sub,
-        tenantId: payload.tenant_id,
+        tenantId: payload.tenant_id ?? payload.tenantId,
+        orgId: payload.org_id ?? payload.orgId ?? payload.tenant_id ?? payload.tenantId,
+        orgRole: payload.org_role ?? payload.orgRole ?? null,
         roles: payload.roles || [],
         email: payload.email,
       };
@@ -71,8 +73,8 @@ export class JwtMiddleware implements NestMiddleware {
       throw new Error('Invalid token issuer');
     }
 
-    // tenant_id MUST be in the JWT (Golden Rule #10)
-    if (!payload.tenant_id) {
+    // tenant_id or tenantId MUST be in the JWT (org isolation enforcement)
+    if (!payload.tenant_id && !payload.tenantId) {
       throw new Error('Missing tenant_id in JWT');
     }
 

@@ -6,11 +6,18 @@ export enum OrgMemberRole {
   MEMBER = 'MEMBER',
 }
 
+export enum OrgMemberStatus {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  INVITED = 'invited',
+}
+
 export class UserOrganization {
   readonly id: string;
   readonly userId: string;
   readonly organizationId: string;
   role: OrgMemberRole;
+  status: OrgMemberStatus;
   readonly joinedAt: Date;
 
   private constructor(id: string, userId: string, organizationId: string, role: OrgMemberRole) {
@@ -18,7 +25,12 @@ export class UserOrganization {
     this.userId = userId;
     this.organizationId = organizationId;
     this.role = role;
+    this.status = OrgMemberStatus.ACTIVE;
     this.joinedAt = new Date();
+  }
+
+  isActive(): boolean {
+    return this.status === OrgMemberStatus.ACTIVE;
   }
 
   static create(userId: string, organizationId: string, role: OrgMemberRole): UserOrganization {
@@ -30,9 +42,11 @@ export class UserOrganization {
     userId: string;
     organizationId: string;
     role: OrgMemberRole;
+    status: OrgMemberStatus;
     joinedAt: Date;
   }): UserOrganization {
     const uo = new UserOrganization(props.id, props.userId, props.organizationId, props.role);
+    uo.status = props.status;
     (uo as any).joinedAt = props.joinedAt;
     return uo;
   }
