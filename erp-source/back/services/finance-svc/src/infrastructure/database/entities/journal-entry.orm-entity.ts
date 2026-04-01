@@ -59,7 +59,6 @@ export class JournalEntryOrmEntity {
 
   @OneToMany(() => JournalLineOrmEntity, (line) => line.journalEntry, {
     cascade: true,
-    eager: true,
   })
   lines!: JournalLineOrmEntity[];
 }

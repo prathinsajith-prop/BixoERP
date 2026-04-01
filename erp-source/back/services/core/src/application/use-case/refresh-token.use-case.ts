@@ -5,6 +5,7 @@ import { ROLE_REPOSITORY, RoleRepository } from '../../domain/repository/role.re
 import { PERMISSION_REPOSITORY, PermissionRepository } from '../../domain/repository/permission.repository';
 import { REFRESH_TOKEN_REPOSITORY, RefreshTokenRepository } from '../../domain/repository/refresh-token.repository';
 import { TOKEN_SERVICE, TokenService, TokenPair } from '../port/token-service.port';
+import { CACHE_PORT, CachePort } from '../port/cache.port';
 import { RefreshToken } from '../../domain/entity/refresh-token.entity';
 import {
   TokenExpiredException,
@@ -29,6 +30,7 @@ export class RefreshTokenUseCase {
     @Inject(PERMISSION_REPOSITORY) private readonly permissionRepo: PermissionRepository,
     @Inject(REFRESH_TOKEN_REPOSITORY) private readonly refreshTokenRepo: RefreshTokenRepository,
     @Inject(TOKEN_SERVICE) private readonly tokenService: TokenService,
+    @Inject(CACHE_PORT) private readonly cache: CachePort,
     private readonly config: ConfigService,
   ) {
     this.refreshTtlDays = this.config.get<number>('REFRESH_TOKEN_TTL_DAYS', 30);
@@ -68,17 +70,29 @@ export class RefreshTokenUseCase {
     await this.refreshTokenRepo.update(existingToken);
     await this.refreshTokenRepo.save(newRefreshToken);
 
-    // Resolve permissions
-    const roles = await this.roleRepo.findByIds(user.tenantId, user.roles);
-    const allPermissionIds = [...new Set(roles.flatMap((r) => r.permissions))];
-    const permissions = await this.permissionRepo.findByIds(user.tenantId, allPermissionIds);
-    const permissionCodes = permissions.map((p) => p.code);
+    // Resolve permissions (cached for 5 min)
+    const cacheKey = `perms:${user.tenantId}:${user.id}`;
+    let permissionCodes: string[];
+    let roleNames: string[];
+    const cached = await this.cache.get(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      permissionCodes = parsed.permissionCodes;
+      roleNames = parsed.roleNames;
+    } else {
+      const roles = await this.roleRepo.findByIds(user.tenantId, user.roles);
+      const allPermissionIds = [...new Set(roles.flatMap((r) => r.permissions))];
+      const permissions = await this.permissionRepo.findByIds(user.tenantId, allPermissionIds);
+      permissionCodes = permissions.map((p) => p.code);
+      roleNames = roles.map((r) => r.name);
+      await this.cache.set(cacheKey, JSON.stringify({ permissionCodes, roleNames }), 300);
+    }
 
     const accessToken = this.tokenService.generateAccessToken({
       sub: user.id,
       tenantId: user.tenantId,
       email: user.email.value,
-      roles: roles.map((r) => r.name),
+      roles: roleNames,
       permissions: permissionCodes,
     });
 

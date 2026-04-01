@@ -9,7 +9,7 @@ export class RedisCache implements CachePort, OnModuleInit, OnModuleDestroy {
   private prefix!: string;
   private defaultTtl!: number;
 
-  constructor(private readonly config: ConfigService) {}
+  constructor(private readonly config: ConfigService) { }
 
   async onModuleInit(): Promise<void> {
     this.prefix = this.config.get<string>('redis.keyPrefix') || 'hr:';
@@ -42,7 +42,14 @@ export class RedisCache implements CachePort, OnModuleInit, OnModuleDestroy {
   }
 
   async delByPattern(pattern: string): Promise<void> {
-    const keys = await this.client.keys(`${this.prefix}${pattern}`);
+    const fullPattern = `${this.prefix}${pattern}`;
+    const keys: string[] = [];
+    let cursor = '0';
+    do {
+      const [nextCursor, batch] = await this.client.scan(cursor, 'MATCH', fullPattern, 'COUNT', 100);
+      cursor = nextCursor;
+      keys.push(...batch);
+    } while (cursor !== '0');
     if (keys.length > 0) {
       await this.client.del(...keys);
     }
