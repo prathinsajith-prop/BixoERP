@@ -2,13 +2,13 @@
 
 import React from "react";
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface InputProps extends React.ComponentPropsWithRef<"input"> {
   label?: string;
   error?: string;
   helperText?: string;
 }
 
-export function Input({ label, error, helperText, className = "", id, ...props }: InputProps) {
+export function Input({ label, error, helperText, className = "", id, ref, ...props }: InputProps) {
   const inputId = id || label?.toLowerCase().replace(/\s/g, "-");
   return (
     <div className="space-y-1">
@@ -18,12 +18,12 @@ export function Input({ label, error, helperText, className = "", id, ...props }
         </label>
       )}
       <input
+        ref={ref}
         id={inputId}
-        className={`block w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0 ${
-          error
-            ? "border-red-300 focus:border-red-400 focus:ring-red-200"
-            : "border-gray-300 focus:border-blue-400 focus:ring-blue-200"
-        } ${className}`}
+        className={`block w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0 ${error
+          ? "border-red-300 focus:border-red-400 focus:ring-red-200"
+          : "border-gray-300 focus:border-blue-400 focus:ring-blue-200"
+          } ${className}`}
         {...props}
       />
       {error && <p className="text-xs text-red-600">{error}</p>}
@@ -32,13 +32,13 @@ export function Input({ label, error, helperText, className = "", id, ...props }
   );
 }
 
-interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+interface SelectProps extends React.ComponentPropsWithRef<"select"> {
   label?: string;
   error?: string;
   options: { value: string; label: string }[];
 }
 
-export function Select({ label, error, options, className = "", id, ...props }: SelectProps) {
+export function Select({ label, error, options, className = "", id, ref, ...props }: SelectProps) {
   const selectId = id || label?.toLowerCase().replace(/\s/g, "-");
   return (
     <div className="space-y-1">
@@ -48,12 +48,12 @@ export function Select({ label, error, options, className = "", id, ...props }: 
         </label>
       )}
       <select
+        ref={ref}
         id={selectId}
-        className={`block w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0 ${
-          error
-            ? "border-red-300 focus:border-red-400 focus:ring-red-200"
-            : "border-gray-300 focus:border-blue-400 focus:ring-blue-200"
-        } ${className}`}
+        className={`block w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0 ${error
+          ? "border-red-300 focus:border-red-400 focus:ring-red-200"
+          : "border-gray-300 focus:border-blue-400 focus:ring-blue-200"
+          } ${className}`}
         {...props}
       >
         {options.map((opt) => (
@@ -67,12 +67,12 @@ export function Select({ label, error, options, className = "", id, ...props }: 
   );
 }
 
-interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+interface TextareaProps extends React.ComponentPropsWithRef<"textarea"> {
   label?: string;
   error?: string;
 }
 
-export function Textarea({ label, error, className = "", id, ...props }: TextareaProps) {
+export function Textarea({ label, error, className = "", id, ref, ...props }: TextareaProps) {
   const textareaId = id || label?.toLowerCase().replace(/\s/g, "-");
   return (
     <div className="space-y-1">
@@ -82,12 +82,12 @@ export function Textarea({ label, error, className = "", id, ...props }: Textare
         </label>
       )}
       <textarea
+        ref={ref}
         id={textareaId}
-        className={`block w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0 ${
-          error
-            ? "border-red-300 focus:border-red-400 focus:ring-red-200"
-            : "border-gray-300 focus:border-blue-400 focus:ring-blue-200"
-        } ${className}`}
+        className={`block w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0 ${error
+          ? "border-red-300 focus:border-red-400 focus:ring-red-200"
+          : "border-gray-300 focus:border-blue-400 focus:ring-blue-200"
+          } ${className}`}
         {...props}
       />
       {error && <p className="text-xs text-red-600">{error}</p>}

@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import PageHeader from '@/components/page-header';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
@@ -8,51 +11,55 @@ import Input from '@/components/ui/input';
 import Button from '@/components/ui/button';
 import Alert from '@/components/ui/alert';
 
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z.string().min(8, 'Must be at least 8 characters'),
+  confirmPassword: z.string(),
+}).refine((d) => d.newPassword === d.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
+}).refine((d) => d.currentPassword !== d.newPassword, {
+  message: 'New password must be different from current',
+  path: ['newPassword'],
+});
+
+type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
+
 export default function ChangePasswordPage() {
   const router = useRouter();
-  const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
-  const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const update = (field: string, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-    setErrors((prev) => ({ ...prev, [field]: undefined as unknown as string }));
-  };
+  const {
+    register,
+    handleSubmit,
+    watch,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ChangePasswordFormData>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
+  });
 
-  const validate = () => {
-    const errs: Record<string, string> = {};
-    if (!form.currentPassword) errs.currentPassword = 'Current password is required';
-    if (form.newPassword.length < 8) errs.newPassword = 'Must be at least 8 characters';
-    if (form.newPassword !== form.confirmPassword) errs.confirmPassword = 'Passwords do not match';
-    if (form.currentPassword === form.newPassword) errs.newPassword = 'New password must be different';
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
+  const watchedNewPassword = watch('newPassword') ?? '';
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
-    setSaving(true);
+  const onSubmit = async (data: ChangePasswordFormData) => {
     setMessage(null);
     try {
-      await authApi.changePassword({ currentPassword: form.currentPassword, newPassword: form.newPassword });
+      await authApi.changePassword({ currentPassword: data.currentPassword, newPassword: data.newPassword });
       setMessage({ type: 'success', text: 'Password changed successfully. Please log in again.' });
-      setForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (err: any) {
-      const msg = err.response?.data?.message ?? 'Failed to change password. Please try again.';
+      reset();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to change password. Please try again.';
       setMessage({ type: 'error', text: msg });
-    } finally {
-      setSaving(false);
     }
   };
 
   const requirements = [
-    { label: 'At least 8 characters', met: form.newPassword.length >= 8 },
-    { label: 'Contains uppercase letter', met: /[A-Z]/.test(form.newPassword) },
-    { label: 'Contains lowercase letter', met: /[a-z]/.test(form.newPassword) },
-    { label: 'Contains a number', met: /\d/.test(form.newPassword) },
-    { label: 'Contains special character', met: /[!@#$%^&*(),.?":{}|<>]/.test(form.newPassword) },
+    { label: 'At least 8 characters', met: watchedNewPassword.length >= 8 },
+    { label: 'Contains uppercase letter', met: /[A-Z]/.test(watchedNewPassword) },
+    { label: 'Contains lowercase letter', met: /[a-z]/.test(watchedNewPassword) },
+    { label: 'Contains a number', met: /\d/.test(watchedNewPassword) },
+    { label: 'Contains special character', met: /[!@#$%^&*(),.?":{}|<>]/.test(watchedNewPassword) },
   ];
 
   const strength = requirements.filter((r) => r.met).length;
@@ -67,12 +74,12 @@ export default function ChangePasswordPage() {
 
         {message && <div className="mb-6"><Alert type={message.type}>{message.text}</Alert></div>}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <Input id="currentPassword" label="Current Password" type="password" placeholder="Enter current password" value={form.currentPassword} onChange={(e) => update('currentPassword', e.target.value)} error={errors.currentPassword} required autoComplete="current-password" />
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <Input id="currentPassword" label="Current Password" type="password" placeholder="Enter current password" {...register('currentPassword')} error={errors.currentPassword?.message} autoComplete="current-password" />
 
           <div>
-            <Input id="newPassword" label="New Password" type="password" placeholder="Enter new password" value={form.newPassword} onChange={(e) => update('newPassword', e.target.value)} error={errors.newPassword} required autoComplete="new-password" />
-            {form.newPassword.length > 0 && (
+            <Input id="newPassword" label="New Password" type="password" placeholder="Enter new password" {...register('newPassword')} error={errors.newPassword?.message} autoComplete="new-password" />
+            {watchedNewPassword.length > 0 && (
               <div className="mt-3">
                 <div className="mb-1.5 flex items-center justify-between">
                   <span className="text-xs text-gray-400">Password strength</span>
@@ -99,11 +106,11 @@ export default function ChangePasswordPage() {
             )}
           </div>
 
-          <Input id="confirmPassword" label="Confirm New Password" type="password" placeholder="Re-enter new password" value={form.confirmPassword} onChange={(e) => update('confirmPassword', e.target.value)} error={errors.confirmPassword} required autoComplete="new-password" />
+          <Input id="confirmPassword" label="Confirm New Password" type="password" placeholder="Re-enter new password" {...register('confirmPassword')} error={errors.confirmPassword?.message} autoComplete="new-password" />
 
           <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-4 dark:border-gray-800">
             <button type="button" onClick={() => router.push('/dashboard')} className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800">Cancel</button>
-            <Button type="submit" loading={saving}>Update Password</Button>
+            <Button type="submit" loading={isSubmitting}>Update Password</Button>
           </div>
         </form>
       </div>

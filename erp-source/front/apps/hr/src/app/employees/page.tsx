@@ -2,8 +2,25 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Plus, Search } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Modal, Button, Input, Select, LoadingSpinner, EmptyState } from "@erp/ui";
 import { api, type EmployeeResponse, type DepartmentResponse, type PositionResponse } from "../../lib/api";
+
+const employeeSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Enter a valid email address"),
+  phone: z.string().optional(),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
+  hireDate: z.string().min(1, "Hire date is required"),
+  departmentId: z.string().min(1, "Please select a department"),
+  positionId: z.string().min(1, "Please select a position"),
+  baseSalary: z.coerce.number({ invalid_type_error: "Salary must be a number" }).positive("Salary must be greater than 0"),
+  currency: z.string().default("USD"),
+});
+type EmployeeFormData = z.infer<typeof employeeSchema>;
 
 const statusStyles: Record<string, string> = {
   ACTIVE: "bg-green-100 text-green-800",
@@ -18,9 +35,19 @@ export default function EmployeesPage() {
   const [positions, setPositions] = useState<PositionResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
-  const [saving, setSaving] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<EmployeeFormData>({
+    resolver: zodResolver(employeeSchema),
+    defaultValues: { currency: "USD" },
+  });
 
   const load = useCallback(async () => {
     try {
@@ -41,7 +68,19 @@ export default function EmployeesPage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let ignore = false;
+    setLoading(true);
+    Promise.all([api.employees.list(), api.departments.list(), api.positions.list()])
+      .then(([emps, depts, pos]) => {
+        if (!ignore) { setEmployees(emps); setDepartments(depts); setPositions(pos); setError(null); }
+      })
+      .catch((err: unknown) => {
+        if (!ignore) setError((err as { message?: string }).message ?? 'Failed to load employees');
+      })
+      .finally(() => { if (!ignore) setLoading(false); });
+    return () => { ignore = true; };
+  }, []);
 
   const filtered = employees.filter((e) => {
     const q = search.toLowerCase();
@@ -49,29 +88,20 @@ export default function EmployeesPage() {
     return name.includes(q) || (e.departmentName ?? "").toLowerCase().includes(q) || e.email.toLowerCase().includes(q);
   });
 
-  async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    setSaving(true);
+  function closeModal() {
+    setShowCreate(false);
+    setServerError(null);
+    reset();
+  }
+
+  async function onSubmit(data: EmployeeFormData) {
+    setServerError(null);
     try {
-      await api.employees.create({
-        firstName: fd.get("firstName"),
-        lastName: fd.get("lastName"),
-        email: fd.get("email"),
-        phone: fd.get("phone") || undefined,
-        dateOfBirth: fd.get("dateOfBirth"),
-        hireDate: fd.get("hireDate"),
-        departmentId: fd.get("departmentId"),
-        positionId: fd.get("positionId"),
-        baseSalary: Number(fd.get("baseSalary")),
-        currency: fd.get("currency") || "USD",
-      });
-      setShowCreate(false);
+      await api.employees.create(data);
+      closeModal();
       load();
     } catch (err: unknown) {
-      alert((err as { message?: string }).message ?? "Failed to create employee");
-    } finally {
-      setSaving(false);
+      setServerError((err as { message?: string }).message ?? "Failed to create employee");
     }
   }
 
@@ -145,39 +175,44 @@ export default function EmployeesPage() {
         </div>
       )}
 
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Add New Employee" size="lg">
-        <form onSubmit={handleCreate} className="space-y-4">
+      <Modal open={showCreate} onClose={closeModal} title="Add New Employee" size="lg">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {serverError && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{serverError}</p>}
           <div className="grid grid-cols-2 gap-4">
-            <Input label="First Name" name="firstName" required />
-            <Input label="Last Name" name="lastName" required />
+            <Input label="First Name" error={errors.firstName?.message} {...register("firstName")} />
+            <Input label="Last Name" error={errors.lastName?.message} {...register("lastName")} />
           </div>
-          <Input label="Email" name="email" type="email" required />
-          <Input label="Phone" name="phone" />
+          <Input label="Email" type="email" error={errors.email?.message} {...register("email")} />
+          <Input label="Phone" {...register("phone")} />
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Date of Birth" name="dateOfBirth" type="date" required />
-            <Input label="Hire Date" name="hireDate" type="date" required />
+            <Input label="Date of Birth" type="date" error={errors.dateOfBirth?.message} {...register("dateOfBirth")} />
+            <Input label="Hire Date" type="date" error={errors.hireDate?.message} {...register("hireDate")} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Select
               label="Department"
-              name="departmentId"
-              required
+              error={errors.departmentId?.message}
               options={[{ value: "", label: "Select department" }, ...departments.map((d) => ({ value: d.id, label: d.name }))]}
+              {...register("departmentId")}
             />
             <Select
               label="Position"
-              name="positionId"
-              required
+              error={errors.positionId?.message}
               options={[{ value: "", label: "Select position" }, ...positions.map((p) => ({ value: p.id, label: p.title }))]}
+              {...register("positionId")}
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Base Salary" name="baseSalary" type="number" step="0.01" required />
-            <Select label="Currency" name="currency" options={[{ value: "USD", label: "USD" }, { value: "EUR", label: "EUR" }, { value: "GBP", label: "GBP" }]} />
+            <Input label="Base Salary" type="number" step="0.01" error={errors.baseSalary?.message} {...register("baseSalary")} />
+            <Select
+              label="Currency"
+              options={[{ value: "USD", label: "USD" }, { value: "EUR", label: "EUR" }, { value: "GBP", label: "GBP" }]}
+              {...register("currency")}
+            />
           </div>
           <div className="flex justify-end gap-3 pt-4">
-            <Button variant="outline" type="button" onClick={() => setShowCreate(false)}>Cancel</Button>
-            <Button type="submit" loading={saving}>Create Employee</Button>
+            <Button variant="outline" type="button" onClick={closeModal}>Cancel</Button>
+            <Button type="submit" loading={isSubmitting}>Create Employee</Button>
           </div>
         </form>
       </Modal>

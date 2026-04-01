@@ -8,16 +8,15 @@ import {
 } from 'typeorm';
 
 @TypeOrmEntity('users')
+@Index(['tenant_id', 'email'], { unique: true })
 export class UserOrmEntity {
   @PrimaryColumn('uuid')
   id: string;
 
   @Column('uuid')
-  @Index()
   tenant_id: string;
 
   @Column({ length: 255 })
-  @Index()
   email: string;
 
   @Column({ length: 255 })
