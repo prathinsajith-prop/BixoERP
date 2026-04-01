@@ -1,46 +1,65 @@
 'use client';
 
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import PageHeader from '@/components/page-header';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
 
+const orgSchema = z.object({
+  name: z.string().min(1, 'Organization name is required'),
+  slug: z.string().optional(),
+  description: z.string().optional(),
+});
+type OrgFormData = z.infer<typeof orgSchema>;
+
+const generateSlug = (name: string) =>
+  name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
 export default function CreateOrganizationPage() {
   const router = useRouter();
-  const [form, setForm] = useState({ name: '', slug: '', description: '' });
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const update = (field: string, value: string) => setForm((prev) => ({ ...prev, [field]: value }));
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<OrgFormData>({
+    resolver: zodResolver(orgSchema),
+    defaultValues: { name: '', slug: '', description: '' },
+  });
 
-  const generateSlug = (name: string) =>
-    name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const watchedName = watch('name') ?? '';
+  const watchedSlug = watch('slug') ?? '';
 
   const handleNameChange = (value: string) => {
-    update('name', value);
-    if (!form.slug || form.slug === generateSlug(form.name)) {
-      update('slug', generateSlug(value));
+    setValue('name', value);
+    if (!watchedSlug || watchedSlug === generateSlug(watchedName)) {
+      setValue('slug', generateSlug(value));
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.name.trim()) { setError('Organization name is required.'); return; }
-    setSaving(true);
+  const onSubmit = async (data: OrgFormData) => {
     setError(null);
+    setSaving(true);
     try {
       const res = await authApi.createOrganization({
-        name: form.name.trim(),
-        slug: form.slug.trim() || undefined,
-        description: form.description.trim() || undefined,
+        name: data.name.trim(),
+        slug: data.slug?.trim() || undefined,
+        description: data.description?.trim() || undefined,
       });
       const orgId = res.data?.data?.id;
       if (orgId) localStorage.setItem('organizationId', orgId);
-      const data = res.data?.data;
-      if (data?.accessToken) {
-        localStorage.setItem('accessToken', data.accessToken);
-        localStorage.setItem('refreshToken', data.refreshToken);
-        if (data.tenantId) localStorage.setItem('tenantId', data.tenantId);
+      const resData = res.data?.data;
+      if (resData?.accessToken) {
+        localStorage.setItem('accessToken', resData.accessToken);
+        localStorage.setItem('refreshToken', resData.refreshToken);
+        if (resData.tenantId) localStorage.setItem('tenantId', resData.tenantId);
       }
       router.push('/organization');
     } catch (err: unknown) {
@@ -66,28 +85,29 @@ export default function CreateOrganizationPage() {
           <div className="mb-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200/60 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-800">{error}</div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Organization Name <span className="text-red-400">*</span>
             </label>
-            <input type="text" value={form.name} onChange={(e) => handleNameChange(e.target.value)} placeholder="Acme Corporation" className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 dark:focus:ring-blue-900" maxLength={100} autoFocus />
+            <input type="text" {...register('name')} onChange={(e) => handleNameChange(e.target.value)} placeholder="Acme Corporation" className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 dark:focus:ring-blue-900" maxLength={100} autoFocus />
+            {errors.name && <div className="mt-1 text-xs text-red-500">{errors.name.message}</div>}
           </div>
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Slug</label>
-            <input type="text" value={form.slug} onChange={(e) => update('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} placeholder="acme-corporation" className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 dark:focus:ring-blue-900" maxLength={100} />
+            <input type="text" {...register('slug')} onChange={(e) => setValue('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} placeholder="acme-corporation" className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 dark:focus:ring-blue-900" maxLength={100} />
             <p className="mt-1 text-xs text-gray-400">URL-friendly identifier. Auto-generated from name if left blank.</p>
           </div>
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
-            <textarea value={form.description} onChange={(e) => update('description', e.target.value)} placeholder="Brief description of the organization..." rows={3} className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 dark:focus:ring-blue-900 resize-none" maxLength={500} />
+            <textarea {...register('description')} placeholder="Brief description of the organization..." rows={3} className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 dark:focus:ring-blue-900 resize-none" maxLength={500} />
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-2">
             <button type="button" onClick={() => router.back()} className="rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">Cancel</button>
-            <button type="submit" disabled={saving || !form.name.trim()} className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50">{saving ? 'Creating...' : 'Create Organization'}</button>
+            <button type="submit" disabled={saving || isSubmitting || !watchedName.trim()} className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50">{saving ? 'Creating...' : 'Create Organization'}</button>
           </div>
         </form>
       </div>

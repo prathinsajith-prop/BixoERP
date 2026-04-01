@@ -221,8 +221,32 @@ export default function UserManagementPage() {
     } catch { setRoles(DEMO_ROLES); }
   }, []);
 
-  useEffect(() => { fetchUsers(); }, [fetchUsers]);
-  useEffect(() => { fetchRoles(); }, [fetchRoles]);
+  useEffect(() => {
+    let ignore = false;
+    setLoading(true);
+    Promise.all([
+      authApi.listUsers({ page: 1, limit: 200 }),
+      authApi.listRoles(),
+    ])
+      .then(([usersRes, rolesRes]) => {
+        if (!ignore) {
+          const data = usersRes.data?.data || usersRes.data;
+          const list: User[] = data.users || [];
+          if (list.length > 0) { setUsers(list); setTotal(list.length); }
+          else { const seed = generateSeedUsers(); setUsers(seed); setTotal(seed.length); }
+          const rList = rolesRes.data?.data || rolesRes.data || [];
+          setRoles(rList.length > 0 ? rList : DEMO_ROLES);
+        }
+      })
+      .catch(() => {
+        if (!ignore) {
+          const seed = generateSeedUsers(); setUsers(seed); setTotal(seed.length);
+          setRoles(DEMO_ROLES);
+        }
+      })
+      .finally(() => { if (!ignore) setLoading(false); });
+    return () => { ignore = true; };
+  }, []);
 
   /* ── Filtering ─── */
   const filteredUsers = useMemo(() => {
@@ -276,11 +300,11 @@ export default function UserManagementPage() {
   /* ── Role handlers ─── */
   const handleAssignRole = async (userId: string, roleId: string) => {
     setAssigning(true);
-    try { await authApi.assignRoleToUser(userId, roleId); await fetchUsers(); setRoleModalOpen(false); setSelectedUser(null); } catch {} finally { setAssigning(false); }
+    try { await authApi.assignRoleToUser(userId, roleId); await fetchUsers(); setRoleModalOpen(false); setSelectedUser(null); } catch { } finally { setAssigning(false); }
   };
 
   const handleRemoveRole = async (userId: string, roleId: string) => {
-    try { await authApi.removeRoleFromUser(userId, roleId); await fetchUsers(); } catch {}
+    try { await authApi.removeRoleFromUser(userId, roleId); await fetchUsers(); } catch { }
   };
 
   /* ── Add user ─── */
