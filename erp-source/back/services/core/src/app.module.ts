@@ -21,6 +21,7 @@ import { DepartmentOrmEntity } from './infrastructure/persistence/entity/departm
 import { DivisionOrmEntity } from './infrastructure/persistence/entity/division.orm-entity';
 import { TeamOrmEntity } from './infrastructure/persistence/entity/team.orm-entity';
 import { AuditLogOrmEntity } from './infrastructure/persistence/entity/audit-log.orm-entity';
+import { LoginHistoryOrmEntity } from './infrastructure/persistence/entity/login-history.orm-entity';
 import { ManagerAssignmentOrmEntity } from './infrastructure/persistence/entity/manager-assignment.orm-entity';
 import { ManagerSettingsOrmEntity } from './infrastructure/persistence/entity/manager-settings.orm-entity';
 
@@ -38,6 +39,7 @@ import { PostgresUserOrganizationRepository } from './infrastructure/persistence
 import { PostgresDepartmentRepository } from './infrastructure/persistence/repository/postgres-department.repository';
 import { PostgresDivisionRepository } from './infrastructure/persistence/repository/postgres-division.repository';
 import { PostgresTeamRepository } from './infrastructure/persistence/repository/postgres-team.repository';
+import { PostgresLoginHistoryRepository } from './infrastructure/persistence/repository/postgres-login-history.repository';
 
 // Infrastructure
 import { KafkaEventPublisher } from './infrastructure/messaging/kafka-event-publisher';
@@ -109,6 +111,7 @@ const ormEntities = [
   DivisionOrmEntity,
   TeamOrmEntity,
   AuditLogOrmEntity,
+  LoginHistoryOrmEntity,
   ManagerAssignmentOrmEntity,
   ManagerSettingsOrmEntity,
 ];
@@ -174,10 +177,11 @@ const ormEntities = [
     PostgresUserProfileRepository,
     PostgresTwoFactorRepository,
     PostgresSocialAccountRepository,
+    PostgresLoginHistoryRepository,
 
     // Guards (available for DI)
     JwtAuthGuard,
     PermissionsGuard,
   ],
 })
-export class AppModule {}
+export class AppModule { }

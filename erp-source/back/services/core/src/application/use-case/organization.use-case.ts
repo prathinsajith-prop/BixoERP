@@ -231,18 +231,12 @@ export class OrganizationUseCase {
 
     const targetTenantId = org.id; // org.id IS the tenantId
 
-    // Find user in the target tenant — they may have a user record scoped there,
-    // or we check membership is enough for authorization.
-    // For now, look up user by their email globally (user record uses original tenantId).
+    // Find user in the current tenant (their home org)
     const user = await this.userRepo.findById(cmd.currentTenantId, cmd.userId);
-    if (!user) {
-      // Try finding globally by ID
-      const globalUser = await this.userRepo.findByEmailGlobal(cmd.userId);
-      if (!globalUser) throw new NotMemberException();
-    }
+    if (!user) throw new NotMemberException();
 
     // Resolve roles/permissions from the target organization
-    const userEntity = user!;
+    const userEntity = user;
     const roles = await this.roleRepo.findByIds(targetTenantId, userEntity.roles);
     const allPermIds = [...new Set(roles.flatMap((r) => r.permissions))];
     const permissions = await this.permRepo.findByIds(targetTenantId, allPermIds);
@@ -274,6 +268,9 @@ export class OrganizationUseCase {
     );
     refreshToken.userAgent = cmd.userAgent ?? null;
     refreshToken.ipAddress = cmd.ipAddress ?? null;
+    // Store the user's home tenantId so refresh can find the user record
+    // even though this token is scoped to the target (switched) org.
+    refreshToken.userTenantId = userEntity.tenantId;
     await this.refreshTokenRepo.save(refreshToken);
 
     return {

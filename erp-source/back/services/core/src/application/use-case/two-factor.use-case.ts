@@ -297,7 +297,7 @@ export class TwoFactorUseCase {
     await this.refreshTokenRepo.save(refreshToken);
 
     user.recordSuccessfulLogin();
-    await this.userRepo.update(user);
+    await this.userRepo.updateLastLogin(user.id, new Date());
 
     return {
       accessToken,

@@ -80,8 +80,60 @@ const TABS = [
   { key: 'work', label: 'Work Details' },
   { key: 'address', label: 'Address' },
   { key: 'social', label: 'Social Links' },
+  { key: 'roles', label: 'Roles & Permissions' },
   { key: 'activity', label: 'Activity' },
 ];
+
+interface LoginEntry { ipAddress?: string; userAgent?: string; createdAt?: string; status?: string; failureReason?: string | null; }
+interface OrgEntry { id?: string; name: string | null; slug: string | null; role: string; joinedAt?: string; isActive: boolean; }
+interface PermEntry { id: string; code: string; description?: string | null; resource?: string; action?: string; }
+interface RoleEntry { id?: string; name: string; description?: string | null; permissions: PermEntry[]; }
+
+function formatPermLabel(p: PermEntry): string {
+  if (p.description) return p.description;
+  const parts = p.code.split(':');
+  return parts.map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(' › ');
+}
+
+function parseUserAgent(ua?: string): { browser: string; os: string; isMobile: boolean; version: string } {
+  if (!ua) return { browser: 'Unknown Browser', os: 'Unknown OS', isMobile: false, version: '' };
+  const browsers: [RegExp, string][] = [
+    [/Edg\/([\d.]+)/, 'Edge'], [/OPR\/([\d.]+)/, 'Opera'],
+    [/Chrome\/([\d.]+)/, 'Chrome'], [/Firefox\/([\d.]+)/, 'Firefox'],
+    [/Version\/([\d.]+).*Safari/, 'Safari'], [/curl\/([\d.]+)/, 'curl'],
+  ];
+  const osList: [RegExp, string][] = [
+    [/Windows NT 10/, 'Windows 10'], [/Windows NT 6\.3/, 'Windows 8.1'],
+    [/Windows NT/, 'Windows'], [/Mac OS X ([\d_]+)/, 'macOS'],
+    [/Android ([\d.]+)/, 'Android'], [/iPhone OS ([\d_]+)/, 'iOS'],
+    [/iPad.*OS ([\d_]+)/, 'iPadOS'], [/Linux/, 'Linux'],
+  ];
+  const browserMatch = browsers.find(([re]) => re.test(ua));
+  const browser = browserMatch?.[1] ?? 'Browser';
+  const versionMatch = ua.match(new RegExp(String(browserMatch?.[0]).replace('/([\\d.]+)', '').replace('/', '').replace('/g', '') + '\/([\\d.]+)'));
+  const version = versionMatch?.[1]?.split('.')[0] ?? '';
+  const os = osList.find(([re]) => re.test(ua))?.[1] ?? 'Unknown OS';
+  const isMobile = /Android|iPhone|iPad|Mobile/.test(ua);
+  return { browser, os, isMobile, version };
+}
+
+function cleanIp(ip?: string): string {
+  if (!ip) return 'Unknown IP';
+  return ip.replace(/^::ffff:/, '');
+}
+
+function relativeTime(dateStr?: string): string {
+  if (!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+}
 
 const SKILLS = ['React', 'Node.js', 'Python', 'SQL', 'AWS', 'Docker', 'TypeScript', 'REST APIs', 'GraphQL', 'CI/CD'];
 
@@ -95,6 +147,10 @@ export default function ProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [loginHistory, setLoginHistory] = useState<LoginEntry[]>([]);
+  const [organizations, setOrganizations] = useState<OrgEntry[]>([]);
+  const [profileRoles, setProfileRoles] = useState<RoleEntry[]>([]);
 
   const {
     register,
@@ -181,6 +237,12 @@ export default function ProfilePage() {
             slack: social.slack ?? '',
           };
           reset(loadedData);
+
+          // Populate enriched data from the same response
+          if (Array.isArray(p.loginHistory)) setLoginHistory(p.loginHistory);
+          if (Array.isArray(p.organizations)) setOrganizations(p.organizations);
+          if (Array.isArray(p.roles)) setProfileRoles(p.roles);
+
           if (personal.avatarUrl) {
             const match = personal.avatarUrl.match(/\/api\/v1\/files\/([^/]+)\/download/);
             if (match) {
@@ -194,7 +256,8 @@ export default function ProfilePage() {
         }
       })
       .catch(() => { });
-  }, [reset, watchedFirstName]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleSkill = (skill: string) => {
     setValue('skills', watchedSkills.includes(skill) ? watchedSkills.filter((s: string) => s !== skill) : [...watchedSkills, skill]);
@@ -332,6 +395,43 @@ export default function ProfilePage() {
                 </li>
               ))}
             </ul>
+          </div>
+
+          {/* Organizations — always shown so user knows their org memberships */}
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 dark:bg-gray-900 dark:ring-gray-800">
+            <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Organizations</h3>
+            {organizations.length === 0 ? (
+              <p className="py-2 text-center text-xs text-gray-400 dark:text-gray-500">No organizations assigned.</p>
+            ) : (
+              <div className="space-y-2">
+                {organizations.map((org, idx) => (
+                  <div key={org.id ?? org.name ?? org.slug ?? String(idx)} className={`flex items-center justify-between rounded-xl border px-3 py-2.5 ${org.isActive ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20' : 'border-gray-100 dark:border-gray-800'}`}>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{org.name ?? org.slug ?? 'Organization'}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{org.role}</p>
+                    </div>
+                    {org.isActive ? (
+                      <span className="ml-2 shrink-0 rounded-full bg-blue-600 px-2 py-0.5 text-xs font-semibold text-white">Active</span>
+                    ) : org.id ? (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await useAuthStore.getState().switchOrg(org.id!);
+                            setOrganizations((prev) => prev.map((o) => ({ ...o, isActive: o.id === org.id })));
+                          } catch {
+                            setMessage({ type: 'error', text: 'Failed to switch organization.' });
+                          }
+                        }}
+                        className="ml-2 shrink-0 rounded-full border border-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 dark:border-gray-700 dark:text-gray-400 dark:hover:border-blue-700 dark:hover:bg-blue-900/20 dark:hover:text-blue-300"
+                      >
+                        Switch
+                      </button>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Quick info */}
@@ -508,70 +608,164 @@ export default function ProfilePage() {
               </Section>
             )}
 
-            {activeTab === 'activity' && (
+            {activeTab === 'roles' && (
               <>
-                <Section title="Recent Activity" description="Your latest actions and login history.">
-                  <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                    {[
-                      { action: 'Logged in from Chrome on macOS', time: '2 minutes ago', type: 'login' },
-                      { action: 'Updated profile information', time: '1 hour ago', type: 'update' },
-                      { action: 'Changed password successfully', time: '3 days ago', type: 'security' },
-                      { action: 'Logged in from Safari on iPhone', time: '5 days ago', type: 'login' },
-                      { action: 'Enabled two-factor authentication', time: '1 week ago', type: 'security' },
-                      { action: 'Joined Finance module', time: '2 weeks ago', type: 'module' },
-                    ].map((entry, i) => (
-                      <div key={i} className="flex items-center gap-3 py-3">
-                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${entry.type === 'login' ? 'bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400' :
-                          entry.type === 'security' ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' :
-                            entry.type === 'update' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
-                              'bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
-                          }`}>
-                          {entry.type === 'login' && <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>}
-                          {entry.type === 'security' && <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>}
-                          {entry.type === 'update' && <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /></svg>}
-                          {entry.type === 'module' && <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6z" /></svg>}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm text-gray-900 dark:text-white">{entry.action}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{entry.time}</p>
-                        </div>
+                {profileRoles.length === 0 ? (
+                  <Section title="Roles & Permissions" description="Your assigned roles and their permissions.">
+                    <p className="py-6 text-center text-sm text-gray-400 dark:text-gray-500">No roles assigned yet.</p>
+                  </Section>
+                ) : profileRoles.map((role) => (
+                  <Section key={role.id ?? role.name} title={role.name} description={role.description ?? undefined}>
+                    {role.permissions.length === 0 ? (
+                      <p className="text-xs text-gray-400 dark:text-gray-500">No permissions in this role.</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {role.permissions.map((p) => {
+                          const parts = p.code.split(':');
+                          const moduleName = parts[0] ?? '';
+                          const colors: Record<string, string> = {
+                            auth: 'bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300',
+                            hr: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+                            finance: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+                            sales: 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+                            inventory: 'bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300',
+                            procurement: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+                          };
+                          const cls = colors[moduleName] ?? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+                          return (
+                            <span key={p.id} title={p.code} className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${cls}`}>
+                              {formatPermLabel(p)}
+                            </span>
+                          );
+                        })}
                       </div>
-                    ))}
-                  </div>
-                </Section>
-
-                <Section title="Active Sessions" description="Devices currently logged into your account.">
-                  <div className="space-y-3">
-                    {[
-                      { device: 'Chrome on macOS', location: 'San Francisco, US', current: true, lastActive: 'Now' },
-                      { device: 'Safari on iPhone', location: 'San Francisco, US', current: false, lastActive: '5 days ago' },
-                    ].map((session, i) => (
-                      <div key={i} className="flex items-center justify-between rounded-xl border border-gray-100 px-4 py-3 dark:border-gray-800">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-                            <svg className="h-5 w-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25z" />
-                            </svg>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">
-                              {session.device}
-                              {session.current && <span className="ml-2 rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-300">Current</span>}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">{session.location} · {session.lastActive}</p>
-                          </div>
-                        </div>
-                        {!session.current && (
-                          <button className="rounded-lg px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20">Revoke</button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </Section>
+                    )}
+                  </Section>
+                ))}
               </>
             )}
 
-            {activeTab !== 'activity' && (
+            {activeTab === 'activity' && (
+              <div className="space-y-5">
+                {/* Summary Stats */}
+                {loginHistory.length > 0 && (() => {
+                  const successful = loginHistory.filter((e) => (e.status ?? 'SUCCESS') === 'SUCCESS').length;
+                  const failed = loginHistory.filter((e) => e.status === 'FAILURE').length;
+                  const last = loginHistory[0];
+                  return (
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="rounded-xl bg-white p-4 ring-1 ring-gray-100 dark:bg-gray-900 dark:ring-gray-800">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Total Sessions</p>
+                        <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{loginHistory.length}</p>
+                      </div>
+                      <div className="rounded-xl bg-white p-4 ring-1 ring-gray-100 dark:bg-gray-900 dark:ring-gray-800">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Successful</p>
+                        <p className="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{successful}</p>
+                      </div>
+                      <div className="rounded-xl bg-white p-4 ring-1 ring-gray-100 dark:bg-gray-900 dark:ring-gray-800">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Failed Attempts</p>
+                        <p className={`mt-1 text-2xl font-bold ${failed > 0 ? 'text-red-500 dark:text-red-400' : 'text-gray-400 dark:text-gray-600'}`}>{failed}</p>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Session Log */}
+                <div className="rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 dark:bg-gray-900 dark:ring-gray-800">
+                  <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-gray-800">
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Login Sessions</h3>
+                      <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Recent authentication events for your account</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 rounded-lg bg-gray-50 px-2.5 py-1.5 dark:bg-gray-800">
+                      <svg className="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
+                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Security Log</span>
+                    </div>
+                  </div>
+
+                  {loginHistory.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+                        <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+                      </div>
+                      <p className="mt-3 text-sm font-medium text-gray-700 dark:text-gray-300">No sessions recorded yet</p>
+                      <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Login events will appear here after your next sign-in.</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-50 dark:divide-gray-800/60">
+                      {loginHistory.map((entry, i) => {
+                        const { browser, os, isMobile } = parseUserAgent(entry.userAgent);
+                        const ip = cleanIp(entry.ipAddress);
+                        const isSuccess = (entry.status ?? 'SUCCESS') === 'SUCCESS';
+                        const formattedDate = entry.createdAt
+                          ? new Date(entry.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                          : null;
+                        const relative = relativeTime(entry.createdAt);
+
+                        return (
+                          <div key={i} className={`flex items-start gap-4 px-6 py-4 transition-colors hover:bg-gray-50/60 dark:hover:bg-gray-800/30 ${!isSuccess ? 'bg-red-50/40 dark:bg-red-900/5' : ''}`}>
+                            {/* Device Icon */}
+                            <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${isSuccess ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-50 text-red-500 dark:bg-red-900/30 dark:text-red-400'}`}>
+                              {isMobile ? (
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 8.25h3" /></svg>
+                              ) : (
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0H3" /></svg>
+                              )}
+                            </div>
+
+                            {/* Details */}
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                                <span className="text-sm font-semibold text-gray-900 dark:text-white">{browser}</span>
+                                <span className="text-gray-300 dark:text-gray-600">·</span>
+                                <span className="text-sm text-gray-600 dark:text-gray-400">{os}</span>
+                              </div>
+                              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                <span className="flex items-center gap-1">
+                                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253M3 12a8.959 8.959 0 01.284-2.253" /></svg>
+                                  {ip}
+                                </span>
+                                {formattedDate && (
+                                  <>
+                                    <span className="text-gray-300 dark:text-gray-600">·</span>
+                                    <span>{formattedDate}</span>
+                                    <span className="text-gray-300 dark:text-gray-600">·</span>
+                                    <span className="text-gray-400 dark:text-gray-500">{relative}</span>
+                                  </>
+                                )}
+                              </div>
+                              {!isSuccess && entry.failureReason && (
+                                <div className="mt-1.5 flex items-center gap-1.5 rounded-md bg-red-50 px-2.5 py-1 dark:bg-red-900/20">
+                                  <svg className="h-3 w-3 shrink-0 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+                                  <span className="text-xs text-red-600 dark:text-red-400">{entry.failureReason}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Status Badge */}
+                            <div className="shrink-0">
+                              {isSuccess ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                                  Success
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-red-500"></span>
+                                  Failed
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab !== 'activity' && activeTab !== 'roles' && (
               <div className="flex items-center justify-end gap-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 dark:bg-gray-900 dark:ring-gray-800">
                 <button
                   type="button"

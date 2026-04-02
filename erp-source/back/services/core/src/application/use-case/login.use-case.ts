@@ -5,6 +5,7 @@ import { ROLE_REPOSITORY, RoleRepository } from '../../domain/repository/role.re
 import { PERMISSION_REPOSITORY, PermissionRepository } from '../../domain/repository/permission.repository';
 import { REFRESH_TOKEN_REPOSITORY, RefreshTokenRepository } from '../../domain/repository/refresh-token.repository';
 import { USER_ORGANIZATION_REPOSITORY, UserOrganizationRepository } from '../../domain/repository/user-organization.repository';
+import { PostgresLoginHistoryRepository } from '../../infrastructure/persistence/repository/postgres-login-history.repository';
 import { TOKEN_SERVICE, TokenService } from '../port/token-service.port';
 import { EVENT_PUBLISHER, EventPublisher } from '../port/event-publisher.port';
 import { CACHE_PORT, CachePort } from '../port/cache.port';
@@ -52,6 +53,7 @@ export class LoginUseCase {
     @Inject(CACHE_PORT) private readonly cache: CachePort,
     private readonly config: ConfigService,
     @Inject(forwardRef(() => TwoFactorUseCase)) private readonly twoFactorUseCase: TwoFactorUseCase,
+    private readonly loginHistoryRepo: PostgresLoginHistoryRepository,
   ) {
     this.maxAttempts = this.config.get<number>('MAX_LOGIN_ATTEMPTS', 5);
     this.lockDuration = this.config.get<number>('LOCK_DURATION_MINUTES', 30);
@@ -80,6 +82,16 @@ export class LoginUseCase {
     if (!isValid) {
       user.recordFailedLogin(this.maxAttempts, this.lockDuration);
       await this.userRepo.update(user);
+
+      // Record failed login
+      this.loginHistoryRepo.record({
+        tenantId,
+        userId: user.id,
+        ipAddress: cmd.ipAddress,
+        userAgent: cmd.userAgent,
+        status: 'FAILURE',
+        failureReason: 'Invalid password',
+      }).catch(() => { });
 
       for (const event of user.pullDomainEvents()) {
         await this.eventPublisher.publish('erp.auth.user.locked', {
@@ -141,9 +153,18 @@ export class LoginUseCase {
     refreshToken.ipAddress = cmd.ipAddress ?? null;
     await this.refreshTokenRepo.save(refreshToken);
 
-    // Record success
+    // Record successful login history
+    this.loginHistoryRepo.record({
+      tenantId,
+      userId: user.id,
+      ipAddress: cmd.ipAddress,
+      userAgent: cmd.userAgent,
+      status: 'SUCCESS',
+    }).catch(() => { });
+
+    // Record success — use targeted update to avoid bumping updated_at on every login
     user.recordSuccessfulLogin();
-    await this.userRepo.update(user);
+    await this.userRepo.updateLastLogin(user.id, new Date());
 
     for (const event of user.pullDomainEvents()) {
       await this.eventPublisher.publish('erp.auth.user.logged-in', {

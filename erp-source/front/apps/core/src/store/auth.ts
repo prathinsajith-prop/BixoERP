@@ -13,6 +13,7 @@ interface AuthState {
   logout: () => Promise<void>;
   socialLogin: (provider: string, body: Record<string, unknown>) => Promise<{ twoFactorRequired: boolean; twoFactorToken?: string }>;
   completeTwoFactor: (twoFactorToken: string, code: string) => Promise<void>;
+  switchOrg: (organizationId: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -110,6 +111,17 @@ export const useAuthStore = create<AuthState>((set) => ({
       const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Invalid verification code';
       set({ error: message, isLoading: false });
       throw err;
+    }
+  },
+
+  switchOrg: async (organizationId) => {
+    const { data } = await authApi.switchOrganization({ organizationId });
+    const result = data?.data;
+    if (result?.accessToken) {
+      const tenantId = result.tenantId ?? organizationId;
+      if (tenantId) sessionStorage.setItem('tenantId', tenantId);
+      localStorage.setItem('organizationId', organizationId);
+      set({ accessToken: result.accessToken, tenantId, isAuthenticated: true });
     }
   },
 }));

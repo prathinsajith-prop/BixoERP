@@ -10,7 +10,7 @@ export class PostgresRoleRepository implements RoleRepository {
   constructor(
     @InjectRepository(RoleOrmEntity)
     private readonly repo: Repository<RoleOrmEntity>,
-  ) {}
+  ) { }
 
   async findById(tenantId: string, id: string): Promise<Role | null> {
     const row = await this.repo.findOne({ where: { id, tenant_id: tenantId } });
@@ -42,7 +42,7 @@ export class PostgresRoleRepository implements RoleRepository {
   }
 
   async delete(tenantId: string, id: string): Promise<void> {
-    await this.repo.delete({ id, tenant_id: tenantId });
+    await this.repo.softDelete({ id, tenant_id: tenantId });
   }
 
   private toDomain(orm: RoleOrmEntity): Role {

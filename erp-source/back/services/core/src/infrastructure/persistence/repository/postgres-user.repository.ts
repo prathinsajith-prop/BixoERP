@@ -12,7 +12,7 @@ export class PostgresUserRepository implements UserRepository {
   constructor(
     @InjectRepository(UserOrmEntity)
     private readonly repo: Repository<UserOrmEntity>,
-  ) {}
+  ) { }
 
   async findById(tenantId: string, id: string): Promise<User | null> {
     const row = await this.repo.findOne({ where: { id, tenant_id: tenantId } });
@@ -48,8 +48,17 @@ export class PostgresUserRepository implements UserRepository {
     await this.repo.update({ id: user.id, tenant_id: user.tenantId }, orm);
   }
 
+  async updateLastLogin(userId: string, lastLoginAt: Date): Promise<void> {
+    // Raw query intentionally bypasses TypeORM's @UpdateDateColumn so that
+    // a successful login does NOT bump the user's "Last Updated" timestamp.
+    await this.repo.query(
+      'UPDATE users SET last_login_at = $1, failed_login_attempts = 0 WHERE id = $2',
+      [lastLoginAt, userId],
+    );
+  }
+
   async delete(tenantId: string, id: string): Promise<void> {
-    await this.repo.delete({ id, tenant_id: tenantId });
+    await this.repo.softDelete({ id, tenant_id: tenantId });
   }
 
   private toDomain(orm: UserOrmEntity): User {
