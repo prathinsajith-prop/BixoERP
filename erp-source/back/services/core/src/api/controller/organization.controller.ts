@@ -178,9 +178,10 @@ export class OrganizationController {
     const prev = await this.orgUseCase.getOrganization(id);
     const changeset: Array<{ field: string; previous: unknown; current: unknown }> = [];
     if (dto.name !== undefined && dto.name !== prev.name) changeset.push({ field: 'name', previous: prev.name, current: dto.name });
+    if (dto.slug !== undefined && dto.slug !== prev.slug) changeset.push({ field: 'slug', previous: prev.slug, current: dto.slug });
     if (dto.description !== undefined && dto.description !== prev.description) changeset.push({ field: 'description', previous: prev.description, current: dto.description });
 
-    await this.orgUseCase.updateOrganization(id, dto.name, dto.description);
+    await this.orgUseCase.updateOrganization(id, dto.name, dto.description, dto.slug);
     this.auditLog.record({
       tenantId: id,
       userId: user.sub,

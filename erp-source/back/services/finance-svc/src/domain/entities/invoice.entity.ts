@@ -93,8 +93,44 @@ export class Invoice extends AggregateRoot<InvoiceProps> {
     return this.props.customerId;
   }
 
+  get issueDate(): Date {
+    return this.props.issueDate;
+  }
+
   get status(): InvoiceStatus {
     return this.props.status;
+  }
+
+  get subtotal(): Money {
+    return this.props.subtotal;
+  }
+
+  get taxTotal(): Money {
+    return this.props.taxTotal;
+  }
+
+  get currency(): string {
+    return this.props.currency;
+  }
+
+  get notes(): string | null {
+    return this.props.notes;
+  }
+
+  get createdBy(): string {
+    return this.props.createdBy;
+  }
+
+  get createdAt(): Date {
+    return this.props.createdAt;
+  }
+
+  get updatedAt(): Date {
+    return this.props.updatedAt;
+  }
+
+  get lines(): InvoiceLineProps[] {
+    return this.props.lines;
   }
 
   get total(): Money {

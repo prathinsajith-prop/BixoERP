@@ -31,7 +31,7 @@ export class AccountController {
   constructor(
     @Inject(ACCOUNT_REPOSITORY)
     private readonly accountRepo: AccountRepository,
-  ) {}
+  ) { }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -71,7 +71,8 @@ export class AccountController {
   @Get()
   @ApiOperation({ summary: 'List all accounts (Chart of Accounts)' })
   async list(@TenantId() tenantId: string) {
-    return this.accountRepo.findAll(tenantId);
+    const accounts = await this.accountRepo.findAll(tenantId);
+    return { data: accounts, total: accounts.length, page: 1, pageSize: accounts.length, totalPages: 1 };
   }
 
   @Get(':id')

@@ -13,6 +13,12 @@ export type CreateOrganizationDto = z.infer<typeof CreateOrganizationDto>;
 
 export const UpdateOrganizationDto = z.object({
   name: z.string().min(1).max(200),
+  slug: z
+    .string()
+    .min(2)
+    .max(200)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must be lowercase alphanumeric with hyphens')
+    .optional(),
   description: z.string().max(500).default(''),
 });
 export type UpdateOrganizationDto = z.infer<typeof UpdateOrganizationDto>;

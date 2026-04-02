@@ -94,10 +94,14 @@ export class OrganizationUseCase {
 
   // ─── Superuser: Update Organization ───────────────────────────
 
-  async updateOrganization(id: string, name: string, description: string): Promise<void> {
+  async updateOrganization(id: string, name: string, description: string, slug?: string): Promise<void> {
     const org = await this.orgRepo.findById(id);
     if (!org) throw new OrganizationNotFoundException();
-    org.update(name, description);
+    if (slug !== undefined && slug !== org.slug) {
+      const existing = await this.orgRepo.findBySlug(slug);
+      if (existing && existing.id !== id) throw new OrganizationSlugTakenException();
+    }
+    org.update(name, description, slug);
     await this.orgRepo.update(org);
   }
 
