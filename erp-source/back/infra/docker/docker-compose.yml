@@ -11,11 +11,18 @@ services:
       - "2181:2181"
     volumes:
       - zookeeper-data:/var/lib/zookeeper/data
+    healthcheck:
+      test: ["CMD-SHELL", "echo ruok | nc -w 2 localhost 2181 | grep imok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   kafka:
     image: confluentinc/cp-kafka:7.6.0
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     ports:
       - "9092:9092"
       - "29092:29092"
@@ -26,9 +33,20 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_LOG_RETENTION_HOURS: 720  # 30 days
+      KAFKA_LOG_RETENTION_HOURS: "72" # 3 days for dev
+      KAFKA_HEAP_OPTS: "-Xmx512M -Xms256M"
     volumes:
       - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "kafka-broker-api-versions --bootstrap-server localhost:9092 > /dev/null 2>&1",
+        ]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -57,6 +75,21 @@ services:
         -c wal_level=logical
         -c max_wal_senders=10
         -c max_replication_slots=10
+        -c shared_buffers=256MB
+        -c effective_cache_size=768MB
+        -c work_mem=16MB
+        -c maintenance_work_mem=64MB
+        -c max_connections=200
+        -c wal_buffers=16MB
+        -c checkpoint_completion_target=0.9
+        -c random_page_cost=1.1
+    shm_size: 256mb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   mongodb:
     image: mongo:7.0
@@ -67,6 +100,12 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: erp_dev_password
     volumes:
       - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", 'mongosh --eval "db.adminCommand(''ping'')" --quiet']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   redis:
     image: redis:7-alpine
@@ -75,6 +114,11 @@ services:
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
@@ -86,6 +130,16 @@ services:
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     volumes:
       - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sf http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s > /dev/null",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
 
   clickhouse:
     image: clickhouse/clickhouse-server:24.1
@@ -94,6 +148,14 @@ services:
       - "9000:9000"
     volumes:
       - clickhouse-data:/var/lib/clickhouse
+      - ./init-scripts/clickhouse:/docker-entrypoint-initdb.d
+    healthcheck:
+      test:
+        ["CMD-SHELL", "clickhouse-client --query 'SELECT 1' > /dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   minio:
     image: minio/minio:latest
@@ -135,9 +197,9 @@ services:
       - kong-database
       - kong-migration
     ports:
-      - "8000:8000"   # Proxy
-      - "8443:8443"   # Proxy SSL
-      - "8001:8001"   # Admin API
+      - "8000:8000" # Proxy
+      - "8443:8443" # Proxy SSL
+      - "8001:8001" # Admin API
     environment:
       KONG_DATABASE: postgres
       KONG_PG_HOST: kong-database
