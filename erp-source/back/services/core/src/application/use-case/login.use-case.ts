@@ -61,9 +61,8 @@ export class LoginUseCase {
   }
 
   async execute(cmd: LoginCommand): Promise<LoginResult> {
-    const user = cmd.tenantId
-      ? await this.userRepo.findByEmail(cmd.tenantId, cmd.email)
-      : await this.userRepo.findByEmailGlobal(cmd.email);
+    // Always look up by email globally — emails are unique across tenants.
+    const user = await this.userRepo.findByEmailGlobal(cmd.email);
     if (!user) {
       throw new InvalidCredentialsException();
     }

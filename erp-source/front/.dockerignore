@@ -4,3 +4,18 @@ node_modules
 *.tsbuildinfo
 .git
 .DS_Store
+# Tests & coverage
+**/*.spec.ts
+**/*.test.ts
+coverage
+# Docs
+README*
+*.md
+CHANGELOG*
+# Env & logs
+.env
+.env.*
+*.log
+# IDE
+.vscode
+.idea

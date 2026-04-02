@@ -9,3 +9,37 @@ target
 __pycache__
 *.pyc
 .venv
+
+# Tests & coverage
+test
+tests
+**/*.spec.ts
+**/*.test.ts
+coverage
+# Docs
+README*
+*.md
+CHANGELOG*
+# Env & logs
+.env
+.env.*
+*.log
+# IDE
+.vscode
+.idea# Tests & coverage
+test
+tests
+**/*.spec.ts
+**/*.test.ts
+coverage
+# Docs
+README*
+*.md
+CHANGELOG*
+# Env & logs
+.env
+.env.*
+*.log
+# IDE
+.vscode
+.idea
