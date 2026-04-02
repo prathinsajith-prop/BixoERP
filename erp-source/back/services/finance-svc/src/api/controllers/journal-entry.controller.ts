@@ -28,14 +28,14 @@ import {
 
 @ApiTags('Journal Entries')
 @ApiBearerAuth()
-@Controller('api/v1/finance/journal-entries')
+@Controller('api/v1/finance/journals')
 export class JournalEntryController {
   constructor(
     private readonly createJournalEntry: CreateJournalEntryUseCase,
     private readonly postJournalEntry: PostJournalEntryUseCase,
     @Inject(JOURNAL_ENTRY_REPOSITORY)
     private readonly journalEntryRepo: JournalEntryRepository,
-  ) {}
+  ) { }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -72,8 +72,10 @@ export class JournalEntryController {
   @Get()
   @ApiOperation({ summary: 'List journal entries for current tenant' })
   async list(@TenantId() tenantId: string) {
-    // TODO: add pagination, filtering by period
-    return []; // placeholder — will be a proper query
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+    const entries = await this.journalEntryRepo.findByPeriod(currentYear, currentMonth, tenantId);
+    return { data: entries, total: entries.length, page: 1, pageSize: entries.length, totalPages: 1 };
   }
 
   @Get(':id')
