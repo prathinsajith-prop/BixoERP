@@ -29,6 +29,10 @@ export class JwtTokenService implements TokenService {
     const header = { alg: 'HS256', typ: 'JWT' };
     const body = {
       ...payload,
+      // snake_case aliases so all downstream services can read either form
+      tenant_id: payload.tenantId,
+      org_id: payload.orgId ?? payload.tenantId,
+      org_role: payload.orgRole ?? null,
       iss: this.issuer,
       iat: now,
       exp: now + this.ttl,
@@ -69,7 +73,9 @@ export class JwtTokenService implements TokenService {
     return {
       sub: body.sub,
       jti: body.jti,
-      tenantId: body.tenantId,
+      tenantId: body.tenantId ?? body.tenant_id,
+      orgId: body.orgId ?? body.org_id ?? body.tenantId ?? body.tenant_id,
+      orgRole: body.orgRole ?? body.org_role ?? undefined,
       email: body.email,
       roles: body.roles,
       permissions: body.permissions,

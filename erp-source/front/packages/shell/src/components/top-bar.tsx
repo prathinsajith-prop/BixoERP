@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { AppSelector } from './app-selector';
 import { AlertsDropdown } from './alerts-dropdown';
 import { authApi } from '../lib/api/auth';
+import { useAuthStore } from '../store/auth';
 import { usePageTitleState } from '../context/page-title';
 import { useModuleMenu } from '../hooks/use-module-menu';
 
@@ -44,7 +45,7 @@ function OrgSelector() {
       setOrgs(list);
       const storedId = typeof window !== 'undefined' ? localStorage.getItem('organizationId') : null;
       setCurrentOrg(list.find((o) => o.id === storedId) || list[0] || null);
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   const handleSwitch = async (org: Org) => {
@@ -52,11 +53,11 @@ function OrgSelector() {
     setSwitching(org.id);
     try {
       const res = await authApi.switchOrganization({ organizationId: org.id });
-      const data = (res as { data?: { data?: { accessToken?: string; refreshToken?: string; tenantId?: string } } }).data?.data;
+      const data = (res as { data?: { data?: { accessToken?: string; tenantId?: string } } }).data?.data;
       if (data?.accessToken) {
-        localStorage.setItem('accessToken', data.accessToken);
-        localStorage.setItem('refreshToken', data.refreshToken || '');
-        if (data.tenantId) localStorage.setItem('tenantId', data.tenantId);
+        // Access token stored in memory only — cookie is set server-side automatically
+        useAuthStore.setState({ accessToken: data.accessToken, fullAccessToken: data.accessToken, isAuthenticated: true });
+        if (data.tenantId) sessionStorage.setItem('tenantId', data.tenantId);
       }
       localStorage.setItem('organizationId', org.id);
       window.location.reload();

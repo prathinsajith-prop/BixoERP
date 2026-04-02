@@ -24,7 +24,9 @@ export class JwtMiddleware implements NestMiddleware {
       const payload = this.verifyToken(token);
       (req as any).user = {
         userId: payload.sub,
-        tenantId: payload.tenant_id,
+        tenantId: payload.tenant_id ?? payload.tenantId,
+        orgId: payload.org_id ?? payload.orgId ?? payload.tenant_id ?? payload.tenantId,
+        orgRole: payload.org_role ?? payload.orgRole ?? null,
         roles: payload.roles || [],
         email: payload.email,
       };

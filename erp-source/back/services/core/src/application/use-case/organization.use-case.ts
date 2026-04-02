@@ -94,10 +94,14 @@ export class OrganizationUseCase {
 
   // ─── Superuser: Update Organization ───────────────────────────
 
-  async updateOrganization(id: string, name: string, description: string): Promise<void> {
+  async updateOrganization(id: string, name: string, description: string, slug?: string): Promise<void> {
     const org = await this.orgRepo.findById(id);
     if (!org) throw new OrganizationNotFoundException();
-    org.update(name, description);
+    if (slug !== undefined && slug !== org.slug) {
+      const existing = await this.orgRepo.findBySlug(slug);
+      if (existing && existing.id !== id) throw new OrganizationSlugTakenException();
+    }
+    org.update(name, description, slug);
     await this.orgRepo.update(org);
   }
 
@@ -219,6 +223,9 @@ export class OrganizationUseCase {
     );
     if (!membership) throw new NotMemberException();
 
+    // Enforce: membership must be active — inactive/invited members cannot switch in
+    if (!membership.isActive()) throw new NotMemberException();
+
     const org = await this.orgRepo.findById(cmd.targetOrganizationId);
     if (!org) throw new OrganizationNotFoundException();
 
@@ -245,9 +252,13 @@ export class OrganizationUseCase {
     const roleNames = roles.map((r) => r.name);
 
     // Generate new tokens scoped to the target organization
+    // Include org_id and org_role from the verified membership so all downstream
+    // services can enforce tenant isolation without trusting client input.
     const accessToken = this.tokenService.generateAccessToken({
       sub: userEntity.id,
       tenantId: targetTenantId,
+      orgId: targetTenantId,
+      orgRole: membership.role,
       email: userEntity.email.value,
       roles: roleNames,
       permissions: permissionCodes,

@@ -16,6 +16,11 @@ A complete onboarding reference for developers new to this project.
 8. [API Gateway (Kong)](#8-api-gateway-kong)
 9. [Multi-Tenancy](#9-multi-tenancy)
 10. [Security Model](#10-security-model)
+    - [10.1 Where Tokens Are Stored](#101-where-tokens-are-stored)
+    - [10.2 Authentication Flow](#102-authentication-flow)
+    - [10.3 Token Lifetimes](#103-token-lifetimes)
+    - [10.4 Automatic Logout — When and Why](#104-automatic-logout--when-and-why)
+    - [10.5 Frontend Auth Guard](#105-frontend-auth-guard)
 11. [Local Development (Without Docker)](#11-local-development-without-docker)
 12. [Running Everything with Docker](#12-running-everything-with-docker)
 13. [Golden Rules](#13-golden-rules)
@@ -354,6 +359,69 @@ This is a **multi-tenant** system. Each customer/company is a "tenant".
 | Tenant isolation | `tenant_id` from JWT only |
 | Money/currency | `NUMERIC(19,4)` in PostgreSQL — never float |
 | Password handling | `bcrypt` for hashing |
+
+### 10.1 Where Tokens Are Stored
+
+| Token | Storage | Why |
+|---|---|---|
+| **Access token** | **JavaScript memory only** (Zustand store) | Gone when tab closes; inaccessible to XSS — never written to `localStorage` |
+| **Refresh token** | **HttpOnly cookie** `__erp_rt` in the browser | JS can never read it; browser sends it automatically to `/api/v1/auth/*` only |
+| **Refresh token hash** | **PostgreSQL** `refresh_tokens` table | Server-side validation — the raw token is never stored, only its SHA-256 hash |
+| **Permission/role cache** | **Redis** (key `auth:perms:<tenantId>:<userId>`, TTL 5 min) | Avoids a DB round-trip on every login/refresh |
+
+### 10.2 Authentication Flow
+
+```
+Browser                  Kong (:4000)              Core service
+  │                          │                          │
+  │── POST /api/v1/auth/login ──────────────────────────►
+  │                          │    validate password, check Redis
+  │                          │    issue access token + refresh token
+  │◄── { accessToken } ──────────────────────────────────
+  │    Set-Cookie: __erp_rt (HttpOnly, Secure, SameSite=Strict)
+  │
+  │  [accessToken stored in Zustand memory only]
+  │  [__erp_rt cookie stored by browser automatically]
+  │
+  │── Navigate to /dashboard ──────────────────────────►
+  │   AuthGuard: hydrate() fires
+  │── POST /api/v1/auth/refresh ──────────────────────► (cookie sent automatically)
+  │◄── new accessToken ──────────────────────────────────
+  │   isAuthenticated = true → dashboard renders
+  │
+  │── API call ──────────────────────────────────────►  Authorization: Bearer <accessToken>
+  │   [if 401: axios interceptor silently refreshes token and retries]
+```
+
+### 10.3 Token Lifetimes
+
+| Token | Default TTL | Configured by |
+|---|---|---|
+| Access token (JWT) | **15 minutes** | `ACCESS_TOKEN_TTL_SECONDS=900` in `.env` |
+| Refresh token (cookie) | **30 days** | `REFRESH_TOKEN_TTL_DAYS=30` in `.env` |
+
+### 10.4 Automatic Logout — When and Why
+
+Users are logged out (redirected to `/login`) only in these cases:
+
+| Cause | When it happens |
+|---|---|
+| **Refresh token expired** | 30 days of inactivity / cookie expired |
+| **Explicit logout** | User clicks "Sign out" → `POST /logout` revokes the cookie server-side |
+| **Tab/browser closed** | Access token is lost from memory. On next open, `hydrate()` calls `/refresh` — if the cookie is still valid the user is silently re-authenticated; if the cookie expired they land on `/login` |
+| **Redis unavailable** | `/refresh` fails if Redis is down. Ensure `enableOfflineQueue: true` and `retryStrategy` are set in `redis-cache.ts` (already done) |
+
+The access token expiring every 15 minutes does **not** log the user out — the axios interceptor in `packages/shell/src/lib/api/auth.ts` detects the `401`, calls `/refresh` silently, and retries the original request automatically.
+
+### 10.5 Frontend Auth Guard
+
+Every dashboard page is wrapped by `AuthGuard` (`packages/shell/src/components/auth-guard.tsx`). On mount it:
+
+1. Calls `hydrate()` → `POST /api/v1/auth/refresh` using the HttpOnly cookie
+2. If refresh succeeds: stores the new access token in Zustand memory, renders children
+3. If refresh fails (cookie expired/missing): redirects to `/login`
+
+> **Important:** `setChecked(true)` must only fire **after** `hydrate()` resolves, or the guard will redirect before the async refresh completes. The current implementation uses `hydrate().finally(() => setChecked(true))` to enforce this.
 
 ---
 

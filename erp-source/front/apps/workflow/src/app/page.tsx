@@ -1,67 +1,57 @@
-import { Clock, CheckCircle2, XCircle } from "lucide-react";
+"use client";
 
-const pendingApprovals = [
-  { id: "APR-0201", type: "Purchase Order", ref: "PO-2024-0161", requester: "Tom Green", amount: "$28,600", submitted: "2024-03-15 10:30", urgency: "high" },
-  { id: "APR-0200", type: "Leave Request", ref: "LV-2024-0089", requester: "Anna Park", amount: "5 days", submitted: "2024-03-14 16:00", urgency: "medium" },
-  { id: "APR-0199", type: "Expense Report", ref: "EXP-2024-0045", requester: "David Kim", amount: "$1,240", submitted: "2024-03-14 11:15", urgency: "low" },
-  { id: "APR-0198", type: "Budget Transfer", ref: "BT-2024-0012", requester: "Sarah Chen", amount: "$15,000", submitted: "2024-03-13 09:00", urgency: "high" },
-  { id: "APR-0197", type: "Vendor Onboarding", ref: "VND-2024-0034", requester: "Mike Ross", amount: "—", submitted: "2024-03-12 14:30", urgency: "medium" },
-];
-
-const stats = [
-  { label: "Pending", value: 12, icon: Clock, color: "text-yellow-600 bg-yellow-100" },
-  { label: "Approved Today", value: 8, icon: CheckCircle2, color: "text-green-600 bg-green-100" },
-  { label: "Rejected Today", value: 2, icon: XCircle, color: "text-red-600 bg-red-100" },
-];
+import { useEffect, useState, useCallback } from "react";
+import { LoadingSpinner } from "@erp/ui";
+import { api } from "../lib/api";
 
 export default function WorkflowDashboardPage() {
+  const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await api.approvals.list();
+      setStats({
+        total: res.total,
+        pending: res.data.filter((r) => r.status === "pending").length,
+        approved: res.data.filter((r) => r.status === "approved").length,
+        rejected: res.data.filter((r) => r.status === "rejected").length,
+      });
+      setError(null);
+    } catch (err: unknown) {
+      setError((err as { message?: string }).message ?? "Failed to load dashboard");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <div className="p-6 text-sm text-red-600">{error}</div>;
+
+  const kpis = [
+    { title: "Total Requests", value: stats.total },
+    { title: "Pending", value: stats.pending },
+    { title: "Approved", value: stats.approved },
+    { title: "Rejected", value: stats.rejected },
+  ];
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Workflow & Approvals</h1>
-        <p className="text-sm text-gray-500 mt-1">Pending approvals & automation</p>
+        <h1 className="text-2xl font-bold text-gray-900">Workflow Dashboard</h1>
+        <p className="text-sm text-gray-500 mt-1">Approval request overview</p>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {stats.map((s) => (
-          <div key={s.label} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center gap-4">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${s.color}`}>
-              <s.icon className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{s.value}</p>
-              <p className="text-sm text-gray-500">{s.label}</p>
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {kpis.map((k) => (
+          <div key={k.title} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+            <p className="text-sm font-medium text-gray-500">{k.title}</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900">{k.value}</p>
           </div>
         ))}
-      </div>
-
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Pending Approvals</h2>
-        </div>
-        <div className="divide-y divide-gray-100">
-          {pendingApprovals.map((a) => (
-            <div key={a.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-gray-900">{a.type}</p>
-                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                    a.urgency === "high" ? "bg-red-100 text-red-700" :
-                    a.urgency === "medium" ? "bg-yellow-100 text-yellow-700" :
-                    "bg-gray-100 text-gray-600"
-                  }`}>{a.urgency}</span>
-                </div>
-                <p className="text-xs text-gray-500">{a.ref} · {a.requester} · {a.submitted}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-900 mr-4">{a.amount}</span>
-                <button className="px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700">Approve</button>
-                <button className="px-3 py-1.5 text-xs font-medium bg-white text-red-600 border border-red-200 rounded-lg hover:bg-red-50">Reject</button>
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );

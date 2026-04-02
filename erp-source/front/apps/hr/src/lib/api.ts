@@ -1,9 +1,11 @@
+import { useAuthStore } from "@erp/shell";
+
 const BASE_URL = typeof window !== "undefined" ? window.location.origin : "";
 
 async function getHeaders(): Promise<HeadersInit> {
   const headers: HeadersInit = { "Content-Type": "application/json" };
   if (typeof window !== "undefined") {
-    const token = localStorage.getItem("accessToken");
+    const token = useAuthStore.getState().accessToken;
     if (token) headers["Authorization"] = `Bearer ${token}`;
   }
   return headers;

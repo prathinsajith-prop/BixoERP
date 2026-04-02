@@ -1,21 +1,28 @@
 import axios from 'axios';
+import { useAuthStore } from '../../store/auth';
 
 const api = axios.create({
   baseURL: '/api/v1/auth',
   headers: { 'Content-Type': 'application/json' },
+  // The HttpOnly refresh cookie is sent automatically by the browser,
+  // but we also need credentials: 'include' for cross-origin setups.
+  withCredentials: true,
 });
 
 api.interceptors.request.use((config) => {
-  const tenantId = localStorage.getItem('tenantId');
+  const tenantId = sessionStorage.getItem('tenantId');
   if (tenantId) config.headers['X-Tenant-Id'] = tenantId;
-  const token = localStorage.getItem('accessToken');
+  // Access token read from in-memory Zustand store — never from localStorage
+  const token = useAuthStore.getState().accessToken;
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
+// Dedicated client for the /refresh call so it never triggers itself in a loop
 const refreshClient = axios.create({
   baseURL: '/api/v1/auth',
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true, // must be true so the HttpOnly cookie is sent
 });
 
 let isRefreshing = false;
@@ -41,12 +48,11 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) throw new Error('No refresh token');
-        const { data } = await refreshClient.post('/refresh', { refreshToken });
+        // No body needed — the browser sends the HttpOnly __erp_rt cookie automatically
+        const { data } = await refreshClient.post('/refresh');
         const newAccessToken = data.data.accessToken;
-        localStorage.setItem('accessToken', newAccessToken);
-        localStorage.setItem('refreshToken', data.data.refreshToken);
+        // Store only in memory — never in localStorage
+        useAuthStore.setState({ accessToken: newAccessToken, fullAccessToken: newAccessToken, isAuthenticated: true });
         refreshQueue.forEach((p) => p.resolve(newAccessToken));
         refreshQueue = [];
         original.headers.Authorization = `Bearer ${newAccessToken}`;
@@ -54,9 +60,9 @@ api.interceptors.response.use(
       } catch (refreshError) {
         refreshQueue.forEach((p) => p.reject(error));
         refreshQueue = [];
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('tenantId');
+        useAuthStore.setState({ accessToken: null, fullAccessToken: null, isAuthenticated: false });
+        sessionStorage.removeItem('tenantId');
+        sessionStorage.removeItem('activeModule');
         window.location.href = '/login';
       } finally {
         isRefreshing = false;
@@ -68,7 +74,10 @@ api.interceptors.response.use(
 
 export const authApi = {
   login: (body: { email: string; password: string }) => api.post('/login', body),
-  logout: (refreshToken: string) => api.post('/logout', { refreshToken }),
+  /** No body — refresh token is in the HttpOnly cookie, sent automatically */
+  silentRefresh: () => refreshClient.post('/refresh'),
+  /** No body — logout clears the cookie server-side */
+  logout: () => api.post('/logout'),
   getProfile: () => api.get('/profile'),
   myOrganizations: () => api.get('/organizations/me/list'),
   switchOrganization: (body: { organizationId: string }) => api.post('/organizations/switch', body),

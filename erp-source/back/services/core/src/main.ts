@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { GlobalExceptionFilter } from './api/filter/global-exception.filter';
 import helmet from 'helmet';
 import * as compression from 'compression';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -11,6 +12,7 @@ async function bootstrap() {
 
   app.use(helmet());
   app.use(compression());
+  app.use(cookieParser());  // required to read HttpOnly cookies in controllers
   app.enableCors({
     origin: config.get<string>('CORS_ORIGIN', '*'),
     credentials: true,

@@ -1,74 +1,66 @@
-import { Package, AlertTriangle, ArrowUpRight, ArrowDownRight } from "lucide-react";
+"use client";
 
-const kpis = [
-  { title: "Total SKUs", value: "1,247", change: 3.2, trend: "up" },
-  { title: "Inventory Value", value: "$1,245,680", change: 5.1, trend: "up" },
-  { title: "Below Reorder", value: "8", change: 33.3, trend: "up" },
-  { title: "Warehouses", value: "3", change: 0, trend: "up" },
-];
-
-const belowReorder = [
-  { sku: "WDG-ASM-001", name: "Widget Assembly Kit", stock: 12, reorder: 50, warehouse: "Main" },
-  { sku: "SCR-HEX-M6", name: "Hex Screw M6x20", stock: 145, reorder: 500, warehouse: "Main" },
-  { sku: "BRG-6205", name: "Ball Bearing 6205", stock: 8, reorder: 25, warehouse: "West" },
-  { sku: "SLD-CMP-003", name: "Solder Compound Type B", stock: 2, reorder: 10, warehouse: "Main" },
-  { sku: "PCB-CTL-102", name: "Control Board PCB v1.2", stock: 5, reorder: 20, warehouse: "East" },
-];
+import { useEffect, useState, useCallback } from "react";
+import { AlertTriangle } from "lucide-react";
+import { LoadingSpinner } from "@erp/ui";
+import { api } from "../lib/api";
 
 export default function InventoryDashboardPage() {
+  const [stats, setStats] = useState({ items: 0, warehouses: 0, belowReorder: 0, movements: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [itemRes, whRes, stockRes, movRes] = await Promise.all([
+        api.items.list(),
+        api.warehouses.list(),
+        api.stock.levels(),
+        api.movements.list(),
+      ]);
+      setStats({
+        items: itemRes.total,
+        warehouses: whRes.total,
+        belowReorder: stockRes.data.filter((s) => s.isBelowReorder).length,
+        movements: movRes.total,
+      });
+      setError(null);
+    } catch (err: unknown) {
+      setError((err as { message?: string }).message ?? "Failed to load dashboard");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <div className="p-6 text-sm text-red-600">{error}</div>;
+
+  const kpis = [
+    { title: "Total Items", value: stats.items, alert: false },
+    { title: "Warehouses", value: stats.warehouses, alert: false },
+    { title: "Below Reorder", value: stats.belowReorder, alert: stats.belowReorder > 0 },
+    { title: "Movements", value: stats.movements, alert: false },
+  ];
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Inventory Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">Stock overview and alerts</p>
+        <p className="text-sm text-gray-500 mt-1">Stock levels and movement overview</p>
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map((kpi) => (
-          <div key={kpi.title} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-            <p className="text-sm font-medium text-gray-500">{kpi.title}</p>
-            <p className="mt-1 text-xl font-bold text-gray-900">{kpi.value}</p>
-            {kpi.change > 0 && (
-              <div className="flex items-center gap-1 mt-1">
-                {kpi.title === "Below Reorder" ? (
-                  <ArrowUpRight className="w-4 h-4 text-red-500" />
-                ) : (
-                  <ArrowUpRight className="w-4 h-4 text-green-500" />
-                )}
-                <span className={`text-sm font-medium ${kpi.title === "Below Reorder" ? "text-red-600" : "text-green-600"}`}>{kpi.change}%</span>
-              </div>
-            )}
+        {kpis.map((k) => (
+          <div key={k.title} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-gray-500">{k.title}</p>
+              {k.alert && <AlertTriangle className="w-4 h-4 text-red-500" />}
+            </div>
+            <p className={`mt-1 text-2xl font-bold ${k.alert ? "text-red-600" : "text-gray-900"}`}>{k.value}</p>
           </div>
         ))}
-      </div>
-
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5 text-yellow-500" />
-          <h2 className="text-lg font-semibold text-gray-900">Below Reorder Level</h2>
-        </div>
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Item</th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Stock</th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Reorder Point</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Warehouse</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {belowReorder.map((item) => (
-              <tr key={item.sku} className="hover:bg-gray-50">
-                <td className="px-4 py-3 text-sm font-mono text-blue-600">{item.sku}</td>
-                <td className="px-4 py-3 text-sm text-gray-900">{item.name}</td>
-                <td className="px-4 py-3 text-sm text-center font-medium text-red-600">{item.stock}</td>
-                <td className="px-4 py-3 text-sm text-center text-gray-500">{item.reorder}</td>
-                <td className="px-4 py-3 text-sm text-gray-700">{item.warehouse}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
     </div>
   );

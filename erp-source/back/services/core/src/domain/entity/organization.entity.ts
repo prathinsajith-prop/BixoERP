@@ -82,9 +82,10 @@ export class Organization {
     return org;
   }
 
-  update(name: string, description: string): void {
+  update(name: string, description: string, slug?: string): void {
     this.name = name;
     this.description = description;
+    if (slug !== undefined) this.slug = slug;
     this.updatedAt = new Date();
   }
 

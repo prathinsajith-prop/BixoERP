@@ -8,8 +8,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    hydrate();
-    setChecked(true);
+    hydrate().finally(() => setChecked(true));
   }, [hydrate]);
 
   useEffect(() => {

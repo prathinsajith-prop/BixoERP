@@ -1,45 +1,100 @@
-import { Bell, CheckCircle2, AlertTriangle, Info } from "lucide-react";
+"use client";
 
-const notifications = [
-  { id: 1, type: "approval", icon: AlertTriangle, color: "text-yellow-600 bg-yellow-100", title: "Purchase Order requires approval", desc: "PO-2024-0161 — $28,600 from Raw Materials Ltd", time: "10 min ago", read: false },
-  { id: 2, type: "info", icon: Info, color: "text-blue-600 bg-blue-100", title: "Payroll run completed", desc: "March 2024 payroll processed for 156 employees", time: "1 hour ago", read: false },
-  { id: 3, type: "success", icon: CheckCircle2, color: "text-green-600 bg-green-100", title: "Invoice INV-2024-0312 paid", desc: "Payment of $12,450 received from Acme Corp", time: "2 hours ago", read: false },
-  { id: 4, type: "warning", icon: AlertTriangle, color: "text-orange-600 bg-orange-100", title: "Low inventory alert", desc: "Widget Component X below reorder point (45 remaining)", time: "3 hours ago", read: true },
-  { id: 5, type: "info", icon: Info, color: "text-blue-600 bg-blue-100", title: "Leave request approved", desc: "Your leave request for Mar 25-29 was approved by James Lee", time: "5 hours ago", read: true },
-  { id: 6, type: "success", icon: CheckCircle2, color: "text-green-600 bg-green-100", title: "Work order WO-2024-0081 completed", desc: "Circuit Board X12 — 200 units produced", time: "Yesterday", read: true },
-  { id: 7, type: "info", icon: Info, color: "text-blue-600 bg-blue-100", title: "New vendor registered", desc: "Green Energy Supplies added to approved vendors", time: "Yesterday", read: true },
-  { id: 8, type: "approval", icon: AlertTriangle, color: "text-yellow-600 bg-yellow-100", title: "Expense report pending review", desc: "EXP-2024-0045 — $1,240 from David Kim", time: "2 days ago", read: true },
-];
+import { useEffect, useState, useCallback } from "react";
+import { Bell, CheckCheck } from "lucide-react";
+import { LoadingSpinner, EmptyState } from "@erp/ui";
+import { api, type Notification } from "../lib/api";
 
 export default function NotificationsPage() {
-  const unread = notifications.filter((n) => !n.read).length;
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await api.list();
+      setNotifications(res.data);
+      setError(null);
+    } catch (err: unknown) {
+      setError((err as { message?: string }).message ?? "Failed to load notifications");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleMarkAllRead = async () => {
+    try {
+      await api.markAllRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleMarkRead = async (id: string) => {
+    try {
+      await api.markRead(id);
+      setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, isRead: true } : n));
+    } catch {
+      // ignore
+    }
+  };
+
+  const unread = notifications.filter((n) => !n.isRead).length;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
-          <p className="text-sm text-gray-500 mt-1">{unread} unread notifications</p>
+          <p className="text-sm text-gray-500 mt-1">{unread} unread</p>
         </div>
-        <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">Mark all as read</button>
+        {unread > 0 && (
+          <button
+            onClick={handleMarkAllRead}
+            className="inline-flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+          >
+            <CheckCheck className="w-4 h-4" />
+            Mark all read
+          </button>
+        )}
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm divide-y divide-gray-100">
-        {notifications.map((n) => (
-          <div key={n.id} className={`px-6 py-4 flex items-start gap-3 hover:bg-gray-50 cursor-pointer ${!n.read ? "bg-blue-50/50" : ""}`}>
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${n.color}`}>
-              <n.icon className="w-4 h-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className={`text-sm ${!n.read ? "font-semibold" : "font-medium"} text-gray-900`}>{n.title}</p>
-                {!n.read && <span className="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0" />}
+      {loading && <LoadingSpinner />}
+      {error && <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+
+      {!loading && !error && (
+        notifications.length === 0 ? (
+          <EmptyState
+            title="No notifications"
+            description="You are all caught up!"
+            icon={<Bell className="w-10 h-10 text-gray-300" />}
+          />
+        ) : (
+          <div className="space-y-2">
+            {notifications.map((n) => (
+              <div
+                key={n.id}
+                onClick={() => !n.isRead && handleMarkRead(n.id)}
+                className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${
+                  n.isRead ? "bg-white border-gray-200" : "bg-accent-50 border-accent-200 hover:bg-accent-100"
+                }`}
+              >
+                <div className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${n.isRead ? "bg-gray-300" : "bg-accent-600"}`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900">{n.title}</p>
+                  <p className="text-sm text-gray-500 mt-0.5">{n.message}</p>
+                  <p className="text-xs text-gray-400 mt-1">{new Date(n.createdAt).toLocaleString()}</p>
+                </div>
+                <span className="text-xs text-gray-400 capitalize flex-shrink-0">{n.type}</span>
               </div>
-              <p className="text-xs text-gray-500 mt-0.5">{n.desc}</p>
-            </div>
-            <span className="text-xs text-gray-400 flex-shrink-0">{n.time}</span>
+            ))}
           </div>
-        ))}
-      </div>
+        )
+      )}
     </div>
   );
 }

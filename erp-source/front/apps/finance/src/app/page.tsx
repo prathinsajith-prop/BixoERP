@@ -1,27 +1,62 @@
-import { Banknote, TrendingUp, ArrowDownRight, ArrowUpRight, BookOpen } from "lucide-react";
+"use client";
 
-const kpis = [
-  { title: "Total Assets", value: "$4,285,400", change: 3.2, trend: "up" },
-  { title: "Total Liabilities", value: "$1,892,100", change: -1.5, trend: "down" },
-  { title: "Net Income (MTD)", value: "$342,800", change: 8.7, trend: "up" },
-  { title: "Cash Position", value: "$1,124,300", change: 5.4, trend: "up" },
-];
+import { useEffect, useState, useCallback } from "react";
+import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { LoadingSpinner } from "@erp/ui";
+import { api } from "../lib/api";
 
-const recentJournals = [
-  { id: "JE-2024-1205", date: "2024-03-15", description: "Monthly depreciation", debit: "$12,400", credit: "$12,400", status: "posted" },
-  { id: "JE-2024-1204", date: "2024-03-15", description: "Payroll accrual", debit: "$85,200", credit: "$85,200", status: "posted" },
-  { id: "JE-2024-1203", date: "2024-03-14", description: "Revenue recognition", debit: "$145,000", credit: "$145,000", status: "pending" },
-  { id: "JE-2024-1202", date: "2024-03-14", description: "Prepaid insurance", debit: "$3,600", credit: "$3,600", status: "posted" },
-];
-
-const budgetSummary = [
-  { name: "Operating Expenses", budget: 450000, actual: 412000 },
-  { name: "Marketing", budget: 120000, actual: 134400 },
-  { name: "R&D", budget: 280000, actual: 245000 },
-  { name: "Administrative", budget: 95000, actual: 88200 },
-];
+type RecentJournal = { entryNumber: string; description: string; debit: number; currency: string; status: string };
 
 export default function FinanceDashboardPage() {
+  const [stats, setStats] = useState({ accounts: 0, openJournals: 0, openPeriods: 0, budgets: 0 });
+  const [recentJournals, setRecentJournals] = useState<RecentJournal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [accRes, jrnRes, perRes, budRes] = await Promise.all([
+        api.accounts.list(),
+        api.journals.list(),
+        api.periods.list(),
+        api.budgets.list(),
+      ]);
+      setStats({
+        accounts: accRes.total,
+        openJournals: jrnRes.data.filter((j) => j.status === "draft").length,
+        openPeriods: perRes.data.filter((p) => p.status === "open").length,
+        budgets: budRes.total,
+      });
+      setRecentJournals(
+        jrnRes.data.slice(0, 5).map((j) => ({
+          entryNumber: j.entryNumber,
+          description: j.description,
+          debit: j.lines.reduce((s, l) => s + l.debit, 0),
+          currency: "USD",
+          status: j.status,
+        }))
+      );
+      setError(null);
+    } catch (err: unknown) {
+      setError((err as { message?: string }).message ?? "Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <div className="p-6 text-sm text-red-600">{error}</div>;
+
+  const kpis = [
+    { title: "Total Accounts", value: stats.accounts.toString(), trend: "up" },
+    { title: "Open Journals", value: stats.openJournals.toString(), trend: stats.openJournals > 0 ? "up" : "down" },
+    { title: "Open Periods", value: stats.openPeriods.toString(), trend: "up" },
+    { title: "Total Budgets", value: stats.budgets.toString(), trend: "up" },
+  ];
+
   return (
     <div className="space-y-6">
       <div>
@@ -40,69 +75,39 @@ export default function FinanceDashboardPage() {
               ) : (
                 <ArrowDownRight className="w-4 h-4 text-red-500" />
               )}
-              <span className={`text-sm font-medium ${kpi.trend === "up" ? "text-green-600" : "text-red-600"}`}>
-                {Math.abs(kpi.change)}%
-              </span>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Journal Entries</h2>
-          </div>
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entry</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Debit</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">Recent Journal Entries</h2>
+        </div>
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entry</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Debit</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {recentJournals.map((j) => (
+              <tr key={j.entryNumber}>
+                <td className="px-4 py-3 text-sm font-medium text-accent-600">{j.entryNumber}</td>
+                <td className="px-4 py-3 text-sm text-gray-700">{j.description}</td>
+                <td className="px-4 py-3 text-sm text-right text-gray-900">{j.debit.toLocaleString("en-US", { style: "currency", currency: j.currency })}</td>
+                <td className="px-4 py-3">
+                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${j.status === "posted" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}>
+                    {j.status}
+                  </span>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {recentJournals.map((j) => (
-                <tr key={j.id}>
-                  <td className="px-4 py-3 text-sm font-medium text-blue-600">{j.id}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{j.description}</td>
-                  <td className="px-4 py-3 text-sm text-right text-gray-900">{j.debit}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${j.status === "posted" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}>
-                      {j.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Budget vs Actual</h2>
-          </div>
-          <div className="p-6 space-y-5">
-            {budgetSummary.map((b) => {
-              const pct = Math.round((b.actual / b.budget) * 100);
-              const over = b.actual > b.budget;
-              return (
-                <div key={b.name}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="font-medium text-gray-700">{b.name}</span>
-                    <span className={over ? "text-red-600 font-medium" : "text-gray-500"}>
-                      {pct}% — ${(b.actual / 1000).toFixed(0)}k / ${(b.budget / 1000).toFixed(0)}k
-                    </span>
-                  </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${over ? "bg-red-500" : "bg-blue-500"}`} style={{ width: `${Math.min(pct, 100)}%` }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
