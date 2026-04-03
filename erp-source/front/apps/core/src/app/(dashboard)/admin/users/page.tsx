@@ -3,8 +3,22 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
+import { List, TableProperties } from 'lucide-react';
 import { authApi } from '@/lib/api/auth';
-import PageHeader from '@/components/page-header';
+import {
+  Button,
+  DataTable,
+  ListView,
+  PageHeader,
+  Pagination,
+  SearchFilterBar,
+  StatusBadge,
+  type ActiveFilters,
+  type ActiveOperators,
+  type FilterConfig,
+  type TableColumn,
+  type ViewMode,
+} from '@erp/ui';
 
 /* ── Avatar helpers ─────────────────────────────────────────────── */
 const AVATAR_COLORS = [
@@ -54,6 +68,8 @@ const Icons = {
 interface User { id: string; email: string; firstName?: string; lastName?: string; status?: string; isActive?: boolean; roles?: Role[]; createdAt?: string }
 interface Role { id: string; name: string; description?: string }
 type StatusFilter = 'all' | 'active' | 'inactive';
+type StatusOperator = 'is' | 'is_not';
+type RoleOperator = 'in' | 'not_in';
 
 /* ── Seed / demo data ───────────────────────────────────────────── */
 const DEMO_ROLES: Role[] = [
@@ -155,24 +171,12 @@ function RowActions({ user, onView, onRoles, onToggleStatus, onDelete }: {
   );
 }
 
-/* ── Pagination helper ──────────────────────────────────────────── */
-function getPageRange(current: number, total: number): (number | '...')[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const pages: (number | '...')[] = [1];
-  const left = Math.max(2, current - 1);
-  const right = Math.min(total - 1, current + 1);
-  if (left > 2) pages.push('...');
-  for (let i = left; i <= right; i++) pages.push(i);
-  if (right < total - 1) pages.push('...');
-  pages.push(total);
-  return pages;
-}
-
 /* ══════════════════════════════════════════════════════════════════
    Main component
    ══════════════════════════════════════════════════════════════════ */
 export default function UserManagementPage() {
   const router = useRouter();
+  const viewSwitcherRef = useRef<HTMLDivElement>(null);
 
   /* ── Data state ─── */
   const [users, setUsers] = useState<User[]>([]);
@@ -185,7 +189,11 @@ export default function UserManagementPage() {
   /* ── Filters ─── */
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusOperator, setStatusOperator] = useState<StatusOperator>('is');
+  const [roleFilter, setRoleFilter] = useState<string[]>([]);
+  const [roleOperator, setRoleOperator] = useState<RoleOperator>('in');
+  const [view, setView] = useState<ViewMode>('table');
+  const [viewPopoverOpen, setViewPopoverOpen] = useState(false);
 
   /* ── Selection ─── */
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -203,6 +211,19 @@ export default function UserManagementPage() {
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    if (!viewPopoverOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (viewSwitcherRef.current && !viewSwitcherRef.current.contains(event.target as Node)) {
+        setViewPopoverOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [viewPopoverOpen]);
+
   const showToast = useCallback((type: 'success' | 'error', text: string) => {
     setToast({ type, text });
     setTimeout(() => setToast(null), 4000);
@@ -297,11 +318,20 @@ export default function UserManagementPage() {
       const q = search.toLowerCase();
       list = list.filter((u) => u.email?.toLowerCase().includes(q) || u.firstName?.toLowerCase().includes(q) || u.lastName?.toLowerCase().includes(q));
     }
-    if (statusFilter === 'active') list = list.filter((u) => u.isActive !== false);
-    if (statusFilter === 'inactive') list = list.filter((u) => u.isActive === false);
-    if (roleFilter !== 'all') list = list.filter((u) => (u.roles || []).some((r) => r.id === roleFilter));
+    if (statusFilter !== 'all') {
+      const shouldBeActive = statusFilter === 'active';
+      list = list.filter((u) => statusOperator === 'is'
+        ? (u.isActive !== false) === shouldBeActive
+        : (u.isActive !== false) !== shouldBeActive);
+    }
+    if (roleFilter.length > 0) {
+      list = list.filter((u) => {
+        const hasMatchingRole = (u.roles || []).some((r) => roleFilter.includes(r.id));
+        return roleOperator === 'in' ? hasMatchingRole : !hasMatchingRole;
+      });
+    }
     return list;
-  }, [users, search, statusFilter, roleFilter]);
+  }, [users, search, statusFilter, statusOperator, roleFilter, roleOperator]);
 
   /* ── Client-side pagination ─── */
   const totalFiltered = filteredUsers.length;
@@ -312,7 +342,7 @@ export default function UserManagementPage() {
   }, [filteredUsers, page, limit]);
 
   // Reset to page 1 when filters change
-  useEffect(() => { setPage(1); }, [search, statusFilter, roleFilter]);
+  useEffect(() => { setPage(1); }, [search, statusFilter, statusOperator, roleFilter, roleOperator]);
 
   /* ── Stats ─── */
   const stats = useMemo(() => ({
@@ -454,13 +484,263 @@ export default function UserManagementPage() {
 
   /* ── Helpers ─── */
   const getUserRoles = (user: User) => user.roles || [];
-  const activeFilters = (statusFilter !== 'all' ? 1 : 0) + (roleFilter !== 'all' ? 1 : 0);
+  const activeFilterCount = (statusFilter !== 'all' ? 1 : 0) + (roleFilter.length > 0 ? 1 : 0);
 
-  const clearFilters = () => { setStatusFilter('all'); setRoleFilter('all'); setSearch(''); };
+  const clearFilters = () => {
+    setStatusFilter('all');
+    setStatusOperator('is');
+    setRoleFilter([]);
+    setRoleOperator('in');
+    setSearch('');
+  };
+
+  const filterConfigs = useMemo<FilterConfig[]>(() => [
+    {
+      key: 'status',
+      label: 'Status',
+      type: 'select',
+      options: [
+        { value: 'active', label: 'Active' },
+        { value: 'inactive', label: 'Inactive' },
+      ],
+      quickOptions: [
+        { value: 'active', label: 'Active only' },
+        { value: 'inactive', label: 'Inactive only' },
+      ],
+      placeholder: 'Filter by status',
+    },
+    {
+      key: 'role',
+      label: 'Role',
+      type: 'multiselect',
+      options: roles.map((role) => ({ value: role.id, label: role.name })),
+      placeholder: 'Filter by role',
+    },
+  ], [roles]);
+
+  const appliedFilters = useMemo<ActiveFilters>(() => {
+    const next: ActiveFilters = {};
+    if (statusFilter !== 'all') next.status = statusFilter;
+    if (roleFilter.length > 0) next.role = roleFilter;
+    return next;
+  }, [statusFilter, roleFilter]);
+
+  const activeOperators = useMemo<ActiveOperators>(() => {
+    const next: ActiveOperators = {};
+    if (statusFilter !== 'all') next.status = statusOperator;
+    if (roleFilter.length > 0) next.role = roleOperator;
+    return next;
+  }, [statusFilter, statusOperator, roleFilter, roleOperator]);
+
+  const handleToolbarFilterChange = (key: string, value: string | string[]) => {
+    if (key === 'status' && typeof value === 'string') {
+      setStatusFilter(value as StatusFilter);
+      return;
+    }
+
+    if (key === 'role') {
+      setRoleFilter(Array.isArray(value) ? value : value ? [value] : []);
+    }
+  };
+
+  const handleToolbarFilterStateChange = (key: string, state: { value: string | string[]; operator: string }) => {
+    if (key === 'status' && typeof state.value === 'string') {
+      setStatusFilter(state.value as StatusFilter);
+      setStatusOperator((state.operator as StatusOperator) || 'is');
+      return;
+    }
+
+    if (key === 'role') {
+      setRoleFilter(Array.isArray(state.value) ? state.value : state.value ? [state.value] : []);
+      setRoleOperator((state.operator as RoleOperator) || 'in');
+    }
+  };
+
+  const handleToolbarFilterClear = (key: string) => {
+    if (key === 'status') {
+      setStatusFilter('all');
+      setStatusOperator('is');
+    }
+    if (key === 'role') {
+      setRoleFilter([]);
+      setRoleOperator('in');
+    }
+  };
+
+  const selectedKeys = useMemo(() => Array.from(selectedIds), [selectedIds]);
+
+  const toolbarActions = (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="relative" ref={viewSwitcherRef}>
+        <button
+          type="button"
+          onClick={() => setViewPopoverOpen((open) => !open)}
+          className="gogo-input inline-flex h-12 w-12 items-center justify-center bg-white text-[var(--gogo-text-secondary)] transition hover:border-[var(--gogo-primary)] hover:text-[var(--gogo-primary)] dark:bg-white"
+          title="Change view"
+          aria-label="Change view"
+          aria-haspopup="menu"
+          aria-expanded={viewPopoverOpen}
+        >
+          {view === 'list' ? <List className="h-[18px] w-[18px]" /> : <TableProperties className="h-[18px] w-[18px]" />}
+        </button>
+
+        {viewPopoverOpen && (
+          <div className="absolute right-0 top-full z-50 mt-2 min-w-48 overflow-hidden rounded-[var(--radius-modal)] border border-gray-200 bg-white shadow-[var(--shadow-hover)] ring-1 ring-gray-200/60">
+            <div className="py-2">
+              {[
+                { value: 'table' as ViewMode, label: 'Table view', icon: <TableProperties className="h-4 w-4" /> },
+                { value: 'list' as ViewMode, label: 'List view', icon: <List className="h-4 w-4" /> },
+              ].map((option) => {
+                const selected = option.value === view;
+
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      setView(option.value);
+                      setViewPopoverOpen(false);
+                    }}
+                    className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition ${selected ? 'bg-[var(--gogo-grey-100)] font-medium text-[var(--gogo-primary)]' : 'text-gray-700 hover:bg-gray-50'}`}
+                  >
+                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-current">
+                      {option.icon}
+                    </span>
+                    <span className="flex-1">{option.label}</span>
+                    {selected && <span className="h-2.5 w-2.5 rounded-full bg-[var(--gogo-primary)]" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <Button variant="outline" size="sm" onClick={() => { fetchUsers(); fetchRoles(); }} className="h-12 gap-1.5 px-4">
+        {Icons.refresh}
+        Refresh
+      </Button>
+      <Button variant="outline" size="sm" onClick={handleExport} className="h-12 gap-1.5 px-4">
+        {Icons.download}
+        Export CSV
+      </Button>
+      <Button size="sm" onClick={() => setAddModalOpen(true)} className="h-12 gap-1.5 px-4">
+        {Icons.plus}
+        Create User
+      </Button>
+    </div>
+  );
+
+  const tableColumns: TableColumn<User>[] = [
+    {
+      key: 'user',
+      header: 'User',
+      render: (user) => {
+        const name = [user.firstName, user.lastName].filter(Boolean).join(' ');
+        const displayName = name || user.email?.split('@')[0] || 'User';
+
+        return (
+          <div className="flex items-center gap-3">
+            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${avatarGradient(user.email)} text-xs font-bold text-white shadow-sm`}>
+              {getInitials(name, user.email)}
+            </div>
+            <div className="min-w-0">
+              <button onClick={() => router.push(`/admin/users/${user.id}`)} className="block truncate text-sm font-semibold text-[var(--gogo-text-primary)] transition hover:text-[var(--gogo-primary)]">
+                {displayName}
+              </button>
+              <p className="truncate text-xs text-[var(--gogo-text-secondary)] md:hidden">{user.email}</p>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'email',
+      header: 'Email',
+      headerClassName: 'hidden md:table-cell',
+      className: 'hidden md:table-cell',
+      render: (user) => <span className="text-sm text-[var(--gogo-text-primary)]">{user.email}</span>,
+    },
+    {
+      key: 'roles',
+      header: 'Roles',
+      headerClassName: 'hidden lg:table-cell',
+      className: 'hidden lg:table-cell',
+      render: (user) => {
+        const userRoles = getUserRoles(user);
+
+        return userRoles.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {userRoles.map((role, index) => (
+              <span key={role.id || role.name || index} className="group/role inline-flex items-center gap-1 rounded-full border border-[var(--gogo-divider)] bg-[var(--gogo-grey-100)] px-2.5 py-0.5 text-xs font-medium text-[var(--gogo-primary)]">
+                {role.name}
+                <button onClick={() => handleRemoveRole(user.id, role.id)} className="hidden rounded-full p-0.5 text-[var(--gogo-text-secondary)] transition hover:bg-[var(--gogo-surface)] hover:text-[var(--gogo-primary)] group-hover/role:inline-flex" title="Remove role">
+                  {Icons.x}
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : <span className="text-xs italic text-[var(--gogo-text-secondary)]">No roles</span>;
+      },
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (user) => (
+        <StatusBadge status={user.isActive !== false ? 'ACTIVE' : 'INACTIVE'} label={user.isActive !== false ? 'Active' : 'Inactive'} />
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      render: (user) => (
+        <RowActions
+          user={user}
+          onView={() => router.push(`/admin/users/${user.id}`)}
+          onRoles={() => { setSelectedUser(user); setRoleModalOpen(true); }}
+          onToggleStatus={() => handleToggleActive(user)}
+          onDelete={() => { setSelectedUser(user); setDeleteModalOpen(true); }}
+        />
+      ),
+    },
+  ];
+
+  const listColumns: TableColumn<User>[] = [
+    {
+      key: 'roles',
+      header: 'Roles',
+      render: (user) => {
+        const userRoles = getUserRoles(user);
+
+        return userRoles.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {userRoles.map((role, index) => (
+              <span key={role.id || role.name || index} className="inline-flex items-center rounded-full border border-[var(--gogo-divider)] bg-[var(--gogo-grey-100)] px-2.5 py-0.5 text-xs font-medium text-[var(--gogo-primary)]">
+                {role.name}
+              </span>
+            ))}
+          </div>
+        ) : <span className="text-xs italic text-[var(--gogo-text-secondary)]">No roles</span>;
+      },
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (user) => (
+        <StatusBadge status={user.isActive !== false ? 'ACTIVE' : 'INACTIVE'} label={user.isActive !== false ? 'Active' : 'Inactive'} />
+      ),
+    },
+    {
+      key: 'createdAt',
+      header: 'Created',
+      render: (user) => user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '—',
+    },
+  ];
 
   return (
     <div className="space-y-6">
-      <PageHeader title="User Management" subtitle="Manage users, roles, and access" />
+      <PageHeader title="User Management" description="Manage users, roles, and access" />
 
       {/* ── Toast (portal to body so fixed positioning isn't broken by parent transforms) ─── */}
       {mounted && toast && createPortal(
@@ -490,193 +770,117 @@ export default function UserManagementPage() {
       </div>
 
       {/* ── Toolbar ─── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* Left: search + filters */}
-        <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative max-w-xs flex-1 sm:max-w-md">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{Icons.search}</span>
-            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search users..."
-              className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 dark:focus:border-blue-500 dark:focus:ring-blue-900/40" />
-          </div>
+      <SearchFilterBar
+        searchPlaceholder="Search users by name or email"
+        searchValue={search}
+        onSearchChange={setSearch}
+        filters={filterConfigs}
+        activeFilters={appliedFilters}
+        activeOperators={activeOperators}
+        onFilterChange={handleToolbarFilterChange}
+        onFilterStateChange={handleToolbarFilterStateChange}
+        onFilterClear={handleToolbarFilterClear}
+        onFilterClearAll={clearFilters}
+        actions={toolbarActions}
+      />
 
-          {/* Status filter */}
-          <div className="relative">
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-              className="appearance-none rounded-lg border border-gray-200 bg-white py-2 pl-3 pr-8 text-sm font-medium text-gray-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-            <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400">{Icons.chevronDown}</span>
-          </div>
-
-          {/* Role filter */}
-          <div className="relative">
-            <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}
-              className="appearance-none rounded-lg border border-gray-200 bg-white py-2 pl-3 pr-8 text-sm font-medium text-gray-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-              <option value="all">All Roles</option>
-              {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-            </select>
-            <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400">{Icons.chevronDown}</span>
-          </div>
-
-          {activeFilters > 0 && (
-            <button onClick={clearFilters} className="inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-medium text-blue-600 transition hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30">
-              {Icons.x}
-              Clear filters ({activeFilters})
-            </button>
-          )}
-        </div>
-
-        {/* Right: actions */}
-        <div className="flex items-center gap-2">
-          <button onClick={() => { fetchUsers(); fetchRoles(); }} title="Refresh"
-            className="rounded-lg border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition hover:bg-gray-50 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
-            {Icons.refresh}
-          </button>
-          <button onClick={handleExport} title="Export CSV"
-            className="rounded-lg border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition hover:bg-gray-50 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
-            {Icons.download}
-          </button>
-          <button onClick={() => setAddModalOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:bg-blue-800">
-            {Icons.plus}
-            <span className="hidden sm:inline">Add User</span>
-          </button>
-        </div>
-      </div>
+      {(search || activeFilterCount > 0) && (
+        <p className="text-xs text-[var(--gogo-text-secondary)]">
+          Showing <strong>{totalFiltered}</strong> result{totalFiltered !== 1 ? 's' : ''}
+        </p>
+      )}
 
       {/* ── Bulk action bar ─── */}
       {someSelected && (
-        <div className="flex items-center gap-3 rounded-xl bg-blue-50 px-4 py-2.5 ring-1 ring-blue-200 dark:bg-blue-900/20 dark:ring-blue-800">
-          <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{selectedIds.size} selected</span>
-          <div className="h-4 w-px bg-blue-200 dark:bg-blue-700" />
-          <button onClick={() => setSelectedIds(new Set())} className="text-sm font-medium text-blue-600 transition hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200">
+        <div className="flex items-center gap-3 rounded-[var(--radius-card)] border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] px-4 py-2.5 shadow-[var(--shadow-card)]">
+          <span className="text-sm font-medium text-[var(--gogo-primary)]">{selectedIds.size} selected</span>
+          <div className="h-4 w-px bg-[var(--gogo-divider)]" />
+          <button onClick={() => setSelectedIds(new Set())} className="text-sm font-medium text-[var(--gogo-primary)] transition hover:opacity-80">
             Deselect all
           </button>
         </div>
       )}
 
       {/* ── Table ─── */}
-      <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 dark:bg-gray-900 dark:ring-gray-800">
-        {loading ? (
-          <div className="flex items-center justify-center py-20">{Icons.spinner}</div>
-        ) : paginatedUsers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20">
+      {loading ? (
+        <div className="flex items-center justify-center rounded-[var(--radius-card)] border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] py-20 shadow-[var(--shadow-card)]">{Icons.spinner}</div>
+      ) : paginatedUsers.length === 0 ? (
+        <div className="rounded-[var(--radius-card)] border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] py-20 text-center shadow-[var(--shadow-card)]">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--gogo-grey-100)] text-[var(--gogo-primary)]">
             {Icons.users}
-            <p className="mt-3 text-sm font-medium text-gray-500 dark:text-gray-400">No users found</p>
-            <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">{search || activeFilters ? 'Try adjusting your search or filters' : 'Get started by adding a new user'}</p>
-            {!search && !activeFilters && (
-              <button onClick={() => setAddModalOpen(true)} className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">
-                {Icons.plus} Add User
-              </button>
-            )}
           </div>
-        ) : (
-          <div className="overflow-x-auto max-w-full">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50 dark:border-gray-800 dark:bg-gray-800/50">
-                  <th className="w-12 px-4 py-3.5">
-                    <input type="checkbox" checked={allSelected} onChange={toggleAll}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800" />
-                  </th>
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">User</th>
-                  <th className="hidden px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 md:table-cell">Email</th>
-                  <th className="hidden px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 lg:table-cell">Roles</th>
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
-                  <th className="w-12 px-4 py-3.5" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-                {paginatedUsers.map((user) => {
-                  const name = [user.firstName, user.lastName].filter(Boolean).join(' ');
-                  const displayName = name || user.email?.split('@')[0] || 'User';
-                  const userRoles = getUserRoles(user);
-                  const isChecked = selectedIds.has(user.id);
-                  return (
-                    <tr key={user.id} className={`group transition ${isChecked ? 'bg-blue-50/40 dark:bg-blue-900/10' : 'hover:bg-gray-50/50 dark:hover:bg-gray-800/50'}`}>
-                      <td className="px-4 py-3.5">
-                        <input type="checkbox" checked={isChecked} onChange={() => toggleOne(user.id)}
-                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800" />
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${avatarGradient(user.email)} text-xs font-bold text-white shadow-sm`}>
-                            {getInitials(name, user.email)}
-                          </div>
-                          <div className="min-w-0">
-                            <button onClick={() => router.push(`/admin/users/${user.id}`)} className="block truncate text-sm font-semibold text-gray-900 transition hover:text-blue-600 dark:text-white dark:hover:text-blue-400">
-                              {displayName}
-                            </button>
-                            <p className="truncate text-xs text-gray-500 dark:text-gray-400 md:hidden">{user.email}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="hidden whitespace-nowrap px-4 py-3.5 md:table-cell">
-                        <p className="text-sm text-gray-600 dark:text-gray-300">{user.email}</p>
-                      </td>
-                      <td className="hidden px-4 py-3.5 lg:table-cell">
-                        <div className="flex flex-wrap gap-1.5">
-                          {userRoles.length > 0 ? userRoles.map((role, rIdx) => (
-                            <span key={role.id || role.name || rIdx} className="group/role inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                              {role.name}
-                              <button onClick={() => handleRemoveRole(user.id, role.id)} className="ml-0.5 hidden rounded-full p-0.5 text-blue-400 hover:bg-blue-100 hover:text-blue-600 group-hover/role:inline-flex dark:hover:bg-blue-800" title="Remove role">
-                                {Icons.x}
-                              </button>
-                            </span>
-                          )) : <span className="text-xs italic text-gray-400 dark:text-gray-500">No roles</span>}
-                        </div>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3.5">
-                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${user.isActive !== false ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300'}`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${user.isActive !== false ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                          {user.isActive !== false ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <RowActions user={user}
-                          onView={() => router.push(`/admin/users/${user.id}`)}
-                          onRoles={() => { setSelectedUser(user); setRoleModalOpen(true); }}
-                          onToggleStatus={() => handleToggleActive(user)}
-                          onDelete={() => { setSelectedUser(user); setDeleteModalOpen(true); }}
-                        />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* ── Pagination ─── */}
-        {totalPages > 1 && (
-          <div className="flex flex-col items-center justify-between gap-2 border-t border-gray-100 bg-gray-50/30 px-4 py-3 sm:flex-row dark:border-gray-800 dark:bg-gray-800/30">
-            <p className="text-xs text-gray-500 dark:text-gray-400">Showing {(page - 1) * limit + 1}–{Math.min(page * limit, totalFiltered)} of {totalFiltered}</p>
-            <div className="flex items-center gap-1">
-              <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}
-                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                Previous
-              </button>
-              {getPageRange(page, totalPages).map((p, i) =>
-                p === '...' ? (
-                  <span key={`dots-${i}`} className="px-1.5 text-xs text-gray-400">...</span>
-                ) : (
-                  <button key={p} onClick={() => setPage(p)}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${page === p ? 'bg-blue-600 text-white shadow-sm' : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300'}`}>
-                    {p}
-                  </button>
-                )
-              )}
-              <button onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages}
-                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                Next
-              </button>
+          <p className="mt-4 text-sm font-semibold text-[var(--gogo-text-primary)]">No users found</p>
+          <p className="mt-1 text-xs text-[var(--gogo-text-secondary)]">{search || activeFilterCount ? 'Try adjusting your search or filters' : 'Get started by creating a new user'}</p>
+          {!search && !activeFilterCount && (
+            <div className="mt-5">
+              <Button size="sm" onClick={() => setAddModalOpen(true)} className="gap-1.5">
+                {Icons.plus}
+                Create User
+              </Button>
             </div>
+          )}
+        </div>
+      ) : view === 'table' ? (
+        <div className="overflow-hidden rounded-[var(--radius-card)] border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] shadow-[var(--shadow-card)]">
+          <DataTable
+            columns={tableColumns}
+            data={paginatedUsers}
+            keyExtractor={(user) => user.id}
+            selectable
+            selectedKeys={selectedKeys}
+            onSelectionChange={(keys) => setSelectedIds(new Set(keys))}
+            emptyMessage={search || activeFilterCount ? 'No users match your filters' : 'No users found'}
+          />
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalFiltered}
+            pageSize={limit}
+            onPageChange={setPage}
+          />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <ListView
+            columns={listColumns}
+            data={paginatedUsers}
+            keyExtractor={(user) => user.id}
+            selectable
+            selectedKeys={selectedKeys}
+            onSelectionChange={(keys) => setSelectedIds(new Set(keys))}
+            onRowClick={(user) => router.push(`/admin/users/${user.id}`)}
+            title={(user) => [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email?.split('@')[0] || 'User'}
+            subtitle={(user) => user.email}
+            leading={(user) => {
+              const name = [user.firstName, user.lastName].filter(Boolean).join(' ');
+              return (
+                <div className={`flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br ${avatarGradient(user.email)} text-sm font-bold text-white shadow-sm`}>
+                  {getInitials(name, user.email)}
+                </div>
+              );
+            }}
+            trailing={(user) => (
+              <RowActions
+                user={user}
+                onView={() => router.push(`/admin/users/${user.id}`)}
+                onRoles={() => { setSelectedUser(user); setRoleModalOpen(true); }}
+                onToggleStatus={() => handleToggleActive(user)}
+                onDelete={() => { setSelectedUser(user); setDeleteModalOpen(true); }}
+              />
+            )}
+            emptyMessage={search || activeFilterCount ? 'No users match your filters' : 'No users found'}
+          />
+          <div className="overflow-hidden rounded-[var(--radius-card)] border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] shadow-[var(--shadow-card)]">
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              totalItems={totalFiltered}
+              pageSize={limit}
+              onPageChange={setPage}
+            />
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════
          Modals

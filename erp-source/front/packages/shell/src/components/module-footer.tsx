@@ -5,8 +5,8 @@ import { APP_NAME } from "../lib/config";
 
 export function ModuleFooter() {
   return (
-    <footer className="hidden md:block border-t border-gray-200/60 bg-white dark:border-gray-700/60 dark:bg-gray-900">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <footer className="hidden border-t border-[var(--gogo-divider)] bg-transparent md:block">
+      <div className="mx-auto max-w-7xl px-6 py-6">
         <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
           <p className="text-xs text-gray-400">
             &copy; {new Date().getFullYear()} {APP_NAME}. All rights reserved.

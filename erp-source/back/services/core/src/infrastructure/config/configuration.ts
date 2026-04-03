@@ -4,9 +4,9 @@ export default () => ({
 
   database: {
     host: process.env.DB_HOST ?? 'localhost',
-    port: parseInt(process.env.DB_PORT ?? '5432', 10),
+    port: parseInt(process.env.DB_PORT ?? '5436', 10),
     username: process.env.DB_USER ?? 'erp_app',
-    password: process.env.DB_PASSWORD ?? 'erp_secret',
+    password: process.env.DB_PASSWORD ?? 'erp_app_password',
     database: process.env.DB_NAME ?? 'auth_db',
   },
 

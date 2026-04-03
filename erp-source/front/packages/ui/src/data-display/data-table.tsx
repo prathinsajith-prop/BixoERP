@@ -9,8 +9,10 @@ export interface Column<T> {
   header: string;
   render?: (item: T) => React.ReactNode;
   className?: string;
+  headerClassName?: string;
   sortable?: boolean;
   width?: string;
+  align?: "left" | "center" | "right";
 }
 
 export interface RowAction<T> {
@@ -38,11 +40,11 @@ interface DataTableProps<T> {
 
 function SortIcon({ active, direction }: { active: boolean; direction: SortDirection }) {
   return (
-    <span className="ml-1 inline-flex flex-col gap-px opacity-40" style={active ? { opacity: 1, color: 'var(--gogo-primary)' } : undefined}>
-      <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor" style={active && direction === 'asc' ? { opacity: 1 } : { opacity: 0.35 }}>
+    <span className={`ml-1 inline-flex flex-col gap-px ${active ? "text-[var(--gogo-primary)] opacity-100" : "opacity-40"}`}>
+      <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor" className={active && direction === "asc" ? "opacity-100" : "opacity-35"}>
         <path d="M4 0L8 5H0L4 0Z" />
       </svg>
-      <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor" style={active && direction === 'desc' ? { opacity: 1 } : { opacity: 0.35 }}>
+      <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor" className={active && direction === "desc" ? "opacity-100" : "opacity-35"}>
         <path d="M4 5L0 0H8L4 5Z" />
       </svg>
     </span>
@@ -88,39 +90,43 @@ export function DataTable<T>({
   };
 
   const hasActions = rowActions && rowActions.length > 0;
+  const getAlignment = (align?: Column<T>["align"]) => {
+    if (align === "center") return "text-center";
+    if (align === "right") return "text-right";
+    return "text-left";
+  };
 
   if (loading) {
     return (
-      <div className="p-4 space-y-3">
-        <div className="h-10 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--gogo-grey-100)' }} />
+      <div className="space-y-3 p-4">
+        <div className="h-10 animate-pulse rounded-lg bg-[var(--gogo-grey-100)]" />
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="h-12 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--gogo-grey-100)', opacity: 1 - i * 0.15 }} />
+          <div key={i} className="h-12 animate-pulse rounded-lg bg-[var(--gogo-grey-100)]" />
         ))}
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto w-full">
+    <div className="w-full overflow-x-auto">
       <table className="gogo-table min-w-full border-collapse">
         <thead>
-          <tr style={{ borderBottom: '1px solid var(--gogo-divider)' }}>
+          <tr className="border-b border-[var(--gogo-divider)]">
             {selectable && (
-              <th className="w-10 px-4 py-3" style={{ backgroundColor: 'var(--gogo-grey-100)' }}>
+              <th className="w-10 bg-[var(--gogo-grey-100)] px-4 py-3">
                 <input
                   type="checkbox"
                   checked={allSelected}
                   ref={(el) => { if (el) el.indeterminate = someSelected; }}
                   onChange={toggleAll}
-                  className="h-4 w-4 rounded border-gray-300 accent-purple-600"
+                  className="h-4 w-4 rounded border-[var(--gogo-divider)] accent-[var(--gogo-primary)]"
                 />
               </th>
             )}
             {columns.map((col) => (
               <th
                 key={col.key}
-                className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider select-none ${col.sortable ? 'cursor-pointer hover:opacity-80' : ''} ${col.className || ''}`}
-                style={{ backgroundColor: 'var(--gogo-grey-100)', color: 'var(--gogo-text-secondary)', width: col.width }}
+                className={`select-none bg-[var(--gogo-grey-100)] px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--gogo-text-secondary)] ${getAlignment(col.align)} ${col.sortable ? 'cursor-pointer hover:opacity-80' : ''} ${col.headerClassName || ''} ${col.className || ''}`}
                 onClick={() => handleSort(col)}
               >
                 <span className="inline-flex items-center gap-0.5">
@@ -132,20 +138,18 @@ export function DataTable<T>({
               </th>
             ))}
             {hasActions && (
-              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider"
-                style={{ backgroundColor: 'var(--gogo-grey-100)', color: 'var(--gogo-text-secondary)' }}>
+              <th className="bg-[var(--gogo-grey-100)] px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-[var(--gogo-text-secondary)]">
                 Actions
               </th>
             )}
           </tr>
         </thead>
-        <tbody style={{ backgroundColor: 'var(--gogo-surface)' }}>
+        <tbody className="bg-[var(--gogo-surface)]">
           {data.length === 0 ? (
             <tr>
               <td
                 colSpan={columns.length + (selectable ? 1 : 0) + (hasActions ? 1 : 0)}
-                className="px-4 py-14 text-center text-sm"
-                style={{ color: 'var(--gogo-text-secondary)' }}
+                className="px-4 py-14 text-center text-sm text-[var(--gogo-text-secondary)]"
               >
                 {emptyMessage}
               </td>
@@ -158,14 +162,7 @@ export function DataTable<T>({
                 <tr
                   key={key}
                   onClick={() => onRowClick?.(item)}
-                  className={`transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
-                  style={{
-                    height: 'var(--gogo-table-row-height, 52px)',
-                    borderBottom: '1px solid var(--gogo-divider)',
-                    backgroundColor: isSelected ? 'color-mix(in srgb, var(--gogo-primary) 5%, transparent)' : undefined,
-                  }}
-                  onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--gogo-grey-100)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = isSelected ? 'color-mix(in srgb, var(--gogo-primary) 5%, transparent)' : ''; }}
+                  className={`h-[var(--gogo-table-row-height)] border-b border-[var(--gogo-divider)] transition-colors ${onRowClick ? 'cursor-pointer' : ''} ${isSelected ? 'bg-[var(--gogo-grey-100)]' : 'hover:bg-[var(--gogo-grey-100)]'}`}
                 >
                   {selectable && (
                     <td className="w-10 px-4 py-3" onClick={(e) => e.stopPropagation()}>
@@ -173,12 +170,12 @@ export function DataTable<T>({
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleRow(key)}
-                        className="h-4 w-4 rounded border-gray-300 accent-purple-600"
+                        className="h-4 w-4 rounded border-[var(--gogo-divider)] accent-[var(--gogo-primary)]"
                       />
                     </td>
                   )}
                   {columns.map((col) => (
-                    <td key={col.key} className={`px-4 py-3 text-sm ${col.className || ''}`} style={{ color: 'var(--gogo-text-primary)' }}>
+                    <td key={col.key} className={`px-4 py-3 text-sm text-[var(--gogo-text-primary)] ${getAlignment(col.align)} ${col.className || ''}`}>
                       {col.render ? col.render(item) : String((item as Record<string, unknown>)[col.key] ?? '')}
                     </td>
                   ))}
@@ -190,8 +187,7 @@ export function DataTable<T>({
                             key={action.label}
                             title={action.label}
                             onClick={() => action.onClick(item)}
-                            className="rounded-lg p-1.5 transition-colors hover:opacity-70"
-                            style={{ color: action.danger ? '#ef4444' : 'var(--gogo-text-secondary)' }}
+                            className={`rounded-lg p-1.5 transition-colors hover:bg-[var(--gogo-grey-100)] ${action.danger ? 'text-red-500' : 'text-[var(--gogo-text-secondary)]'}`}
                           >
                             {action.icon ?? <span className="text-xs">{action.label}</span>}
                           </button>

@@ -93,14 +93,13 @@ body {
 
 /* Header */
 .gogo-header {
-  position: sticky;
+  position: relative;
   top: 0;
-  z-index: 30;
   height: var(--gogo-header-height);
-  background-color: var(--gogo-surface);
-  box-shadow: var(--shadow-header);
-  border-bottom-left-radius:  var(--radius-sidebar);
-  border-bottom-right-radius: var(--radius-sidebar);
+  background-color: transparent;
+  box-shadow: none;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
 /* Sidebar rail */
