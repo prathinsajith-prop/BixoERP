@@ -167,7 +167,7 @@ function ResetPasswordContent() {
                     {...register('confirmPassword')}
                 />
 
-                <Button type="submit" fullWidth loading={submitting} disabled={submitting}>
+                <Button type="submit" className="w-full" loading={submitting} disabled={submitting}>
                     {submitting ? 'Updating password…' : 'Reset password'}
                 </Button>
             </form>

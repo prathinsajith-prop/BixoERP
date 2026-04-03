@@ -40,6 +40,17 @@ const PORTAL_MENU: MenuItem[] = [
             { label: 'Invite Members', href: '/settings/members', icon: 'Key', position: 3 },
         ],
     },
+    {
+        label: 'Organization', href: '/admin/organizations', icon: 'Building2',
+        permission: 'auth:org-structure:read', position: 8,
+        children: [
+            { label: 'Organizations', href: '/admin/organizations', icon: 'Building2', position: 1 },
+            { label: 'Divisions', href: '/admin/divisions', icon: 'Layers', position: 2 },
+            { label: 'Departments', href: '/admin/departments', icon: 'Layers', position: 3 },
+            { label: 'Teams', href: '/admin/teams', icon: 'Users', position: 4 },
+            { label: 'Settings', href: '/organization', icon: 'Settings', position: 5 },
+        ],
+    },
 ];
 
 function decodeJwtPermissions(token: string): string[] {

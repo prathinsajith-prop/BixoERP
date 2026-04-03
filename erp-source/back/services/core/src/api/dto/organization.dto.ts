@@ -12,14 +12,14 @@ export const CreateOrganizationDto = z.object({
 export type CreateOrganizationDto = z.infer<typeof CreateOrganizationDto>;
 
 export const UpdateOrganizationDto = z.object({
-  name: z.string().min(1).max(200),
+  name: z.string().min(1).max(200).optional(),
   slug: z
     .string()
     .min(2)
     .max(200)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must be lowercase alphanumeric with hyphens')
     .optional(),
-  description: z.string().max(500).default(''),
+  description: z.string().max(500).optional(),
 });
 export type UpdateOrganizationDto = z.infer<typeof UpdateOrganizationDto>;
 
@@ -28,6 +28,11 @@ export const AddMemberDto = z.object({
   role: z.enum(['OWNER', 'ADMIN', 'MEMBER']).default('MEMBER'),
 });
 export type AddMemberDto = z.infer<typeof AddMemberDto>;
+
+export const UpdateMemberRoleDto = z.object({
+  role: z.enum(['OWNER', 'ADMIN', 'MEMBER']),
+});
+export type UpdateMemberRoleDto = z.infer<typeof UpdateMemberRoleDto>;
 
 export const SwitchOrganizationDto = z.object({
   organizationId: z.string().uuid(),

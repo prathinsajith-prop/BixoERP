@@ -25,6 +25,7 @@ import {
   CreateOrganizationDto,
   UpdateOrganizationDto,
   AddMemberDto,
+  UpdateMemberRoleDto,
   SwitchOrganizationDto,
   UpdateBrandingDto,
 } from '../dto/organization.dto';
@@ -161,6 +162,11 @@ export class OrganizationController {
         status: org.status,
         ownerId: org.ownerId,
         createdAt: org.createdAt,
+        updatedAt: org.updatedAt,
+        logoUrl: org.logoUrl,
+        primaryColor: org.primaryColor,
+        secondaryColor: org.secondaryColor,
+        accentColor: org.accentColor,
       },
     };
   }
@@ -378,7 +384,38 @@ export class OrganizationController {
         organizationId: m.organizationId,
         role: m.role,
         joinedAt: m.joinedAt,
+        email: m.email,
+        firstName: m.firstName,
+        lastName: m.lastName,
+        employeeId: m.employeeId ?? null,
       })),
     };
+  }
+
+  // ─── Superuser: Update Member Role ────────────────────────
+
+  @Put(':id/members/:userId')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions('auth:organizations:write')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async updateMemberRole(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Body(new ZodValidationPipe(UpdateMemberRoleDto)) dto: UpdateMemberRoleDto,
+    @CurrentUser() user: { sub: string; email?: string },
+    @Req() req: Request,
+  ) {
+    await this.orgUseCase.updateMemberRole(id, userId, dto.role as OrgMemberRole);
+    this.auditLog.record({
+      tenantId: id,
+      userId: user.sub,
+      userName: user.email ?? '',
+      action: 'update_member_role',
+      description: `Updated role of member ${userId} to ${dto.role}`,
+      entityType: 'organization',
+      entityId: id,
+      ipAddress: req.ip ?? '',
+      metadata: { targetUserId: userId, role: dto.role },
+    }).catch(() => { });
   }
 }

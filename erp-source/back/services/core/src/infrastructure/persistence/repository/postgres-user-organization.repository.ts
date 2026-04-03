@@ -19,7 +19,7 @@ export class PostgresUserOrganizationRepository implements UserOrganizationRepos
   }
 
   async findByOrgId(organizationId: string): Promise<UserOrganization[]> {
-    const rows = await this.repo.find({ where: { organization_id: organizationId } });
+    const rows = await this.repo.find({ where: { organization_id: organizationId, status: 'active' } });
     return rows.map((r) => this.toDomain(r));
   }
 
@@ -39,6 +39,10 @@ export class PostgresUserOrganizationRepository implements UserOrganizationRepos
       status: uo.status,
     });
     await this.repo.save(entity);
+  }
+
+  async updateRole(userId: string, organizationId: string, role: string): Promise<void> {
+    await this.repo.update({ user_id: userId, organization_id: organizationId }, { role });
   }
 
   async delete(userId: string, organizationId: string): Promise<void> {

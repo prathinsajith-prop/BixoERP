@@ -118,7 +118,7 @@ export default function AdminOrganizationsPage() {
                     subtitle={`${total} organization${total !== 1 ? 's' : ''} in system`}
                     action={
                         <button
-                            onClick={() => router.push('/organization/new')}
+                            onClick={() => router.push('/admin/organizations/new')}
                             className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
                         >
                             {Icons.plus} New Organization
@@ -219,18 +219,20 @@ export default function AdminOrganizationsPage() {
                                             {org.createdAt ? new Date(org.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
                                         </td>
                                         <td className="py-3.5 pl-3 pr-5 text-right" onClick={(e) => e.stopPropagation()}>
-                                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition">
+                                            <div className="flex items-center justify-end gap-1">
                                                 <button
+                                                    title="View organization"
                                                     onClick={() => router.push(`/admin/organizations/${org.id}`)}
-                                                    className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                                                    className="flex items-center justify-center rounded-md p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-200"
                                                 >
-                                                    {Icons.eye} View
+                                                    {Icons.eye}
                                                 </button>
                                                 <button
+                                                    title="Edit organization"
                                                     onClick={() => router.push(`/admin/organizations/${org.id}?tab=settings`)}
-                                                    className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-blue-600 transition hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                                                    className="flex items-center justify-center rounded-md p-1.5 text-gray-400 transition hover:bg-blue-50 hover:text-blue-600 dark:text-gray-500 dark:hover:bg-blue-900/30 dark:hover:text-blue-400"
                                                 >
-                                                    {Icons.pencil} Edit
+                                                    {Icons.pencil}
                                                 </button>
                                             </div>
                                         </td>

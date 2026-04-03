@@ -51,7 +51,7 @@ const Icons = {
 };
 
 /* ── Types ──────────────────────────────────────────────────────── */
-interface User { id: string; email: string; firstName?: string; lastName?: string; status?: string; isActive?: boolean; roles?: Role[]; createdAt?: string }
+interface User { id: string; email: string; firstName?: string; lastName?: string; status?: string; isActive?: boolean; roles?: Role[]; createdAt?: string; avatarUrl?: string | null; employeeId?: string | null; }
 interface Role { id: string; name: string; description?: string }
 type StatusFilter = 'all' | 'active' | 'inactive';
 
@@ -574,14 +574,20 @@ export default function UserManagementPage() {
                       </td>
                       <td className="whitespace-nowrap px-4 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${avatarGradient(user.email)} text-xs font-bold text-white shadow-sm`}>
-                            {getInitials(name, user.email)}
-                          </div>
+                          {user.avatarUrl
+                            ? <img src={user.avatarUrl} alt={displayName} className="h-9 w-9 shrink-0 rounded-full object-cover shadow-sm" />
+                            : <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${avatarGradient(user.email)} text-xs font-bold text-white shadow-sm`}>
+                              {getInitials(name, user.email)}
+                            </div>
+                          }
                           <div className="min-w-0">
                             <button onClick={() => router.push(`/admin/users/${user.id}`)} className="block truncate text-sm font-semibold text-gray-900 transition hover:text-blue-600 dark:text-white dark:hover:text-blue-400">
                               {displayName}
                             </button>
-                            <p className="truncate text-xs text-gray-500 dark:text-gray-400 md:hidden">{user.email}</p>
+                            {user.employeeId
+                              ? <p className="truncate text-xs text-blue-600 dark:text-blue-400 font-mono">{user.employeeId}</p>
+                              : <p className="truncate text-xs text-gray-500 dark:text-gray-400 md:hidden">{user.email}</p>
+                            }
                           </div>
                         </div>
                       </td>

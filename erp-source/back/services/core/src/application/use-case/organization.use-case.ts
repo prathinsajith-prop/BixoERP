@@ -94,14 +94,14 @@ export class OrganizationUseCase {
 
   // ─── Superuser: Update Organization ───────────────────────────
 
-  async updateOrganization(id: string, name: string, description: string, slug?: string): Promise<void> {
+  async updateOrganization(id: string, name?: string, description?: string, slug?: string): Promise<void> {
     const org = await this.orgRepo.findById(id);
     if (!org) throw new OrganizationNotFoundException();
     if (slug !== undefined && slug !== org.slug) {
       const existing = await this.orgRepo.findBySlug(slug);
       if (existing && existing.id !== id) throw new OrganizationSlugTakenException();
     }
-    org.update(name, description, slug);
+    org.update(name ?? org.name, description ?? org.description, slug);
     await this.orgRepo.update(org);
   }
 
@@ -174,7 +174,32 @@ export class OrganizationUseCase {
   async listMembers(organizationId: string) {
     const org = await this.orgRepo.findById(organizationId);
     if (!org) throw new OrganizationNotFoundException();
-    return this.userOrgRepo.findByOrgId(organizationId);
+    const memberships = await this.userOrgRepo.findByOrgId(organizationId);
+    const enriched = await Promise.all(
+      memberships.map(async (m) => {
+        const user = await this.userRepo.findByIdGlobal(m.userId);
+        if (!user) return null; // skip orphaned memberships
+        return {
+          userId: m.userId,
+          organizationId: m.organizationId,
+          role: m.role,
+          joinedAt: m.joinedAt,
+          email: user.email?.value ?? '',
+          firstName: user.firstName ?? '',
+          lastName: user.lastName ?? '',
+          employeeId: m.employeeId ?? null,
+        };
+      }),
+    );
+    return enriched.filter((m): m is NonNullable<typeof m> => m !== null);
+  }
+
+  // ─── Superuser: Update Member Role ────────────────────────────
+
+  async updateMemberRole(organizationId: string, userId: string, role: OrgMemberRole): Promise<void> {
+    const membership = await this.userOrgRepo.findByUserAndOrg(userId, organizationId);
+    if (!membership) throw new NotMemberException();
+    await this.userOrgRepo.updateRole(userId, organizationId, role);
   }
 
   // ─── User: List My Organizations ──────────────────────────────

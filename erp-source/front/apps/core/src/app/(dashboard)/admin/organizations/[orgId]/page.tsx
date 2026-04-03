@@ -29,6 +29,11 @@ interface Organization {
     status?: string;
     ownerId?: string;
     createdAt?: string;
+    updatedAt?: string;
+    logoUrl?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    accentColor?: string;
 }
 
 interface Member {
@@ -39,6 +44,7 @@ interface Member {
     role: string;
     membershipType?: string;
     joinedAt?: string;
+    employeeId?: string | null;
 }
 
 type TabKey = 'overview' | 'members' | 'settings';
@@ -204,7 +210,6 @@ function InviteModal({ orgId, onClose, onInvited }: { orgId: string; onClose: ()
                             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white">
                             <option value="MEMBER">Member</option>
                             <option value="ADMIN">Admin</option>
-                            <option value="MANAGER">Manager</option>
                         </select>
                     </div>
                     <div className="flex gap-2 pt-1">
@@ -384,8 +389,8 @@ export default function OrganizationDetailPage() {
                                 key={tab.key}
                                 onClick={() => setActiveTab(tab.key)}
                                 className={`pb-3 text-sm font-medium transition ${activeTab === tab.key
-                                        ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
-                                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                    ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
+                                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                                     }`}
                             >
                                 {tab.label}
@@ -406,18 +411,20 @@ export default function OrganizationDetailPage() {
                                         label="Name"
                                         value={org.name}
                                         onSave={(v) => handleFieldSave('name', v)}
+                                        hint="The display name for this organization (2–200 characters)"
                                     />
                                     <EditableField
                                         label="Slug"
                                         value={org.slug ?? ''}
                                         onSave={(v) => handleFieldSave('slug', v)}
-                                        hint="URL-friendly identifier"
+                                        hint="Unique URL-friendly identifier. Lowercase letters, numbers and hyphens only (e.g. acme-corp)"
                                     />
                                     <EditableField
                                         label="Description"
                                         value={org.description ?? ''}
                                         onSave={(v) => handleFieldSave('description', v)}
                                         multiline
+                                        hint="Brief description of the organization, shown in listings (max 500 characters)"
                                     />
                                 </div>
                             </div>
@@ -441,18 +448,29 @@ export default function OrganizationDetailPage() {
                                             </button>
                                         </dd>
                                     </div>
-                                    {org.ownerId && (
-                                        <div>
-                                            <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400">Owner ID</dt>
-                                            <dd className="mt-1 font-mono text-xs text-gray-600 dark:text-gray-300">{org.ownerId}</dd>
-                                        </div>
-                                    )}
                                     <div>
                                         <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400">Created</dt>
                                         <dd className="mt-1 text-gray-700 dark:text-gray-300">
                                             {org.createdAt ? new Date(org.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
                                         </dd>
                                     </div>
+                                    {org.updatedAt && (
+                                        <div>
+                                            <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400">Last Updated</dt>
+                                            <dd className="mt-1 text-gray-700 dark:text-gray-300">
+                                                {new Date(org.updatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                                            </dd>
+                                        </div>
+                                    )}
+                                    {org.primaryColor && (
+                                        <div>
+                                            <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400">Brand Colour</dt>
+                                            <dd className="mt-1 flex items-center gap-2">
+                                                <span className="inline-block h-4 w-4 rounded-full border border-gray-200" style={{ backgroundColor: org.primaryColor }} />
+                                                <span className="font-mono text-xs text-gray-600 dark:text-gray-300">{org.primaryColor}</span>
+                                            </dd>
+                                        </div>
+                                    )}
                                 </dl>
                             </div>
 
@@ -502,6 +520,7 @@ export default function OrganizationDetailPage() {
                                     <thead>
                                         <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
                                             <th className="py-3 pl-5 pr-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Member</th>
+                                            <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Employee ID</th>
                                             <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Role</th>
                                             <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Joined</th>
                                             <th className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 pr-5">Actions</th>
@@ -520,6 +539,12 @@ export default function OrganizationDetailPage() {
                                                                 <p className="truncate text-xs text-gray-400">{m.email}</p>
                                                             </div>
                                                         </div>
+                                                    </td>
+                                                    <td className="px-3 py-3.5">
+                                                        {m.employeeId
+                                                            ? <code className="rounded bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-600 dark:bg-gray-700 dark:text-gray-300">{m.employeeId}</code>
+                                                            : <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
+                                                        }
                                                     </td>
                                                     <td className="px-3 py-3.5">
                                                         <select
