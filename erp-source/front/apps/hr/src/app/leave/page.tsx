@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Modal, Button, Input, Select, Textarea, LoadingSpinner, EmptyState } from "@erp/ui";
+import { showToast } from "@erp/shell";
 import { api, type LeaveRequestResponse, type EmployeeResponse } from "../../lib/api";
 
 const submitSchema = z.object({
@@ -54,7 +55,6 @@ export default function LeaveRequestsPage() {
   const [employees, setEmployees] = useState<EmployeeResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
   const [tab, setTab] = useState<"all" | "pending">("all");
   const [showSubmit, setShowSubmit] = useState(false);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
@@ -99,12 +99,12 @@ export default function LeaveRequestsPage() {
 
   async function handleApprove(id: string) {
     setActionLoading(id);
-    setActionError(null);
     try {
       await api.leave.approve(id);
       load();
     } catch (err: unknown) {
-      setActionError((err as { message?: string }).message ?? "Failed to approve leave request");
+      const msg = (err as { message?: string }).message ?? "Failed to approve leave request";
+      showToast.error('Something went wrong', msg);
     } finally {
       setActionLoading(null);
     }
@@ -117,13 +117,13 @@ export default function LeaveRequestsPage() {
 
   async function onReject(data: RejectFormData) {
     if (!rejectingId) return;
-    setActionError(null);
     try {
       await api.leave.reject(rejectingId, data.reason);
       setRejectingId(null);
       load();
     } catch (err: unknown) {
-      setActionError((err as { message?: string }).message ?? "Failed to reject leave request");
+      const msg = (err as { message?: string }).message ?? "Failed to reject leave request";
+      showToast.error('Something went wrong', msg);
     }
   }
 
@@ -160,10 +160,6 @@ export default function LeaveRequestsPage() {
           Submit Request
         </Button>
       </div>
-
-      {actionError && (
-        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{actionError}</p>
-      )}
 
       <div className="flex gap-2">
         <button

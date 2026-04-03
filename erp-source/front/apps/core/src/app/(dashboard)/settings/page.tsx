@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useTheme } from '@erp/shell';
+import { useTheme, showToast } from '@erp/shell';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
-import Alert from '@/components/ui/alert';
 import PageHeader from '@/components/page-header';
 
 const SIDEBAR_ITEMS = [
@@ -79,7 +78,6 @@ const labelClass = "mb-1.5 block text-sm font-medium text-gray-700 dark:text-gra
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const loadedRef = useRef(false);
@@ -102,7 +100,7 @@ export default function SettingsPage() {
   const [quietEnd, setQuietEnd] = useState('08:00');
 
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  useEffect(() => { authApi.twoFactorStatus().then(({ data }) => setTwoFactorEnabled(data.data.enabled)).catch(() => {}); }, []);
+  useEffect(() => { authApi.twoFactorStatus().then(({ data }) => setTwoFactorEnabled(data.data.enabled)).catch(() => { }); }, []);
   const [sessionTimeout, setSessionTimeout] = useState(30);
   const [loginAlerts, setLoginAlerts] = useState(true);
   const [ipWhitelisting, setIpWhitelisting] = useState(false);
@@ -237,7 +235,7 @@ export default function SettingsPage() {
   }
 
   useEffect(() => {
-    authApi.getSettings().then(({ data }) => { if (data.data) applySettings(data.data); }).catch(() => {}).finally(() => { loadedRef.current = true; });
+    authApi.getSettings().then(({ data }) => { if (data.data) applySettings(data.data); }).catch(() => { }).finally(() => { loadedRef.current = true; });
   }, []);
 
   useEffect(() => { if (loadedRef.current) setDirty(true); }, [
@@ -252,13 +250,13 @@ export default function SettingsPage() {
   ]);
 
   const handleSave = async () => {
-    setSaving(true); setMessage(null);
+    setSaving(true);
     try {
       await authApi.updateSettings(buildPayload());
       setDirty(false);
-      setMessage({ type: 'success', text: 'Settings saved successfully.' });
+      showToast.success('Settings saved');
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.message ?? 'Failed to save settings.' });
+      showToast.error('Something went wrong', err.response?.data?.message ?? 'Failed to save settings.');
     } finally { setSaving(false); }
   };
 
@@ -277,406 +275,405 @@ export default function SettingsPage() {
     <>
       <PageHeader title="Settings" subtitle="Customize your preferences" />
       <div className="flex flex-col lg:flex-row lg:gap-0">
-      <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 overflow-y-auto py-6 pr-4 lg:block">
-        <nav className="space-y-1">
-          {SIDEBAR_ITEMS.map((item) => (
-            <button key={item.key} onClick={() => setActiveSection(item.key)} className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition ${activeSection === item.key ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white'}`}>
-              <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={item.icon} /></svg>
-              {item.label}
-              {item.key === 'danger' && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-red-500" />}
-            </button>
-          ))}
-        </nav>
-      </aside>
-
-      <div className="relative mb-4 w-full lg:hidden">
-        {(() => {
-          const active = SIDEBAR_ITEMS.find((i) => i.key === activeSection);
-          return (
-            <>
-              <button
-                onClick={() => setMobileSectionOpen((o) => !o)}
-                className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-gray-600"
-              >
-                <span className="flex items-center gap-2.5">
-                  <svg className="h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={active?.icon} /></svg>
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">{active?.label}</span>
-                </span>
-                <svg className={`h-4 w-4 text-gray-400 transition-transform ${mobileSectionOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+        <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 overflow-y-auto py-6 pr-4 lg:block">
+          <nav className="space-y-1">
+            {SIDEBAR_ITEMS.map((item) => (
+              <button key={item.key} onClick={() => setActiveSection(item.key)} className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition ${activeSection === item.key ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white'}`}>
+                <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={item.icon} /></svg>
+                {item.label}
+                {item.key === 'danger' && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-red-500" />}
               </button>
-              {mobileSectionOpen && (
-                <>
-                  <div className="fixed inset-0 z-30" onClick={() => setMobileSectionOpen(false)} />
-                  <div className="absolute left-0 right-0 top-full z-40 mt-1 max-h-80 overflow-y-auto rounded-xl border border-gray-200 bg-white py-1 shadow-xl dark:border-gray-700 dark:bg-gray-900">
-                    {SIDEBAR_ITEMS.map((item) => (
-                      <button
-                        key={item.key}
-                        onClick={() => { setActiveSection(item.key); setMobileSectionOpen(false); }}
-                        className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition ${activeSection === item.key ? 'bg-blue-50 font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800'}`}
-                      >
-                        <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={item.icon} /></svg>
-                        {item.label}
-                        {item.key === 'danger' && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-red-500" />}
-                        {activeSection === item.key && <svg className="ml-auto h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </>
-          );
-        })()}
-      </div>
+            ))}
+          </nav>
+        </aside>
 
-      <div className="min-w-0 flex-1">
-        {message && <div className="mb-6"><Alert type={message.type}>{message.text}</Alert></div>}
-        <div className="space-y-6">
+        <div className="relative mb-4 w-full lg:hidden">
+          {(() => {
+            const active = SIDEBAR_ITEMS.find((i) => i.key === activeSection);
+            return (
+              <>
+                <button
+                  onClick={() => setMobileSectionOpen((o) => !o)}
+                  className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-gray-600"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <svg className="h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={active?.icon} /></svg>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{active?.label}</span>
+                  </span>
+                  <svg className={`h-4 w-4 text-gray-400 transition-transform ${mobileSectionOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                </button>
+                {mobileSectionOpen && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setMobileSectionOpen(false)} />
+                    <div className="absolute left-0 right-0 top-full z-40 mt-1 max-h-80 overflow-y-auto rounded-xl border border-gray-200 bg-white py-1 shadow-xl dark:border-gray-700 dark:bg-gray-900">
+                      {SIDEBAR_ITEMS.map((item) => (
+                        <button
+                          key={item.key}
+                          onClick={() => { setActiveSection(item.key); setMobileSectionOpen(false); }}
+                          className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition ${activeSection === item.key ? 'bg-blue-50 font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+                        >
+                          <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={item.icon} /></svg>
+                          {item.label}
+                          {item.key === 'danger' && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-red-500" />}
+                          {activeSection === item.key && <svg className="ml-auto h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
+            );
+          })()}
+        </div>
 
-          {/* Appearance */}
-          {activeSection === 'appearance' && (<>
-            <SettingSection title="Theme" description="Choose your preferred color scheme.">
-              <div className="flex gap-3">
-                {[{ key: 'light', emoji: '☀️' }, { key: 'dark', emoji: '🌙' }, { key: 'system', emoji: '💻' }].map((t) => (
-                  <button key={t.key} onClick={() => setTheme(t.key)} className={`flex-1 rounded-xl border-2 px-4 py-4 text-center transition ${theme === t.key ? btnActive : btnInactive}`}>
-                    <span className="text-2xl">{t.emoji}</span>
-                    <p className="mt-1 text-sm font-medium capitalize">{t.key}</p>
-                  </button>
-                ))}
-              </div>
-            </SettingSection>
-            <SettingSection title="Accent Color" description="Personalize the primary color across the interface.">
-              <div className="flex flex-wrap gap-3">
-                {ACCENT_COLORS.map((c) => (
-                  <button key={c.key} onClick={() => setAccentColor(c.key)} className={`flex h-10 w-10 items-center justify-center rounded-full transition ${c.color} ${accentColor === c.key ? 'ring-2 ring-offset-2 ring-gray-900 scale-110 dark:ring-white' : 'hover:scale-105'}`}>
-                    {accentColor === c.key && <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>}
-                  </button>
-                ))}
-              </div>
-            </SettingSection>
-            <SettingSection title="Layout & Display" description="Adjust the interface density and behavior.">
-              <Slider label="Font size" description="Adjust the base text size" value={fontSize} onChange={setFontSize} min={10} max={20} unit="px" />
-              <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                <Toggle label="Compact mode" description="Reduce spacing and padding" checked={compactMode} onChange={setCompactMode} />
-                <Toggle label="Animations" description="Enable transitions and motion effects" checked={animationsEnabled} onChange={setAnimationsEnabled} />
-                <Toggle label="Reduced motion" description="Minimize non-essential movement" checked={reducedMotion} onChange={setReducedMotion} />
-              </div>
+        <div className="min-w-0 flex-1">
+          <div className="space-y-6">
 
-            </SettingSection>
-          </>)}
-
-          {/* Notifications */}
-          {activeSection === 'notifications' && (<>
-            <SettingSection title="Channels" description="Control how you receive notifications.">
-              <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                <Toggle label="Email notifications" description="Receive important updates via email" checked={emailNotifs} onChange={setEmailNotifs} />
-                <Toggle label="Push notifications" description="Get real-time alerts in your browser" checked={pushNotifs} onChange={setPushNotifs} />
-                <Toggle label="Desktop notifications" description="Show native desktop notification popups" checked={desktopNotifs} onChange={setDesktopNotifs} />
-                <Toggle label="Sound alerts" description="Play a sound for incoming notifications" checked={soundEnabled} onChange={setSoundEnabled} />
-              </div>
-              {soundEnabled && (
-                <div className="mt-4">
-                  <label className={labelClass}>Notification sound</label>
-                  <select value={notifSound} onChange={(e) => setNotifSound(e.target.value)} className={selectClass}>
-                    <option value="default">Default</option><option value="chime">Chime</option><option value="ping">Ping</option><option value="pop">Pop</option><option value="bell">Bell</option><option value="none">None</option>
-                  </select>
-                </div>
-              )}
-            </SettingSection>
-            <SettingSection title="Activity Types" description="Choose which events trigger notifications.">
-              <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                <Toggle label="@Mentions" description="When someone mentions you" checked={mentionNotifs} onChange={setMentionNotifs} />
-                <Toggle label="Task assignments" description="When a task is assigned to you" checked={taskNotifs} onChange={setTaskNotifs} />
-                <Toggle label="Module updates" description="Changes in modules you're subscribed to" checked={moduleUpdates} onChange={setModuleUpdates} />
-                <Toggle label="Weekly digest" description="Summary of activity every Monday" checked={weeklyDigest} onChange={setWeeklyDigest} />
-              </div>
-            </SettingSection>
-            <SettingSection title="Quiet Hours" description="Pause notifications during specific times.">
-              <Toggle label="Enable quiet hours" description="Silence all notifications during the set period" checked={quietHoursEnabled} onChange={setQuietHoursEnabled} />
-              {quietHoursEnabled && (
-                <div className="mt-3 grid grid-cols-2 gap-4">
-                  <div><label className={labelClass}>Start time</label><input type="time" value={quietStart} onChange={(e) => setQuietStart(e.target.value)} className={selectClass} /></div>
-                  <div><label className={labelClass}>End time</label><input type="time" value={quietEnd} onChange={(e) => setQuietEnd(e.target.value)} className={selectClass} /></div>
-                </div>
-              )}
-            </SettingSection>
-          </>)}
-
-          {/* Security */}
-          {activeSection === 'security' && (<>
-            <SettingSection title="Authentication" description="Strengthen your account security.">
-              <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                <div className="flex items-center justify-between py-3">
-                  <div><p className="text-sm font-medium text-gray-900 dark:text-white">Two-factor authentication</p><p className="text-xs text-gray-500 dark:text-gray-400">Add an extra layer of security</p></div>
-                  <div className="flex items-center gap-2">
-                    {twoFactorEnabled && <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-300">Enabled</span>}
-                    <button onClick={() => { if (twoFactorEnabled) setTwoFactorEnabled(false); else router.push('/2fa/setup'); }} className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${twoFactorEnabled ? 'border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20' : 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300'}`}>
-                      {twoFactorEnabled ? 'Disable' : 'Enable'}
+            {/* Appearance */}
+            {activeSection === 'appearance' && (<>
+              <SettingSection title="Theme" description="Choose your preferred color scheme.">
+                <div className="flex gap-3">
+                  {[{ key: 'light', emoji: '☀️' }, { key: 'dark', emoji: '🌙' }, { key: 'system', emoji: '💻' }].map((t) => (
+                    <button key={t.key} onClick={() => setTheme(t.key)} className={`flex-1 rounded-xl border-2 px-4 py-4 text-center transition ${theme === t.key ? btnActive : btnInactive}`}>
+                      <span className="text-2xl">{t.emoji}</span>
+                      <p className="mt-1 text-sm font-medium capitalize">{t.key}</p>
                     </button>
-                  </div>
-                </div>
-                <Toggle label="Biometric login" description="Use fingerprint or face ID" checked={biometricLogin} onChange={setBiometricLogin} />
-                <Toggle label="Login alerts" description="Email alert from new device" checked={loginAlerts} onChange={setLoginAlerts} />
-                <Toggle label="IP whitelisting" description="Restrict to specific IPs" checked={ipWhitelisting} onChange={setIpWhitelisting} />
-              </div>
-            </SettingSection>
-            <SettingSection title="Session Management" description="Control session behavior and expiry.">
-              <Slider label="Session timeout" description="Auto-logout after inactivity" value={sessionTimeout} onChange={setSessionTimeout} min={5} max={120} unit=" min" />
-              <div className="mt-4"><label className={labelClass}>Password expiry</label>
-                <select value={passwordExpiry} onChange={(e) => setPasswordExpiry(e.target.value)} className={selectClass}>
-                  <option value="30">Every 30 days</option><option value="60">Every 60 days</option><option value="90">Every 90 days</option><option value="180">Every 180 days</option><option value="never">Never</option>
-                </select>
-              </div>
-            </SettingSection>
-            <SettingSection title="Password" description="Update your account password.">
-              <button onClick={() => router.push('/change-password')} className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
-                Change Password
-              </button>
-            </SettingSection>
-          </>)}
-
-          {/* Privacy */}
-          {activeSection === 'privacy' && (<>
-            <SettingSection title="Profile Visibility" description="Control who can see your profile.">
-              <div className="mb-4"><label className={labelClass}>Who can view your profile</label>
-                <select value={profileVisibility} onChange={(e) => setProfileVisibility(e.target.value)} className={selectClass}>
-                  <option value="everyone">Everyone in organization</option><option value="team">My team only</option><option value="private">Only me</option>
-                </select>
-              </div>
-              <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                <Toggle label="Show email address" description="Display email on profile" checked={showEmail} onChange={setShowEmail} />
-                <Toggle label="Show phone number" description="Display phone on profile" checked={showPhone} onChange={setShowPhone} />
-                <Toggle label="Appear in search results" description="Allow others to find you" checked={searchable} onChange={setSearchable} />
-              </div>
-            </SettingSection>
-            <SettingSection title="Activity & Status" description="Manage what others see about your activity.">
-              <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                <Toggle label="Online activity status" description="Show when you're active" checked={activityStatus} onChange={setActivityStatus} />
-                <Toggle label="Read receipts" description="Let others know you've seen messages" checked={readReceipts} onChange={setReadReceipts} />
-              </div>
-            </SettingSection>
-            <SettingSection title="Data Usage" description="Control how your data is used.">
-              <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                <Toggle label="Usage analytics" description="Share anonymized usage data" checked={analyticsOptIn} onChange={setAnalyticsOptIn} />
-                <Toggle label="Third-party data sharing" description="Allow sharing with trusted partners" checked={dataSharing} onChange={setDataSharing} />
-              </div>
-            </SettingSection>
-          </>)}
-
-          {/* Language & Region */}
-          {activeSection === 'language' && (<>
-            <SettingSection title="Language" description="Set your preferred interface language.">
-              <select value={language} onChange={(e) => setLanguage(e.target.value)} className={selectClass}>
-                <option value="en">English</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="ar">العربية</option><option value="zh">中文</option><option value="ja">日本語</option><option value="hi">हिन्दी</option><option value="ko">한국어</option><option value="it">Italiano</option><option value="nl">Nederlands</option><option value="ru">Русский</option><option value="tr">Türkçe</option>
-              </select>
-            </SettingSection>
-            <SettingSection title="Timezone & Calendar" description="Configure date, time, and calendar preferences.">
-              <div className="space-y-4">
-                <div><label className={labelClass}>Timezone</label>
-                  <select value={timezone} onChange={(e) => setTimezone(e.target.value)} className={selectClass}>
-                    <option value="UTC">UTC</option><option value="America/New_York">Eastern Time</option><option value="America/Chicago">Central Time</option><option value="America/Denver">Mountain Time</option><option value="America/Los_Angeles">Pacific Time</option><option value="Europe/London">London (GMT)</option><option value="Europe/Paris">Paris (CET)</option><option value="Asia/Kolkata">India (IST)</option><option value="Asia/Tokyo">Tokyo (JST)</option><option value="Asia/Dubai">Dubai (GST)</option><option value="Australia/Sydney">Sydney (AEST)</option>
-                  </select>
-                </div>
-                <div><label className={labelClass}>First day of week</label>
-                  <div className="flex gap-3">
-                    {['sunday', 'monday', 'saturday'].map((day) => (
-                      <button key={day} onClick={() => setFirstDayOfWeek(day)} className={`flex-1 rounded-lg border-2 px-3 py-2 text-center text-sm font-medium capitalize transition ${firstDayOfWeek === day ? btnActive : btnInactive}`}>{day}</button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </SettingSection>
-            <SettingSection title="Formatting" description="Set how dates, times, numbers, and currency are displayed.">
-              <div className="space-y-4">
-                <div><label className={labelClass}>Date format</label>
-                  <div className="flex flex-wrap gap-3">
-                    {['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD'].map((fmt) => (
-                      <button key={fmt} onClick={() => setDateFormat(fmt)} className={`rounded-lg border-2 px-3 py-2 text-xs font-mono font-medium transition ${dateFormat === fmt ? btnActive : btnInactive}`}>{fmt}</button>
-                    ))}
-                  </div>
-                </div>
-                <div><label className={labelClass}>Time format</label>
-                  <div className="flex gap-3">
-                    {[{ key: '12h', label: '12 hour (3:30 PM)' }, { key: '24h', label: '24 hour (15:30)' }].map((f) => (
-                      <button key={f.key} onClick={() => setTimeFormat(f.key)} className={`flex-1 rounded-lg border-2 px-3 py-2 text-sm font-medium transition ${timeFormat === f.key ? btnActive : btnInactive}`}>{f.label}</button>
-                    ))}
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div><label className={labelClass}>Number format</label><select value={numberFormat} onChange={(e) => setNumberFormat(e.target.value)} className={selectClass}><option value="1,000.00">1,000.00</option><option value="1.000,00">1.000,00</option><option value="1 000.00">1 000.00</option></select></div>
-                  <div><label className={labelClass}>Currency</label><select value={currency} onChange={(e) => setCurrency(e.target.value)} className={selectClass}><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option><option value="INR">INR (₹)</option><option value="JPY">JPY (¥)</option><option value="AUD">AUD (A$)</option><option value="CAD">CAD (C$)</option><option value="AED">AED (د.إ)</option><option value="BRL">BRL (R$)</option><option value="SGD">SGD (S$)</option></select></div>
-                </div>
-              </div>
-            </SettingSection>
-          </>)}
-
-          {/* Accessibility */}
-          {activeSection === 'accessibility' && (<>
-            <SettingSection title="Visual" description="Adjust visual settings for better readability.">
-              <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                <Toggle label="High contrast mode" description="Increase contrast for better visibility" checked={highContrast} onChange={setHighContrast} />
-                <Toggle label="Increased text spacing" description="Add more space between letters and lines" checked={textSpacing} onChange={setTextSpacing} />
-                <Toggle label="Focus indicators" description="Show visible outlines on focused elements" checked={focusIndicators} onChange={setFocusIndicators} />
-              </div>
-            </SettingSection>
-            <SettingSection title="Interaction" description="Customize how you interact with the interface.">
-              <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                <Toggle label="Keyboard navigation" description="Full interface navigation via keyboard" checked={keyboardNavigation} onChange={setKeyboardNavigation} />
-                <Toggle label="Screen reader optimized" description="Optimize layout for screen readers" checked={screenReaderOptimized} onChange={setScreenReaderOptimized} />
-                <Toggle label="Auto-play media" description="Automatically play videos and animations" checked={autoplayMedia} onChange={setAutoplayMedia} />
-                <Toggle label="Closed captions" description="Show captions on video and audio content" checked={captionsEnabled} onChange={setCaptionsEnabled} />
-              </div>
-              <Slider label="Tooltip delay" description="Time before tooltips appear" value={tooltipDelay} onChange={setTooltipDelay} min={0} max={2000} unit="ms" />
-            </SettingSection>
-          </>)}
-
-          {/* Data & Storage */}
-          {activeSection === 'data' && (<>
-            <SettingSection title="Storage Usage" description="Monitor your data storage consumption.">
-              <div className="mb-4">
-                <div className="mb-2 flex items-end justify-between">
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{storageUsed} GB</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">of {storageTotal} GB used</p>
-                </div>
-                <div className="h-3 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800"><div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500" style={{ width: `${(storageUsed / storageTotal) * 100}%` }} /></div>
-              </div>
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                {[{ label: 'Documents', size: '1.2 GB', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' }, { label: 'Media', size: '0.8 GB', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' }, { label: 'Other', size: '0.4 GB', color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' }].map((item) => (
-                  <div key={item.label} className={`rounded-xl px-3 py-2.5 text-center ${item.color}`}><p className="text-xs font-medium">{item.label}</p><p className="text-sm font-bold">{item.size}</p></div>
-                ))}
-              </div>
-            </SettingSection>
-            <SettingSection title="Auto-Save" description="Automatically save your work at regular intervals.">
-              <Toggle label="Enable auto-save" description="Automatically save unsaved changes" checked={autoSave} onChange={setAutoSave} />
-              {autoSave && <Slider label="Save interval" description="How often to auto-save" value={autoSaveInterval} onChange={setAutoSaveInterval} min={1} max={30} unit=" min" />}
-            </SettingSection>
-            <SettingSection title="Cache & Offline" description="Manage cached data and offline access.">
-              <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                <Toggle label="Enable caching" description="Cache data locally for faster loading" checked={cacheEnabled} onChange={setCacheEnabled} />
-                <Toggle label="Offline mode" description="Access recently viewed data without internet" checked={offlineMode} onChange={setOfflineMode} />
-              </div>
-              <div className="mt-4"><button className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800">Clear Cache</button></div>
-            </SettingSection>
-            <SettingSection title="Export Data" description="Download your data in various formats.">
-              <div className="mb-4"><label className={labelClass}>Export format</label>
-                <div className="flex flex-wrap gap-3">
-                  {['csv', 'json', 'xlsx', 'pdf'].map((fmt) => (
-                    <button key={fmt} onClick={() => setExportFormat(fmt)} className={`rounded-lg border-2 px-4 py-2 text-xs font-mono font-medium uppercase transition ${exportFormat === fmt ? btnActive : btnInactive}`}>.{fmt}</button>
                   ))}
                 </div>
-              </div>
-              <button className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
-                Export All Data
-              </button>
-            </SettingSection>
-          </>)}
-
-          {/* Integrations */}
-          {activeSection === 'integrations' && (<>
-            <SettingSection title="Connected Apps" description="Manage third-party service integrations.">
-              <div className="space-y-3">
-                {[
-                  { name: 'Slack', desc: 'Receive notifications in Slack', connected: slackConnected, toggle: setSlackConnected, color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' },
-                  { name: 'Google Workspace', desc: 'Sync calendar, contacts, drive', connected: googleConnected, toggle: setGoogleConnected, color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
-                  { name: 'Microsoft 365', desc: 'Teams, Outlook, OneDrive', connected: microsoftConnected, toggle: setMicrosoftConnected, color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
-                  { name: 'Jira', desc: 'Sync issues and projects', connected: jiraConnected, toggle: setJiraConnected, color: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300' },
-                  { name: 'GitHub', desc: 'Link repos and PRs', connected: githubConnected, toggle: setGithubConnected, color: 'bg-gray-800 text-white dark:bg-gray-700' },
-                  { name: 'Zapier', desc: 'Automate workflows', connected: zapierConnected, toggle: setZapierConnected, color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' },
-                ].map((app) => (
-                  <div key={app.name} className="flex flex-col gap-3 rounded-xl border border-gray-100 p-4 transition hover:bg-gray-50/50 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:hover:bg-gray-800/50">
-                    <div className="flex items-center gap-3">
-                      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${app.color}`}>{app.name.charAt(0)}</span>
-                      <div><p className="text-sm font-medium text-gray-900 dark:text-white">{app.name}</p><p className="text-xs text-gray-500 dark:text-gray-400">{app.desc}</p></div>
-                    </div>
-                    <button onClick={() => app.toggle(!app.connected)} className={`shrink-0 self-start rounded-lg border px-3 py-1.5 text-xs font-semibold transition sm:self-auto ${app.connected ? 'border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400' : 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300'}`}>
-                      {app.connected ? 'Disconnect' : 'Connect'}
+              </SettingSection>
+              <SettingSection title="Accent Color" description="Personalize the primary color across the interface.">
+                <div className="flex flex-wrap gap-3">
+                  {ACCENT_COLORS.map((c) => (
+                    <button key={c.key} onClick={() => setAccentColor(c.key)} className={`flex h-10 w-10 items-center justify-center rounded-full transition ${c.color} ${accentColor === c.key ? 'ring-2 ring-offset-2 ring-gray-900 scale-110 dark:ring-white' : 'hover:scale-105'}`}>
+                      {accentColor === c.key && <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>}
                     </button>
-                  </div>
-                ))}
-              </div>
-            </SettingSection>
-            <SettingSection title="API & Webhooks" description="Developer integrations and automation.">
-              <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                <Toggle label="API access" description="Allow external apps to access data via API" checked={apiAccess} onChange={setApiAccess} />
-                <Toggle label="Webhooks" description="Send real-time events to external URLs" checked={webhooksEnabled} onChange={setWebhooksEnabled} />
-              </div>
-              {apiAccess && (
-                <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
-                  <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">API Key</p>
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <code className="flex-1 truncate rounded-lg bg-white px-3 py-2 font-mono text-xs text-gray-700 ring-1 ring-gray-200 dark:bg-gray-900 dark:text-gray-300 dark:ring-gray-700">sk-••••••••••••••••••••••••••••4f2a</code>
-                    <button className="shrink-0 self-start rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 sm:self-auto dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">Regenerate</button>
-                  </div>
+                  ))}
                 </div>
-              )}
-            </SettingSection>
-          </>)}
+              </SettingSection>
+              <SettingSection title="Layout & Display" description="Adjust the interface density and behavior.">
+                <Slider label="Font size" description="Adjust the base text size" value={fontSize} onChange={setFontSize} min={10} max={20} unit="px" />
+                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                  <Toggle label="Compact mode" description="Reduce spacing and padding" checked={compactMode} onChange={setCompactMode} />
+                  <Toggle label="Animations" description="Enable transitions and motion effects" checked={animationsEnabled} onChange={setAnimationsEnabled} />
+                  <Toggle label="Reduced motion" description="Minimize non-essential movement" checked={reducedMotion} onChange={setReducedMotion} />
+                </div>
 
-          {/* Keyboard Shortcuts */}
-          {activeSection === 'keyboard' && (
-            <SettingSection title="Keyboard Shortcuts" description="Quick reference for available shortcuts.">
-              <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                {SHORTCUTS.map((s, i) => (
-                  <div key={i} className="flex items-center justify-between py-3">
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{s.action}</p>
-                    <div className="flex items-center gap-1">
-                      {s.keys.map((key, j) => (
-                        <span key={j}>
-                          <kbd className="inline-flex min-w-[1.75rem] items-center justify-center rounded-md border border-gray-200 bg-gray-50 px-2 py-1 font-mono text-xs font-medium text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">{key}</kbd>
-                          {j < s.keys.length - 1 && <span className="mx-0.5 text-xs text-gray-400">+</span>}
-                        </span>
+              </SettingSection>
+            </>)}
+
+            {/* Notifications */}
+            {activeSection === 'notifications' && (<>
+              <SettingSection title="Channels" description="Control how you receive notifications.">
+                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                  <Toggle label="Email notifications" description="Receive important updates via email" checked={emailNotifs} onChange={setEmailNotifs} />
+                  <Toggle label="Push notifications" description="Get real-time alerts in your browser" checked={pushNotifs} onChange={setPushNotifs} />
+                  <Toggle label="Desktop notifications" description="Show native desktop notification popups" checked={desktopNotifs} onChange={setDesktopNotifs} />
+                  <Toggle label="Sound alerts" description="Play a sound for incoming notifications" checked={soundEnabled} onChange={setSoundEnabled} />
+                </div>
+                {soundEnabled && (
+                  <div className="mt-4">
+                    <label className={labelClass}>Notification sound</label>
+                    <select value={notifSound} onChange={(e) => setNotifSound(e.target.value)} className={selectClass}>
+                      <option value="default">Default</option><option value="chime">Chime</option><option value="ping">Ping</option><option value="pop">Pop</option><option value="bell">Bell</option><option value="none">None</option>
+                    </select>
+                  </div>
+                )}
+              </SettingSection>
+              <SettingSection title="Activity Types" description="Choose which events trigger notifications.">
+                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                  <Toggle label="@Mentions" description="When someone mentions you" checked={mentionNotifs} onChange={setMentionNotifs} />
+                  <Toggle label="Task assignments" description="When a task is assigned to you" checked={taskNotifs} onChange={setTaskNotifs} />
+                  <Toggle label="Module updates" description="Changes in modules you're subscribed to" checked={moduleUpdates} onChange={setModuleUpdates} />
+                  <Toggle label="Weekly digest" description="Summary of activity every Monday" checked={weeklyDigest} onChange={setWeeklyDigest} />
+                </div>
+              </SettingSection>
+              <SettingSection title="Quiet Hours" description="Pause notifications during specific times.">
+                <Toggle label="Enable quiet hours" description="Silence all notifications during the set period" checked={quietHoursEnabled} onChange={setQuietHoursEnabled} />
+                {quietHoursEnabled && (
+                  <div className="mt-3 grid grid-cols-2 gap-4">
+                    <div><label className={labelClass}>Start time</label><input type="time" value={quietStart} onChange={(e) => setQuietStart(e.target.value)} className={selectClass} /></div>
+                    <div><label className={labelClass}>End time</label><input type="time" value={quietEnd} onChange={(e) => setQuietEnd(e.target.value)} className={selectClass} /></div>
+                  </div>
+                )}
+              </SettingSection>
+            </>)}
+
+            {/* Security */}
+            {activeSection === 'security' && (<>
+              <SettingSection title="Authentication" description="Strengthen your account security.">
+                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                  <div className="flex items-center justify-between py-3">
+                    <div><p className="text-sm font-medium text-gray-900 dark:text-white">Two-factor authentication</p><p className="text-xs text-gray-500 dark:text-gray-400">Add an extra layer of security</p></div>
+                    <div className="flex items-center gap-2">
+                      {twoFactorEnabled && <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-300">Enabled</span>}
+                      <button onClick={() => { if (twoFactorEnabled) setTwoFactorEnabled(false); else router.push('/2fa/setup'); }} className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${twoFactorEnabled ? 'border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20' : 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300'}`}>
+                        {twoFactorEnabled ? 'Disable' : 'Enable'}
+                      </button>
+                    </div>
+                  </div>
+                  <Toggle label="Biometric login" description="Use fingerprint or face ID" checked={biometricLogin} onChange={setBiometricLogin} />
+                  <Toggle label="Login alerts" description="Email alert from new device" checked={loginAlerts} onChange={setLoginAlerts} />
+                  <Toggle label="IP whitelisting" description="Restrict to specific IPs" checked={ipWhitelisting} onChange={setIpWhitelisting} />
+                </div>
+              </SettingSection>
+              <SettingSection title="Session Management" description="Control session behavior and expiry.">
+                <Slider label="Session timeout" description="Auto-logout after inactivity" value={sessionTimeout} onChange={setSessionTimeout} min={5} max={120} unit=" min" />
+                <div className="mt-4"><label className={labelClass}>Password expiry</label>
+                  <select value={passwordExpiry} onChange={(e) => setPasswordExpiry(e.target.value)} className={selectClass}>
+                    <option value="30">Every 30 days</option><option value="60">Every 60 days</option><option value="90">Every 90 days</option><option value="180">Every 180 days</option><option value="never">Never</option>
+                  </select>
+                </div>
+              </SettingSection>
+              <SettingSection title="Password" description="Update your account password.">
+                <button onClick={() => router.push('/change-password')} className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
+                  Change Password
+                </button>
+              </SettingSection>
+            </>)}
+
+            {/* Privacy */}
+            {activeSection === 'privacy' && (<>
+              <SettingSection title="Profile Visibility" description="Control who can see your profile.">
+                <div className="mb-4"><label className={labelClass}>Who can view your profile</label>
+                  <select value={profileVisibility} onChange={(e) => setProfileVisibility(e.target.value)} className={selectClass}>
+                    <option value="everyone">Everyone in organization</option><option value="team">My team only</option><option value="private">Only me</option>
+                  </select>
+                </div>
+                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                  <Toggle label="Show email address" description="Display email on profile" checked={showEmail} onChange={setShowEmail} />
+                  <Toggle label="Show phone number" description="Display phone on profile" checked={showPhone} onChange={setShowPhone} />
+                  <Toggle label="Appear in search results" description="Allow others to find you" checked={searchable} onChange={setSearchable} />
+                </div>
+              </SettingSection>
+              <SettingSection title="Activity & Status" description="Manage what others see about your activity.">
+                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                  <Toggle label="Online activity status" description="Show when you're active" checked={activityStatus} onChange={setActivityStatus} />
+                  <Toggle label="Read receipts" description="Let others know you've seen messages" checked={readReceipts} onChange={setReadReceipts} />
+                </div>
+              </SettingSection>
+              <SettingSection title="Data Usage" description="Control how your data is used.">
+                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                  <Toggle label="Usage analytics" description="Share anonymized usage data" checked={analyticsOptIn} onChange={setAnalyticsOptIn} />
+                  <Toggle label="Third-party data sharing" description="Allow sharing with trusted partners" checked={dataSharing} onChange={setDataSharing} />
+                </div>
+              </SettingSection>
+            </>)}
+
+            {/* Language & Region */}
+            {activeSection === 'language' && (<>
+              <SettingSection title="Language" description="Set your preferred interface language.">
+                <select value={language} onChange={(e) => setLanguage(e.target.value)} className={selectClass}>
+                  <option value="en">English</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="ar">العربية</option><option value="zh">中文</option><option value="ja">日本語</option><option value="hi">हिन्दी</option><option value="ko">한국어</option><option value="it">Italiano</option><option value="nl">Nederlands</option><option value="ru">Русский</option><option value="tr">Türkçe</option>
+                </select>
+              </SettingSection>
+              <SettingSection title="Timezone & Calendar" description="Configure date, time, and calendar preferences.">
+                <div className="space-y-4">
+                  <div><label className={labelClass}>Timezone</label>
+                    <select value={timezone} onChange={(e) => setTimezone(e.target.value)} className={selectClass}>
+                      <option value="UTC">UTC</option><option value="America/New_York">Eastern Time</option><option value="America/Chicago">Central Time</option><option value="America/Denver">Mountain Time</option><option value="America/Los_Angeles">Pacific Time</option><option value="Europe/London">London (GMT)</option><option value="Europe/Paris">Paris (CET)</option><option value="Asia/Kolkata">India (IST)</option><option value="Asia/Tokyo">Tokyo (JST)</option><option value="Asia/Dubai">Dubai (GST)</option><option value="Australia/Sydney">Sydney (AEST)</option>
+                    </select>
+                  </div>
+                  <div><label className={labelClass}>First day of week</label>
+                    <div className="flex gap-3">
+                      {['sunday', 'monday', 'saturday'].map((day) => (
+                        <button key={day} onClick={() => setFirstDayOfWeek(day)} className={`flex-1 rounded-lg border-2 px-3 py-2 text-center text-sm font-medium capitalize transition ${firstDayOfWeek === day ? btnActive : btnInactive}`}>{day}</button>
                       ))}
                     </div>
                   </div>
-                ))}
-              </div>
-            </SettingSection>
-          )}
-
-          {/* Danger Zone */}
-          {activeSection === 'danger' && (
-            <SettingSection title="Danger Zone" description="These actions are irreversible. Proceed with caution.">
-              <div className="space-y-3">
-                {[
-                  { title: 'Clear all notifications', desc: 'Remove all notification history permanently.', level: 'amber' as const, btn: 'Clear' },
-                  { title: 'Reset all settings', desc: 'Restore all settings to their default values.', level: 'amber' as const, btn: 'Reset' },
-                  { title: 'Delete all data', desc: 'Permanently erase all your personal data.', level: 'red' as const, btn: 'Delete Data' },
-                  { title: 'Deactivate account', desc: 'Temporarily disable your account.', level: 'red' as const, btn: 'Deactivate' },
-                ].map((item) => (
-                  <div key={item.title} className={`flex flex-col gap-3 rounded-xl border px-4 py-4 sm:flex-row sm:items-center sm:justify-between ${item.level === 'amber' ? 'border-amber-200 bg-amber-50/50 dark:border-amber-900/50 dark:bg-amber-900/20' : 'border-red-200 bg-red-50/50 dark:border-red-900/50 dark:bg-red-900/20'}`}>
-                    <div>
-                      <p className={`text-sm font-medium ${item.level === 'amber' ? 'text-amber-900 dark:text-amber-300' : 'text-red-900 dark:text-red-300'}`}>{item.title}</p>
-                      <p className={`text-xs ${item.level === 'amber' ? 'text-amber-700 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{item.desc}</p>
-                    </div>
-                    <button className={`shrink-0 self-start rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${item.level === 'amber' ? 'border-amber-300 bg-white text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:bg-gray-900 dark:text-amber-400' : 'border-red-300 bg-white text-red-600 hover:bg-red-50 dark:border-red-800 dark:bg-gray-900 dark:text-red-400'}`}>{item.btn}</button>
-                  </div>
-                ))}
-                <div className="flex flex-col gap-3 rounded-xl border-2 border-red-300 bg-red-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-800 dark:bg-red-900/30">
-                  <div>
-                    <p className="text-sm font-bold text-red-900 dark:text-red-300">Delete account permanently</p>
-                    <p className="text-xs text-red-600 dark:text-red-400">This action cannot be undone. All data will be lost forever.</p>
-                  </div>
-                  <button className="shrink-0 self-start rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-700">Delete Account</button>
                 </div>
-              </div>
-            </SettingSection>
-          )}
-        </div>
-      </div>
+              </SettingSection>
+              <SettingSection title="Formatting" description="Set how dates, times, numbers, and currency are displayed.">
+                <div className="space-y-4">
+                  <div><label className={labelClass}>Date format</label>
+                    <div className="flex flex-wrap gap-3">
+                      {['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD'].map((fmt) => (
+                        <button key={fmt} onClick={() => setDateFormat(fmt)} className={`rounded-lg border-2 px-3 py-2 text-xs font-mono font-medium transition ${dateFormat === fmt ? btnActive : btnInactive}`}>{fmt}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div><label className={labelClass}>Time format</label>
+                    <div className="flex gap-3">
+                      {[{ key: '12h', label: '12 hour (3:30 PM)' }, { key: '24h', label: '24 hour (15:30)' }].map((f) => (
+                        <button key={f.key} onClick={() => setTimeFormat(f.key)} className={`flex-1 rounded-lg border-2 px-3 py-2 text-sm font-medium transition ${timeFormat === f.key ? btnActive : btnInactive}`}>{f.label}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div><label className={labelClass}>Number format</label><select value={numberFormat} onChange={(e) => setNumberFormat(e.target.value)} className={selectClass}><option value="1,000.00">1,000.00</option><option value="1.000,00">1.000,00</option><option value="1 000.00">1 000.00</option></select></div>
+                    <div><label className={labelClass}>Currency</label><select value={currency} onChange={(e) => setCurrency(e.target.value)} className={selectClass}><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option><option value="INR">INR (₹)</option><option value="JPY">JPY (¥)</option><option value="AUD">AUD (A$)</option><option value="CAD">CAD (C$)</option><option value="AED">AED (د.إ)</option><option value="BRL">BRL (R$)</option><option value="SGD">SGD (S$)</option></select></div>
+                  </div>
+                </div>
+              </SettingSection>
+            </>)}
 
-      {dirty && (
-        <div className="fixed inset-x-0 bottom-14 z-50 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur-sm md:bottom-0 md:px-6 dark:border-gray-800 dark:bg-gray-950/95">
-          <div className="mx-auto flex max-w-7xl items-center justify-between">
-            <p className="text-sm text-gray-600 dark:text-gray-400">You have unsaved changes</p>
-            <div className="flex items-center gap-3">
-              <button onClick={() => { setDirty(false); window.location.reload(); }} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">Discard</button>
-              <button onClick={handleSave} disabled={saving} className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60">{saving ? 'Saving…' : 'Save Changes'}</button>
-            </div>
+            {/* Accessibility */}
+            {activeSection === 'accessibility' && (<>
+              <SettingSection title="Visual" description="Adjust visual settings for better readability.">
+                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                  <Toggle label="High contrast mode" description="Increase contrast for better visibility" checked={highContrast} onChange={setHighContrast} />
+                  <Toggle label="Increased text spacing" description="Add more space between letters and lines" checked={textSpacing} onChange={setTextSpacing} />
+                  <Toggle label="Focus indicators" description="Show visible outlines on focused elements" checked={focusIndicators} onChange={setFocusIndicators} />
+                </div>
+              </SettingSection>
+              <SettingSection title="Interaction" description="Customize how you interact with the interface.">
+                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                  <Toggle label="Keyboard navigation" description="Full interface navigation via keyboard" checked={keyboardNavigation} onChange={setKeyboardNavigation} />
+                  <Toggle label="Screen reader optimized" description="Optimize layout for screen readers" checked={screenReaderOptimized} onChange={setScreenReaderOptimized} />
+                  <Toggle label="Auto-play media" description="Automatically play videos and animations" checked={autoplayMedia} onChange={setAutoplayMedia} />
+                  <Toggle label="Closed captions" description="Show captions on video and audio content" checked={captionsEnabled} onChange={setCaptionsEnabled} />
+                </div>
+                <Slider label="Tooltip delay" description="Time before tooltips appear" value={tooltipDelay} onChange={setTooltipDelay} min={0} max={2000} unit="ms" />
+              </SettingSection>
+            </>)}
+
+            {/* Data & Storage */}
+            {activeSection === 'data' && (<>
+              <SettingSection title="Storage Usage" description="Monitor your data storage consumption.">
+                <div className="mb-4">
+                  <div className="mb-2 flex items-end justify-between">
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{storageUsed} GB</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">of {storageTotal} GB used</p>
+                  </div>
+                  <div className="h-3 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800"><div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500" style={{ width: `${(storageUsed / storageTotal) * 100}%` }} /></div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                  {[{ label: 'Documents', size: '1.2 GB', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' }, { label: 'Media', size: '0.8 GB', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' }, { label: 'Other', size: '0.4 GB', color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' }].map((item) => (
+                    <div key={item.label} className={`rounded-xl px-3 py-2.5 text-center ${item.color}`}><p className="text-xs font-medium">{item.label}</p><p className="text-sm font-bold">{item.size}</p></div>
+                  ))}
+                </div>
+              </SettingSection>
+              <SettingSection title="Auto-Save" description="Automatically save your work at regular intervals.">
+                <Toggle label="Enable auto-save" description="Automatically save unsaved changes" checked={autoSave} onChange={setAutoSave} />
+                {autoSave && <Slider label="Save interval" description="How often to auto-save" value={autoSaveInterval} onChange={setAutoSaveInterval} min={1} max={30} unit=" min" />}
+              </SettingSection>
+              <SettingSection title="Cache & Offline" description="Manage cached data and offline access.">
+                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                  <Toggle label="Enable caching" description="Cache data locally for faster loading" checked={cacheEnabled} onChange={setCacheEnabled} />
+                  <Toggle label="Offline mode" description="Access recently viewed data without internet" checked={offlineMode} onChange={setOfflineMode} />
+                </div>
+                <div className="mt-4"><button className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800">Clear Cache</button></div>
+              </SettingSection>
+              <SettingSection title="Export Data" description="Download your data in various formats.">
+                <div className="mb-4"><label className={labelClass}>Export format</label>
+                  <div className="flex flex-wrap gap-3">
+                    {['csv', 'json', 'xlsx', 'pdf'].map((fmt) => (
+                      <button key={fmt} onClick={() => setExportFormat(fmt)} className={`rounded-lg border-2 px-4 py-2 text-xs font-mono font-medium uppercase transition ${exportFormat === fmt ? btnActive : btnInactive}`}>.{fmt}</button>
+                    ))}
+                  </div>
+                </div>
+                <button className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                  Export All Data
+                </button>
+              </SettingSection>
+            </>)}
+
+            {/* Integrations */}
+            {activeSection === 'integrations' && (<>
+              <SettingSection title="Connected Apps" description="Manage third-party service integrations.">
+                <div className="space-y-3">
+                  {[
+                    { name: 'Slack', desc: 'Receive notifications in Slack', connected: slackConnected, toggle: setSlackConnected, color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' },
+                    { name: 'Google Workspace', desc: 'Sync calendar, contacts, drive', connected: googleConnected, toggle: setGoogleConnected, color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
+                    { name: 'Microsoft 365', desc: 'Teams, Outlook, OneDrive', connected: microsoftConnected, toggle: setMicrosoftConnected, color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
+                    { name: 'Jira', desc: 'Sync issues and projects', connected: jiraConnected, toggle: setJiraConnected, color: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300' },
+                    { name: 'GitHub', desc: 'Link repos and PRs', connected: githubConnected, toggle: setGithubConnected, color: 'bg-gray-800 text-white dark:bg-gray-700' },
+                    { name: 'Zapier', desc: 'Automate workflows', connected: zapierConnected, toggle: setZapierConnected, color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' },
+                  ].map((app) => (
+                    <div key={app.name} className="flex flex-col gap-3 rounded-xl border border-gray-100 p-4 transition hover:bg-gray-50/50 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:hover:bg-gray-800/50">
+                      <div className="flex items-center gap-3">
+                        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${app.color}`}>{app.name.charAt(0)}</span>
+                        <div><p className="text-sm font-medium text-gray-900 dark:text-white">{app.name}</p><p className="text-xs text-gray-500 dark:text-gray-400">{app.desc}</p></div>
+                      </div>
+                      <button onClick={() => app.toggle(!app.connected)} className={`shrink-0 self-start rounded-lg border px-3 py-1.5 text-xs font-semibold transition sm:self-auto ${app.connected ? 'border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400' : 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300'}`}>
+                        {app.connected ? 'Disconnect' : 'Connect'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </SettingSection>
+              <SettingSection title="API & Webhooks" description="Developer integrations and automation.">
+                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                  <Toggle label="API access" description="Allow external apps to access data via API" checked={apiAccess} onChange={setApiAccess} />
+                  <Toggle label="Webhooks" description="Send real-time events to external URLs" checked={webhooksEnabled} onChange={setWebhooksEnabled} />
+                </div>
+                {apiAccess && (
+                  <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+                    <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">API Key</p>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <code className="flex-1 truncate rounded-lg bg-white px-3 py-2 font-mono text-xs text-gray-700 ring-1 ring-gray-200 dark:bg-gray-900 dark:text-gray-300 dark:ring-gray-700">sk-••••••••••••••••••••••••••••4f2a</code>
+                      <button className="shrink-0 self-start rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 sm:self-auto dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">Regenerate</button>
+                    </div>
+                  </div>
+                )}
+              </SettingSection>
+            </>)}
+
+            {/* Keyboard Shortcuts */}
+            {activeSection === 'keyboard' && (
+              <SettingSection title="Keyboard Shortcuts" description="Quick reference for available shortcuts.">
+                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {SHORTCUTS.map((s, i) => (
+                    <div key={i} className="flex items-center justify-between py-3">
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{s.action}</p>
+                      <div className="flex items-center gap-1">
+                        {s.keys.map((key, j) => (
+                          <span key={j}>
+                            <kbd className="inline-flex min-w-[1.75rem] items-center justify-center rounded-md border border-gray-200 bg-gray-50 px-2 py-1 font-mono text-xs font-medium text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">{key}</kbd>
+                            {j < s.keys.length - 1 && <span className="mx-0.5 text-xs text-gray-400">+</span>}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </SettingSection>
+            )}
+
+            {/* Danger Zone */}
+            {activeSection === 'danger' && (
+              <SettingSection title="Danger Zone" description="These actions are irreversible. Proceed with caution.">
+                <div className="space-y-3">
+                  {[
+                    { title: 'Clear all notifications', desc: 'Remove all notification history permanently.', level: 'amber' as const, btn: 'Clear' },
+                    { title: 'Reset all settings', desc: 'Restore all settings to their default values.', level: 'amber' as const, btn: 'Reset' },
+                    { title: 'Delete all data', desc: 'Permanently erase all your personal data.', level: 'red' as const, btn: 'Delete Data' },
+                    { title: 'Deactivate account', desc: 'Temporarily disable your account.', level: 'red' as const, btn: 'Deactivate' },
+                  ].map((item) => (
+                    <div key={item.title} className={`flex flex-col gap-3 rounded-xl border px-4 py-4 sm:flex-row sm:items-center sm:justify-between ${item.level === 'amber' ? 'border-amber-200 bg-amber-50/50 dark:border-amber-900/50 dark:bg-amber-900/20' : 'border-red-200 bg-red-50/50 dark:border-red-900/50 dark:bg-red-900/20'}`}>
+                      <div>
+                        <p className={`text-sm font-medium ${item.level === 'amber' ? 'text-amber-900 dark:text-amber-300' : 'text-red-900 dark:text-red-300'}`}>{item.title}</p>
+                        <p className={`text-xs ${item.level === 'amber' ? 'text-amber-700 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{item.desc}</p>
+                      </div>
+                      <button className={`shrink-0 self-start rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${item.level === 'amber' ? 'border-amber-300 bg-white text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:bg-gray-900 dark:text-amber-400' : 'border-red-300 bg-white text-red-600 hover:bg-red-50 dark:border-red-800 dark:bg-gray-900 dark:text-red-400'}`}>{item.btn}</button>
+                    </div>
+                  ))}
+                  <div className="flex flex-col gap-3 rounded-xl border-2 border-red-300 bg-red-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-800 dark:bg-red-900/30">
+                    <div>
+                      <p className="text-sm font-bold text-red-900 dark:text-red-300">Delete account permanently</p>
+                      <p className="text-xs text-red-600 dark:text-red-400">This action cannot be undone. All data will be lost forever.</p>
+                    </div>
+                    <button className="shrink-0 self-start rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-700">Delete Account</button>
+                  </div>
+                </div>
+              </SettingSection>
+            )}
           </div>
         </div>
-      )}
-    </div>
+
+        {dirty && (
+          <div className="fixed inset-x-0 bottom-14 z-50 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur-sm md:bottom-0 md:px-6 dark:border-gray-800 dark:bg-gray-950/95">
+            <div className="mx-auto flex max-w-7xl items-center justify-between">
+              <p className="text-sm text-gray-600 dark:text-gray-400">You have unsaved changes</p>
+              <div className="flex items-center gap-3">
+                <button onClick={() => { setDirty(false); window.location.reload(); }} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">Discard</button>
+                <button onClick={handleSave} disabled={saving} className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60">{saving ? 'Saving…' : 'Save Changes'}</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </>
   );
 }

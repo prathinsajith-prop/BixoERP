@@ -1,15 +1,14 @@
 'use client';
 
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import PageHeader from '@/components/page-header';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
+import { showToast } from '@erp/shell';
 import Input from '@/components/ui/input';
 import Button from '@/components/ui/button';
-import Alert from '@/components/ui/alert';
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required'),
@@ -27,7 +26,6 @@ type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
 
 export default function ChangePasswordPage() {
   const router = useRouter();
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const {
     register,
@@ -43,14 +41,13 @@ export default function ChangePasswordPage() {
   const watchedNewPassword = watch('newPassword') ?? '';
 
   const onSubmit = async (data: ChangePasswordFormData) => {
-    setMessage(null);
     try {
       await authApi.changePassword({ currentPassword: data.currentPassword, newPassword: data.newPassword });
-      setMessage({ type: 'success', text: 'Password changed successfully. Please log in again.' });
+      showToast.success('Password changed', 'Please use your new password next time you log in.');
       reset();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to change password. Please try again.';
-      setMessage({ type: 'error', text: msg });
+      showToast.error('Something went wrong', msg);
     }
   };
 
@@ -71,8 +68,6 @@ export default function ChangePasswordPage() {
       <PageHeader title="Change Password" subtitle="Update your account password" />
       <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-gray-100 dark:bg-gray-900 dark:ring-gray-800">
 
-
-        {message && <div className="mb-6"><Alert type={message.type}>{message.text}</Alert></div>}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <Input id="currentPassword" label="Current Password" type="password" placeholder="Enter current password" {...register('currentPassword')} error={errors.currentPassword?.message} autoComplete="current-password" />

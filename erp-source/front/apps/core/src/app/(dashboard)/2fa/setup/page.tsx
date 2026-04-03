@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
 import { APP_NAME } from '@/lib/config';
 import Button from '@/components/ui/button';
-import Alert from '@/components/ui/alert';
+import { showToast } from '@erp/shell';
 
 const STEPS = [
   { key: 'intro', label: 'Get Started' },
@@ -24,9 +24,8 @@ function StepIndicator({ current }: { current: number }) {
         const isDone = i < current;
         return (
           <div key={step.key} className="flex items-center gap-2">
-            <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all ${
-              isDone ? 'bg-green-500 text-white' : isActive ? 'bg-blue-600 text-white ring-4 ring-blue-100 dark:ring-blue-900/50' : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500'
-            }`}>
+            <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all ${isDone ? 'bg-green-500 text-white' : isActive ? 'bg-blue-600 text-white ring-4 ring-blue-100 dark:ring-blue-900/50' : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500'
+              }`}>
               {isDone ? (
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
               ) : i + 1}
@@ -97,7 +96,6 @@ export default function TwoFactorSetupPage() {
   const [step, setStep] = useState(0);
   const [otp, setOtp] = useState('      ');
   const [verifying, setVerifying] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [method, setMethod] = useState('authenticator');
   const [backupCopied, setBackupCopied] = useState(false);
   const [secretRevealed, setSecretRevealed] = useState(false);
@@ -110,13 +108,12 @@ export default function TwoFactorSetupPage() {
 
   const handleProceedToScan = async () => {
     setSetupLoading(true);
-    setMessage(null);
     try {
       const { data } = await authApi.twoFactorSetup();
       setSetupData(data.data);
       setStep(1);
     } catch {
-      setMessage({ type: 'error', text: 'Failed to initialize 2FA setup. Please try again.' });
+      showToast.error('Something went wrong', 'Failed to initialize 2FA setup. Please try again.');
     } finally {
       setSetupLoading(false);
     }
@@ -125,18 +122,17 @@ export default function TwoFactorSetupPage() {
   const handleVerify = async () => {
     const code = otp.trim();
     if (code.length !== 6) {
-      setMessage({ type: 'error', text: 'Please enter a valid 6-digit code.' });
+      showToast.error('Invalid input', 'Please enter a valid 6-digit code.');
       return;
     }
     setVerifying(true);
-    setMessage(null);
     try {
       const { data } = await authApi.twoFactorVerifySetup({ code });
       setRecoveryCodes(data.data?.recoveryCodes || MOCK_BACKUP_CODES);
       setStep(3);
     } catch (err: any) {
       const msg = err.response?.data?.message ?? 'Invalid verification code. Please try again.';
-      setMessage({ type: 'error', text: msg });
+      showToast.error('Verification failed', msg);
     } finally {
       setVerifying(false);
     }
@@ -163,7 +159,6 @@ export default function TwoFactorSetupPage() {
     <div className="space-y-6">
       <PageHeader title="Two-Factor Setup" subtitle="Enhance your account security" />
       <StepIndicator current={step} />
-      {message && <div className="mb-6"><Alert type={message.type}>{message.text}</Alert></div>}
 
       {/* Step 0 — Intro */}
       {step === 0 && (
@@ -203,9 +198,8 @@ export default function TwoFactorSetupPage() {
                 <button
                   key={m.key}
                   onClick={() => setMethod(m.key)}
-                  className={`flex w-full items-center gap-4 rounded-xl border-2 px-4 py-4 text-left transition ${
-                    method === m.key ? 'border-blue-500 bg-blue-50/50 shadow-sm dark:bg-blue-900/20' : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
-                  }`}
+                  className={`flex w-full items-center gap-4 rounded-xl border-2 px-4 py-4 text-left transition ${method === m.key ? 'border-blue-500 bg-blue-50/50 shadow-sm dark:bg-blue-900/20' : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
+                    }`}
                 >
                   <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${method === m.key ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
                     {m.key === 'authenticator' && <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" /></svg>}
@@ -338,7 +332,7 @@ export default function TwoFactorSetupPage() {
             </div>
           )}
           <div className="flex gap-3">
-            <button onClick={() => { setStep(1); setOtp('      '); setMessage(null); }} className="flex-1 rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">Back</button>
+            <button onClick={() => { setStep(1); setOtp('      '); }} className="flex-1 rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">Back</button>
             <div className="flex-1"><Button loading={verifying} onClick={handleVerify}>Verify & Enable</Button></div>
           </div>
           <div className="mt-6 rounded-xl border border-gray-100 bg-gray-50/50 p-4 dark:border-gray-800 dark:bg-gray-800/50">

@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
 import { useAuthStore } from '@/store/auth';
+import { showToast } from '@erp/shell';
 
 interface InvitePreview {
     orgName: string;
@@ -40,15 +41,15 @@ function AcceptInviteContent() {
     const handleAccept = async () => {
         if (!token) return;
         setAccepting(true);
-        setError(null);
         try {
             await authApi.acceptInvite({ token });
+            showToast.success('Invitation accepted', 'You have joined the organisation.');
             setDone(true);
             // Give short delay then navigate
             setTimeout(() => router.replace(isAuthenticated ? '/' : '/login'), 2000);
         } catch (err: unknown) {
             const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to accept invitation';
-            setError(msg);
+            showToast.error('Something went wrong', msg);
         } finally {
             setAccepting(false);
         }
@@ -92,7 +93,7 @@ function AcceptInviteContent() {
 
             {done && (
                 <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-center text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
-                    Invitation accepted! Redirecting…
+                    Redirecting…
                 </div>
             )}
 
@@ -126,12 +127,6 @@ function AcceptInviteContent() {
                         <p className="mb-4 text-center text-xs text-gray-400 dark:text-gray-500">
                             Expires {new Date(preview.expiresAt).toLocaleDateString()}
                         </p>
-                    )}
-
-                    {error && (
-                        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
-                            {error}
-                        </div>
                     )}
 
                     <button

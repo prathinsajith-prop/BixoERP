@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Modal, Button, Input, Textarea, LoadingSpinner, EmptyState } from "@erp/ui";
+import { showToast } from "@erp/shell";
 import { api, type DepartmentResponse, type EmployeeResponse } from "../../lib/api";
 
 const departmentSchema = z.object({
@@ -20,7 +21,6 @@ export default function DepartmentsPage() {
   const [employees, setEmployees] = useState<EmployeeResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [serverError, setServerError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
 
   const {
@@ -72,12 +72,10 @@ export default function DepartmentsPage() {
 
   function closeModal() {
     setShowCreate(false);
-    setServerError(null);
     reset();
   }
 
   async function onSubmit(data: DepartmentFormData) {
-    setServerError(null);
     try {
       await api.departments.create({
         code: data.code,
@@ -85,10 +83,12 @@ export default function DepartmentsPage() {
         description: data.description || undefined,
         managerId: undefined,
       });
+      showToast.success('Department created');
       closeModal();
       load();
     } catch (err: unknown) {
-      setServerError((err as { message?: string }).message ?? "Failed to create department");
+      const msg = (err as { message?: string }).message ?? "Failed to create department";
+      showToast.error('Something went wrong', msg);
     }
   }
 
@@ -144,7 +144,6 @@ export default function DepartmentsPage() {
 
       <Modal open={showCreate} onClose={closeModal} title="Add Department">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {serverError && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{serverError}</p>}
           <Input
             label="Department Code"
             placeholder="e.g. ENG"
