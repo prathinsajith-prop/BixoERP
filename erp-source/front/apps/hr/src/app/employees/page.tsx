@@ -38,6 +38,7 @@ const employeeSchema = z.object({
   hireDate: z.string().min(1, "Hire date is required"),
   departmentId: z.string().min(1, "Please select a department"),
   positionId: z.string().min(1, "Please select a position"),
+  managerId: z.string().uuid().nullable().optional(),
   baseSalary: z.coerce.number({ invalid_type_error: "Salary must be a number" }).positive("Salary must be greater than 0"),
   currency: z.string().default("USD"),
 });
@@ -742,6 +743,16 @@ export default function EmployeesPage() {
               {...register("positionId")}
             />
           </div>
+          <Select
+            label="Manager (optional)"
+            options={[
+              { value: "", label: "No manager" },
+              ...employees
+                .filter((e) => e.status !== "TERMINATED")
+                .map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}` }))
+            ]}
+            {...register("managerId")}
+          />
           <div className="grid grid-cols-2 gap-4">
             <Input label="Base Salary" type="number" step="0.01" error={errors.baseSalary?.message} {...register("baseSalary")} />
             <Select

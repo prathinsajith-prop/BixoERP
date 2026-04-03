@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '../store/auth';
 import { authApi } from '../lib/api/auth';
 import { filesApi } from '../lib/api/files';
@@ -141,6 +141,7 @@ function OrgSwitcher() {
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [currentOrg, setCurrentOrg] = useState<Org | null>(null);
   const [switching, setSwitching] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     authApi.myOrganizations().then((res: { data?: { data?: OrgRaw[] } }) => {
@@ -163,7 +164,7 @@ function OrgSwitcher() {
       }
       if (data?.tenantId) sessionStorage.setItem('tenantId', data.tenantId);
       localStorage.setItem('organizationId', org.id);
-      window.location.reload();
+      router.refresh();
     } catch {
       setSwitching(null);
       // Don't reload on failure - the token hasn't changed

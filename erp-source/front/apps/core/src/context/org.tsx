@@ -14,6 +14,7 @@ import { useAuthStore } from '@/store/auth';
  */
 interface JwtOrgPayload {
     sub?: string;
+    org_id?: string;
     tenant_id?: string;
     email?: string;
     org_name?: string;
@@ -108,7 +109,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
 
         return {
             userId: payload.sub ?? null,
-            orgId: payload.tenant_id ?? null,
+            orgId: payload.org_id ?? payload.tenant_id ?? null,
             orgName: payload.org_name ?? null,
             orgSlug: payload.org_slug ?? null,
             membershipId: payload.membership_id ?? null,
