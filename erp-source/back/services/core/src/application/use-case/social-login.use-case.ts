@@ -373,6 +373,7 @@ export class SocialLoginUseCase {
     const accessToken = this.tokenService.generateAccessToken({
       sub: user.id,
       tenantId: user.tenantId,
+      userTenantId: user.tenantId,
       email: user.email.value,
       roles: roles.map((r) => r.name),
       permissions: permissionCodes,

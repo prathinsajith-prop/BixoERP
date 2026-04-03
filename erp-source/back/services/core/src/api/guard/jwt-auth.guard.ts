@@ -33,6 +33,7 @@ export class JwtAuthGuard implements CanActivate {
 
       request.user = payload;
       request.tenantId = payload.tenantId;
+      request.userTenantId = payload.userTenantId ?? payload.tenantId;
       request.orgId = payload.orgId ?? payload.tenantId;
       request.orgRole = payload.orgRole ?? null;
       return true;

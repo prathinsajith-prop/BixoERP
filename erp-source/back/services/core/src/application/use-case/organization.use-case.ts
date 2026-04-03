@@ -207,6 +207,7 @@ export class OrganizationUseCase {
   async switchOrganization(cmd: {
     userId: string;
     currentTenantId: string;
+    userTenantId?: string;           // user's home tenant — where their user record lives
     targetOrganizationId: string;
     userAgent?: string;
     ipAddress?: string;
@@ -231,28 +232,36 @@ export class OrganizationUseCase {
 
     const targetTenantId = org.id; // org.id IS the tenantId
 
-    // Find user in the current tenant (their home org)
-    const user = await this.userRepo.findById(cmd.currentTenantId, cmd.userId);
+    // Find user in their HOME tenant (userTenantId) — stable across org switches.
+    // Falls back to currentTenantId for tokens issued before this field was added.
+    const homeTenantId = cmd.userTenantId ?? cmd.currentTenantId;
+    const user = await this.userRepo.findById(homeTenantId, cmd.userId);
     if (!user) throw new NotMemberException();
 
-    // Resolve roles/permissions from the target organization
+    // Resolve roles/permissions from the user's HOME tenant.
+    // Role IDs on the user entity are scoped to their home org, so we look them
+    // up there rather than in the target tenant (which may not have them at all).
     const userEntity = user;
-    const roles = await this.roleRepo.findByIds(targetTenantId, userEntity.roles);
+    const roles = await this.roleRepo.findByIds(userEntity.tenantId, userEntity.roles);
     const allPermIds = [...new Set(roles.flatMap((r) => r.permissions))];
-    const permissions = await this.permRepo.findByIds(targetTenantId, allPermIds);
+    const permissions = await this.permRepo.findByIds(userEntity.tenantId, allPermIds);
     const permissionCodes = permissions.map((p) => p.code);
 
-    // If user has no roles in the target org, use empty — they still get access
     const roleNames = roles.map((r) => r.name);
 
-    // Generate new tokens scoped to the target organization
-    // Include org_id and org_role from the verified membership so all downstream
-    // services can enforce tenant isolation without trusting client input.
+    // Generate new tokens scoped to the target organization.
+    // tenantId = target org (controls which org operations act on).
+    // userTenantId = user's home org (so future switches can always find the user record).
     const accessToken = this.tokenService.generateAccessToken({
       sub: userEntity.id,
       tenantId: targetTenantId,
+      userTenantId: userEntity.tenantId,
       orgId: targetTenantId,
       orgRole: membership.role,
+      orgName: org.name,
+      orgSlug: org.slug,
+      membershipId: membership.id,
+      membershipType: (membership as any).membershipType ?? 'MEMBER',
       email: userEntity.email.value,
       roles: roleNames,
       permissions: permissionCodes,

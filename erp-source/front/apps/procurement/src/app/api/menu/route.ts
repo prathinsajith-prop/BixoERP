@@ -6,7 +6,7 @@ export async function GET() {
     moduleName: "Procurement",
     items: [
       { label: "Dashboard", href: "/procurement", icon: "LayoutDashboard" },
-      { label: "Purchase Orders", href: "/procurement/orders", icon: "ClipboardList" },
+      { label: "Purchase Orders", href: "/procurement/orders", icon: "ShoppingCart" },
       { label: "Vendors", href: "/procurement/vendors", icon: "Truck" },
       { label: "Receiving", href: "/procurement/receiving", icon: "PackageCheck" },
     ],

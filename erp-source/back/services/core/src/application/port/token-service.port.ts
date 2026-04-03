@@ -3,7 +3,8 @@ export const TOKEN_SERVICE = Symbol('TOKEN_SERVICE');
 export interface AccessTokenPayload {
   sub: string;            // user ID
   jti?: string;           // JWT ID for blacklisting
-  tenantId: string;
+  tenantId: string;       // active org tenant (may change after org switch)
+  userTenantId?: string;  // user's home tenant — where the user record always lives
   orgId?: string;         // organization UUID
   orgRole?: string;       // membership role: OWNER | ADMIN | MEMBER
   orgName?: string;       // display name of the active org

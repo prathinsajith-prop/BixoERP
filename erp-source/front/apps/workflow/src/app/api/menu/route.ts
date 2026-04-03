@@ -5,9 +5,9 @@ export async function GET() {
     moduleId: "workflow",
     moduleName: "Workflow",
     items: [
-      { label: "Pending Approvals", href: "/workflow", icon: "Clock" },
+      { label: "Pending Approvals", href: "/workflow", icon: "GitPullRequest" },
       { label: "My Requests", href: "/workflow/my-requests", icon: "Send" },
-      { label: "Workflow Rules", href: "/workflow/rules", icon: "Settings" },
+      { label: "Workflow Rules", href: "/workflow/rules", icon: "GitBranch" },
     ],
   });
 }

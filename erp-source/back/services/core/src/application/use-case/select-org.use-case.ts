@@ -83,6 +83,7 @@ export class SelectOrgUseCase {
         const accessToken = this.tokenService.generateAccessToken({
             sub: user.id,
             tenantId: user.tenantId,
+            userTenantId: user.tenantId,  // home tenant — stable across org switches
             orgId: org.id,
             orgRole: membership.role,
             orgName: org.name,
