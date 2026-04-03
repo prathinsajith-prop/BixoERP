@@ -22,6 +22,7 @@ x-pg-env: &pg-env
 
 x-svc-defaults: &svc-defaults
   restart: unless-stopped
+  init: true
   networks:
     - infra
 

@@ -3,10 +3,32 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json turbo.json tsconfig.json ./
-COPY apps/ ./apps/
-COPY packages/ ./packages/
+COPY apps/apar/package.json ./apps/apar/
+COPY apps/audit/package.json ./apps/audit/
+COPY apps/core/package.json ./apps/core/
+COPY apps/files/package.json ./apps/files/
+COPY apps/finance/package.json ./apps/finance/
+COPY apps/hr/package.json ./apps/hr/
+COPY apps/integrations/package.json ./apps/integrations/
+COPY apps/inventory/package.json ./apps/inventory/
+COPY apps/manufacturing/package.json ./apps/manufacturing/
+COPY apps/notifications/package.json ./apps/notifications/
+COPY apps/procurement/package.json ./apps/procurement/
+COPY apps/projects/package.json ./apps/projects/
+COPY apps/reports/package.json ./apps/reports/
+COPY apps/sales/package.json ./apps/sales/
+COPY apps/workflow/package.json ./apps/workflow/
+COPY packages/api-client/package.json ./packages/api-client/
+COPY packages/config/package.json ./packages/config/
+COPY packages/icons/package.json ./packages/icons/
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/shell/package.json ./packages/shell/
+COPY packages/ui/package.json ./packages/ui/
 
 RUN npm ci && npm install --no-save lightningcss-linux-arm64-musl lightningcss-linux-x64-musl @tailwindcss/oxide-linux-arm64-musl @tailwindcss/oxide-linux-x64-musl
+
+COPY apps/ ./apps/
+COPY packages/ ./packages/
 
 ENV DOCKER_ENV=true
 RUN npx turbo build --filter=@erp/apar-app
@@ -17,13 +39,12 @@ RUN addgroup -g 1001 -S appgroup && adduser -S appuser -u 1001
 
 WORKDIR /app
 
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/apar ./apps/apar
-COPY --from=builder /app/packages ./packages
+COPY --from=builder --chown=appuser:appgroup /app/apps/apar/.next/standalone ./
+COPY --from=builder --chown=appuser:appgroup /app/apps/apar/.next/static ./apps/apar/.next/static
+COPY --from=builder --chown=appuser:appgroup /app/apps/apar/public ./apps/apar/public
 
 USER appuser
 EXPOSE 4002
+ENV PORT=4002 HOSTNAME=0.0.0.0
 
-WORKDIR /app/apps/apar
-CMD ["npx", "next", "start", "-p", "4002"]
+CMD ["node", "apps/apar/server.js"]

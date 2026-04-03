@@ -10,7 +10,7 @@ export class PostgresTeamRepository implements TeamRepository {
   constructor(
     @InjectRepository(TeamOrmEntity)
     private readonly repo: Repository<TeamOrmEntity>,
-  ) {}
+  ) { }
 
   async findById(tenantId: string, id: string): Promise<Team | null> {
     const row = await this.repo.findOne({ where: { id, tenant_id: tenantId } });
@@ -49,7 +49,7 @@ export class PostgresTeamRepository implements TeamRepository {
   }
 
   async delete(tenantId: string, id: string): Promise<void> {
-    await this.repo.delete({ id, tenant_id: tenantId });
+    await this.repo.softDelete({ id, tenant_id: tenantId });
   }
 
   private toDomain(orm: TeamOrmEntity): Team {

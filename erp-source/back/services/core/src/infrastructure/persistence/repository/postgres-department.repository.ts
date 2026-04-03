@@ -10,7 +10,7 @@ export class PostgresDepartmentRepository implements DepartmentRepository {
   constructor(
     @InjectRepository(DepartmentOrmEntity)
     private readonly repo: Repository<DepartmentOrmEntity>,
-  ) {}
+  ) { }
 
   async findById(tenantId: string, id: string): Promise<Department | null> {
     const row = await this.repo.findOne({ where: { id, tenant_id: tenantId } });
@@ -41,7 +41,7 @@ export class PostgresDepartmentRepository implements DepartmentRepository {
   }
 
   async delete(tenantId: string, id: string): Promise<void> {
-    await this.repo.delete({ id, tenant_id: tenantId });
+    await this.repo.softDelete({ id, tenant_id: tenantId });
   }
 
   private toDomain(orm: DepartmentOrmEntity): Department {

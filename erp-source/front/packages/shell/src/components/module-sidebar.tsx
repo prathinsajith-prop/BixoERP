@@ -163,13 +163,13 @@ function OrgSwitcher() {
       if (data?.accessToken) {
         // Access token stored in memory only — cookie is set server-side automatically
         useAuthStore.setState({ accessToken: data.accessToken, fullAccessToken: data.accessToken, isAuthenticated: true });
-        if (data.tenantId) sessionStorage.setItem('tenantId', data.tenantId);
       }
+      if (data?.tenantId) sessionStorage.setItem('tenantId', data.tenantId);
       localStorage.setItem('organizationId', org.id);
       window.location.reload();
     } catch {
-      localStorage.setItem('organizationId', org.id);
-      window.location.reload();
+      setSwitching(null);
+      // Don't reload on failure - the token hasn't changed
     }
   };
 

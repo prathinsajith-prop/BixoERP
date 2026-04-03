@@ -6,8 +6,8 @@ import { authApi } from '@/lib/api/auth';
 
 const ROLE_COLORS = ['bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300', 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300', 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300', 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300', 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300', 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'];
 
-interface Permission { id: string; resource?: string; action: string; description?: string }
-interface Role { id: string; name: string; description?: string; permissions?: Permission[] }
+interface Permission { id: string; resource?: string; action: string; description?: string; code?: string }
+interface Role { id: string; name: string; description?: string; permissions?: string[]; isSystem?: boolean }
 
 export default function RolesPage() {
   const [roles, setRoles] = useState<Role[]>([]);
@@ -19,6 +19,7 @@ export default function RolesPage() {
   const [formDescription, setFormDescription] = useState('');
   const [formPermissionIds, setFormPermissionIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Role | null>(null);
   const [expandedRole, setExpandedRole] = useState<string | null>(null);
 
@@ -46,17 +47,21 @@ export default function RolesPage() {
     return () => { ignore = true; };
   }, []);
 
-  const openCreateModal = () => { setEditingRole(null); setFormName(''); setFormDescription(''); setFormPermissionIds([]); setModalOpen(true); };
-  const openEditModal = (role: Role) => { setEditingRole(role); setFormName(role.name || ''); setFormDescription(role.description || ''); setFormPermissionIds((role.permissions || []).map((p) => p.id)); setModalOpen(true); };
+  const openCreateModal = () => { setEditingRole(null); setFormName(''); setFormDescription(''); setFormPermissionIds([]); setSaveError(null); setModalOpen(true); };
+  const openEditModal = (role: Role) => { setEditingRole(role); setFormName(role.name || ''); setFormDescription(role.description || ''); setFormPermissionIds(role.permissions || []); setSaveError(null); setModalOpen(true); };
 
   const handleSave = async () => {
     if (!formName.trim()) return;
     setSaving(true);
+    setSaveError(null);
     try {
       const body = { name: formName.trim(), description: formDescription.trim(), permissionIds: formPermissionIds };
       if (editingRole) await authApi.updateRole(editingRole.id, body); else await authApi.createRole(body);
       await fetchRoles(); setModalOpen(false);
-    } catch { } finally { setSaving(false); }
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to save role. Please try again.';
+      setSaveError(msg);
+    } finally { setSaving(false); }
   };
 
   const handleDelete = async (roleId: string) => { try { await authApi.deleteRole(roleId); setConfirmDelete(null); await fetchRoles(); } catch { } };
@@ -128,7 +133,11 @@ export default function RolesPage() {
                   {isExpanded && rolePerms.length > 0 && (
                     <div className="border-t border-gray-100 bg-gray-50/50 px-5 py-3 dark:border-gray-800 dark:bg-gray-800/50">
                       <div className="flex flex-wrap gap-1.5">
-                        {rolePerms.map((p) => <span key={p.id} className="inline-flex items-center rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-gray-600 ring-1 ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700">{p.resource}:{p.action}</span>)}
+                        {rolePerms.map((pid) => {
+                          const perm = permissions.find((p) => p.id === pid);
+                          const label = perm ? `${perm.resource}:${perm.action}` : pid.slice(0, 8) + '…';
+                          return <span key={pid} className="inline-flex items-center rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-gray-600 ring-1 ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700">{label}</span>;
+                        })}
                       </div>
                     </div>
                   )}
@@ -146,6 +155,9 @@ export default function RolesPage() {
               </button>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white">{editingRole ? 'Edit Role' : 'Create Role'}</h3>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{editingRole ? 'Update role details and permissions' : 'Define a new role with permissions'}</p>
+              {saveError && (
+                <div className="mt-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">{saveError}</div>
+              )}
 
               <div className="mt-5 space-y-4">
                 <div>

@@ -30,6 +30,7 @@ import { TwoFactorUseCase } from '../../application/use-case/two-factor.use-case
 import { JwtAuthGuard } from '../guard/jwt-auth.guard';
 import { TenantId, CurrentUser } from '../decorator/auth.decorators';
 import { TOKEN_SERVICE, TokenService, AccessTokenPayload } from '../../application/port/token-service.port';
+import { SelectOrgUseCase } from '../../application/use-case/select-org.use-case';
 
 @Controller('api/v1/auth')
 export class AuthController {
@@ -41,6 +42,7 @@ export class AuthController {
     private readonly changePasswordUseCase: ChangePasswordUseCase,
     private readonly passwordResetUseCase: PasswordResetUseCase,
     private readonly twoFactorUseCase: TwoFactorUseCase,
+    private readonly selectOrgUseCase: SelectOrgUseCase,
     @Inject(TOKEN_SERVICE) private readonly tokenService: TokenService,
   ) { }
 
@@ -82,6 +84,18 @@ export class AuthController {
         data: {
           twoFactorRequired: true,
           twoFactorToken: result.twoFactorToken,
+          tenantId: result.tenantId,
+        },
+      };
+    }
+
+    // Multi-org: user must choose an organisation before a full token is issued.
+    if (result.pendingToken) {
+      return {
+        statusCode: 200,
+        data: {
+          pendingToken: result.pendingToken,
+          organisations: result.organisations,
           tenantId: result.tenantId,
         },
       };
@@ -214,31 +228,34 @@ export class AuthController {
     });
   }
 
-  @Post('scope-token')
+  @Post('select-org')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
-  async scopeToken(
-    @Body(new ZodValidationPipe(ScopeTokenDto)) dto: ScopeTokenDto,
-    @CurrentUser() user: AccessTokenPayload,
+  async selectOrg(
+    @Body() body: { pendingToken: string; orgId: string },
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    const scopedPermissions = user.permissions.filter(
-      (p) => p.startsWith(`${dto.module}:`),
-    );
+    const result = await this.selectOrgUseCase.execute({
+      pendingToken: body.pendingToken,
+      orgId: body.orgId,
+      userAgent: req.headers['user-agent'],
+      ipAddress: req.ip,
+    });
 
-    const scopedToken = this.tokenService.generateAccessToken({
-      sub: user.sub,
-      tenantId: user.tenantId,
-      email: user.email,
-      roles: user.roles,
-      permissions: scopedPermissions,
+    res.cookie('__erp_rt', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/api/v1/auth',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
     return {
       statusCode: 200,
       data: {
-        accessToken: scopedToken,
-        module: dto.module,
-        permissions: scopedPermissions,
+        accessToken: result.accessToken,
+        expiresIn: result.expiresIn,
+        tenantId: result.tenantId,
       },
     };
   }

@@ -9,5 +9,7 @@ export interface UserRepository {
   findByTenant(tenantId: string, page: number, limit: number): Promise<{ users: User[]; total: number }>;
   save(user: User): Promise<void>;
   update(user: User): Promise<void>;
+  /** Update only last_login_at and reset failed_login_attempts WITHOUT touching updated_at. */
+  updateLastLogin(userId: string, lastLoginAt: Date): Promise<void>;
   delete(tenantId: string, id: string): Promise<void>;
 }

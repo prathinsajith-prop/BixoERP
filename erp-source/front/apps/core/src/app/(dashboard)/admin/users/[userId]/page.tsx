@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
 import PageHeader from '@/components/page-header';
+import CanDo from '@/components/can-do';
 
 const AVATAR_COLORS = ['from-violet-500 to-purple-600', 'from-blue-500 to-cyan-500', 'from-emerald-500 to-teal-500', 'from-rose-500 to-pink-500', 'from-amber-500 to-orange-500', 'from-indigo-500 to-blue-600', 'from-fuchsia-500 to-purple-500', 'from-sky-500 to-blue-500'];
 
@@ -22,9 +23,43 @@ function InfoRow({ label, value, mono }: { label: string; value?: string | null;
   );
 }
 
-interface Permission { id: string; resource?: string; action: string }
+interface Permission { id: string; resource?: string; action: string; code?: string; description?: string }
 interface Role { id: string; name: string; description?: string; permissions?: Permission[] }
-interface UserData { id: string; email: string; firstName?: string; lastName?: string; isActive?: boolean; emailVerified?: boolean; emailVerifiedAt?: string; twoFactorEnabled?: boolean; twoFactorEnabledAt?: string; createdAt?: string; updatedAt?: string; lastLoginAt?: string; lastLoginIp?: string; lastLoginUserAgent?: string; loginCount?: number; failedLoginAttempts?: number; lockedUntil?: string; passwordChangedAt?: string; phone?: string; phoneNumber?: string; roles?: Role[]; organization?: { name?: string; plan?: string }; organizationId?: string; tenantId?: string; department?: string; jobTitle?: string; metadata?: Record<string, unknown>; socialAccounts?: { provider: string; linkedAt?: string }[] }
+interface LoginHistoryEntry { ipAddress?: string | null; userAgent?: string | null; createdAt?: string; status?: string; failureReason?: string | null }
+
+function formatPermChip(p: Permission): string {
+  if (p.description) return p.description;
+  const resourceSuffix = (p.resource ?? '').split(':').pop() ?? p.resource ?? '';
+  const capitalize = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  if (resourceSuffix && p.action) return `${capitalize(resourceSuffix)}: ${capitalize(p.action)}`;
+  if (p.action) return p.action.charAt(0).toUpperCase() + p.action.slice(1);
+  return p.code ?? `${p.resource}:${p.action}`;
+}
+
+function parseBrowser(ua?: string | null): { browser: string; os: string; isMobile: boolean } {
+  if (!ua) return { browser: 'Unknown Browser', os: 'Unknown OS', isMobile: false };
+  const browsers: [RegExp, string][] = [
+    [/Edg\//, 'Edge'], [/OPR\//, 'Opera'], [/Chrome\//, 'Chrome'],
+    [/Firefox\//, 'Firefox'], [/Version\/.*Safari/, 'Safari'], [/curl\//, 'curl'],
+  ];
+  const osList: [RegExp, string][] = [
+    [/Windows NT 10/, 'Windows 10'], [/Windows NT/, 'Windows'], [/Mac OS X/, 'macOS'],
+    [/Android/, 'Android'], [/iPhone OS/, 'iOS'], [/iPad/, 'iPadOS'], [/Linux/, 'Linux'],
+  ];
+  return {
+    browser: browsers.find(([re]) => re.test(ua))?.[1] ?? 'Browser',
+    os: osList.find(([re]) => re.test(ua))?.[1] ?? 'Unknown OS',
+    isMobile: /Android|iPhone|iPad|Mobile/.test(ua),
+  };
+}
+function cleanIpAddr(ip?: string | null) { return ip ? ip.replace(/^::ffff:/, '') : 'Unknown IP'; }
+function relTime(d?: string) {
+  if (!d) return '';
+  const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
+  if (s < 60) return 'just now'; if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`; return `${Math.floor(s / 86400)}d ago`;
+}
+interface UserData { id: string; email: string; firstName?: string; lastName?: string; isActive?: boolean; emailVerified?: boolean; emailVerifiedAt?: string; twoFactorEnabled?: boolean; twoFactorEnabledAt?: string; createdAt?: string; updatedAt?: string; lastLoginAt?: string; lastLoginIp?: string; lastLoginUserAgent?: string; loginCount?: number; failedLoginAttempts?: number; lockedUntil?: string; passwordChangedAt?: string; phone?: string; phoneNumber?: string; roles?: Role[]; organization?: { name?: string; plan?: string }; organizationId?: string; tenantId?: string; department?: string; jobTitle?: string; metadata?: Record<string, unknown>; socialAccounts?: { provider: string; linkedAt?: string }[]; security?: { loginHistory?: LoginHistoryEntry[]; loginHistoryTotal?: number; twoFactorEnabled?: boolean; emailVerified?: boolean; failedLoginAttempts?: number; lockedUntil?: string; socialAccounts?: { provider: string; email?: string; displayName?: string; linkedAt?: string }[] } }
 
 export default function UserDetailsPage() {
   const { userId } = useParams<{ userId: string }>();
@@ -35,7 +70,13 @@ export default function UserDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [roleModalOpen, setRoleModalOpen] = useState(false);
   const [assigning, setAssigning] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState('overview');
+  const [editOpen, setEditOpen] = useState(false);
+  const [editFirstName, setEditFirstName] = useState('');
+  const [editLastName, setEditLastName] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   const fetchUser = useCallback(async () => {
     setLoading(true); setError(null);
@@ -50,11 +91,38 @@ export default function UserDetailsPage() {
 
   const handleAssignRole = async (roleId: string) => {
     setAssigning(true);
-    try { await authApi.assignRoleToUser(userId, roleId); await fetchUser(); setRoleModalOpen(false); } catch {} finally { setAssigning(false); }
+    setAssignError(null);
+    try { await authApi.assignRoleToUser(userId, roleId); await fetchUser(); setRoleModalOpen(false); } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to assign role.';
+      setAssignError(msg);
+    } finally { setAssigning(false); }
   };
 
   const handleRemoveRole = async (roleId: string) => {
-    try { await authApi.removeRoleFromUser(userId, roleId); await fetchUser(); } catch {}
+    try { await authApi.removeRoleFromUser(userId, roleId); await fetchUser(); } catch { }
+  };
+
+  const openEdit = () => {
+    setEditFirstName(user?.firstName ?? '');
+    setEditLastName(user?.lastName ?? '');
+    setEditError(null);
+    setEditOpen(true);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setEditSaving(true);
+    setEditError(null);
+    try {
+      await authApi.updateUser(userId, { firstName: editFirstName.trim(), lastName: editLastName.trim() });
+      await fetchUser();
+      setEditOpen(false);
+    } catch (err: unknown) {
+      setEditError((err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to save changes');
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   if (loading) return <div className="space-y-6"><div className="flex items-center justify-center py-32"><svg className="h-8 w-8 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg></div></div>;
@@ -114,6 +182,18 @@ export default function UserDetailsPage() {
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.745 3.745 0 011.043 3.296A3.745 3.745 0 0121 12z" /></svg>
                     Verified
                   </span>}
+                  {/* Edit User — only visible to admins with user:update permission */}
+                  <CanDo resource="user" action="update">
+                    <button
+                      onClick={openEdit}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                      </svg>
+                      Edit User
+                    </button>
+                  </CanDo>
                 </div>
               </div>
             </div>
@@ -195,25 +275,42 @@ export default function UserDetailsPage() {
               {user.lockedUntil && <InfoRow label="Locked Until" value={formatDateTime(user.lockedUntil)} />}
             </dl>
           </div>
-          <div className={cardClass}>
-            <div className="mb-5 flex items-center gap-3"><div className={`${sectionIcon} bg-sky-100 dark:bg-sky-900/30`}><svg className="h-4.5 w-4.5 text-sky-600 dark:text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><h2 className="text-base font-bold text-gray-900 dark:text-white">Login History</h2></div>
-            <dl className="divide-y divide-gray-100 dark:divide-gray-800">
-              <InfoRow label="Last Login" value={user.lastLoginAt ? formatDateTime(user.lastLoginAt) : 'Never'} />
-              {user.lastLoginIp && <InfoRow label="Last Login IP" value={user.lastLoginIp} mono />}
-              {user.lastLoginUserAgent && <div className="py-3"><dt className="mb-1 text-sm font-medium text-gray-500 dark:text-gray-400">Last User Agent</dt><dd className="break-all rounded-lg bg-gray-50 px-3 py-2 font-mono text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">{user.lastLoginUserAgent}</dd></div>}
-              {user.loginCount != null && <InfoRow label="Total Logins" value={String(user.loginCount)} />}
-            </dl>
-            {user.socialAccounts && user.socialAccounts.length > 0 && (
+          <div className={`${cardClass} lg:col-span-2`}>
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-3"><div className={`${sectionIcon} bg-sky-100 dark:bg-sky-900/30`}><svg className="h-4.5 w-4.5 text-sky-600 dark:text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><div><h2 className="text-base font-bold text-gray-900 dark:text-white">Login History</h2><p className="text-xs text-gray-500 dark:text-gray-400">{user.security?.loginHistoryTotal ?? 0} authentication event{(user.security?.loginHistoryTotal ?? 0) !== 1 ? 's' : ''} recorded</p></div></div>
+              <div className="flex items-center gap-1.5 rounded-lg bg-gray-50 px-2.5 py-1.5 dark:bg-gray-800"><svg className="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg><span className="text-xs font-medium text-gray-500 dark:text-gray-400">Security Log</span></div>
+            </div>
+            {!user.security?.loginHistory?.length ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center"><div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800"><svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><p className="mt-3 text-sm font-medium text-gray-600 dark:text-gray-300">No login events recorded yet</p></div>
+            ) : (
+              <div className="max-h-96 divide-y divide-gray-50 overflow-y-auto rounded-xl ring-1 ring-gray-100 dark:divide-gray-800/60 dark:ring-gray-800">
+                {user.security.loginHistory.map((entry, i) => {
+                  const { browser, os, isMobile } = parseBrowser(entry.userAgent);
+                  const isSuccess = (entry.status ?? 'SUCCESS') === 'SUCCESS';
+                  const dt = entry.createdAt ? new Date(entry.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null;
+                  return (
+                    <div key={i} className={`flex items-start gap-4 px-4 py-3.5 transition-colors hover:bg-gray-50/60 dark:hover:bg-gray-800/30 ${!isSuccess ? 'bg-red-50/40 dark:bg-red-900/5' : ''}`}>
+                      <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${isSuccess ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-50 text-red-500 dark:bg-red-900/30 dark:text-red-400'}`}>
+                        {isMobile ? <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 8.25h3" /></svg> : <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0H3" /></svg>}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-x-2"><span className="text-sm font-semibold text-gray-900 dark:text-white">{browser}</span><span className="text-gray-300">·</span><span className="text-sm text-gray-500 dark:text-gray-400">{os}</span></div>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-gray-500 dark:text-gray-400">
+                          <span>{cleanIpAddr(entry.ipAddress)}</span>
+                          {dt && <><span className="text-gray-300">·</span><span>{dt}</span><span className="text-gray-300">·</span><span>{relTime(entry.createdAt)}</span></>}
+                        </div>
+                        {!isSuccess && entry.failureReason && <div className="mt-1 rounded-md bg-red-50 px-2 py-0.5 dark:bg-red-900/20"><span className="text-xs text-red-600 dark:text-red-400">{entry.failureReason}</span></div>}
+                      </div>
+                      <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${isSuccess ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400'}`}><span className={`h-1.5 w-1.5 rounded-full ${isSuccess ? 'bg-emerald-500' : 'bg-red-500'}`} />{isSuccess ? 'Success' : 'Failed'}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {(user.security?.socialAccounts?.length ?? 0) > 0 && (
               <div className="mt-5 border-t border-gray-100 pt-5 dark:border-gray-800">
                 <h3 className="mb-3 text-sm font-bold text-gray-900 dark:text-white">Linked Accounts</h3>
-                <div className="space-y-2">
-                  {user.socialAccounts.map((account) => (
-                    <div key={account.provider} className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-2.5 ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700">
-                      <span className="text-sm font-semibold capitalize text-gray-700 dark:text-gray-200">{account.provider}</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">{account.linkedAt ? formatDate(account.linkedAt) : 'Linked'}</span>
-                    </div>
-                  ))}
-                </div>
+                <div className="space-y-2">{user.security!.socialAccounts!.map((account) => (<div key={account.provider} className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-2.5 ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700"><span className="text-sm font-semibold capitalize text-gray-700 dark:text-gray-200">{account.provider}</span><span className="text-xs text-gray-500 dark:text-gray-400">{account.linkedAt ? formatDate(account.linkedAt) : 'Linked'}</span></div>))}</div>
               </div>
             )}
           </div>
@@ -243,7 +340,7 @@ export default function UserDetailsPage() {
                         </div>
                         <button onClick={() => handleRemoveRole(role.id)} className="rounded-lg p-1.5 text-gray-400 opacity-0 transition hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 dark:hover:bg-red-900/20" title="Remove role"><svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
                       </div>
-                      {rolePerms.length > 0 && <div className="mt-3 flex flex-wrap gap-1">{rolePerms.slice(0, 5).map((p) => <span key={p.id} className="inline-flex items-center rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-gray-600 ring-1 ring-gray-200 dark:bg-gray-900 dark:text-gray-300 dark:ring-gray-700">{p.resource}:{p.action}</span>)}{rolePerms.length > 5 && <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-400">+{rolePerms.length - 5} more</span>}</div>}
+                      {rolePerms.length > 0 && <div className="mt-3 flex flex-wrap gap-1">{rolePerms.slice(0, 5).map((p) => <span key={p.id} title={p.code ?? `${p.resource}:${p.action}`} className="inline-flex items-center rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-gray-600 ring-1 ring-gray-200 dark:bg-gray-900 dark:text-gray-300 dark:ring-gray-700">{formatPermChip(p)}</span>)}{rolePerms.length > 5 && <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-400">+{rolePerms.length - 5} more</span>}</div>}
                     </div>
                   );
                 })}
@@ -301,9 +398,10 @@ export default function UserDetailsPage() {
       {roleModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-gray-200/60 dark:bg-gray-900 dark:ring-gray-700">
-            <button onClick={() => setRoleModalOpen(false)} className="absolute right-4 top-4 rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"><svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <button onClick={() => { setRoleModalOpen(false); setAssignError(null); }} className="absolute right-4 top-4 rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"><svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">Assign Role</h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Select a role to assign to <span className="font-semibold text-gray-700 dark:text-gray-200">{displayName}</span></p>
+            {assignError && <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">{assignError}</div>}
             {userRoles.length > 0 && <div className="mb-4 mt-4"><p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-400">Current Roles</p><div className="flex flex-wrap gap-2">{userRoles.map((role) => <span key={role.id || role.name} className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">{role.name}</span>)}</div></div>}
             <div className="mt-4"><p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-400">Available Roles</p>
               <div className="max-h-48 space-y-1.5 overflow-y-auto">
@@ -316,6 +414,60 @@ export default function UserDetailsPage() {
                 {roles.filter((r) => !userRoles.some((ur) => ur.id === r.id)).length === 0 && <p className="py-4 text-center text-xs text-gray-400">All roles assigned</p>}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {editOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-800">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Edit User</h2>
+              <button onClick={() => setEditOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            {editError && (
+              <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">{editError}</div>
+            )}
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">First Name</label>
+                <input
+                  type="text"
+                  value={editFirstName}
+                  onChange={(e) => setEditFirstName(e.target.value)}
+                  required
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Last Name</label>
+                <input
+                  type="text"
+                  value={editLastName}
+                  onChange={(e) => setEditLastName(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setEditOpen(false)} className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700">
+                  Cancel
+                </button>
+                <button type="submit" disabled={editSaving} className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-60">
+                  {editSaving && (
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                  )}
+                  {editSaving ? 'Saving…' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

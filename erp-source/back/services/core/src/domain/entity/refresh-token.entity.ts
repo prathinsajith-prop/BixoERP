@@ -9,6 +9,9 @@ export class RefreshToken extends Entity {
   replacedByTokenId: string | null;
   userAgent: string | null;
   ipAddress: string | null;
+  /** The tenant where the user record lives. Differs from tenantId when the user
+   *  has switched to a different org — tenantId = active org, userTenantId = home org. */
+  userTenantId: string | null;
 
   private constructor(
     tenantId: string,
@@ -25,6 +28,7 @@ export class RefreshToken extends Entity {
     this.replacedByTokenId = null;
     this.userAgent = null;
     this.ipAddress = null;
+    this.userTenantId = null;
   }
 
   static create(
@@ -51,6 +55,7 @@ export class RefreshToken extends Entity {
     replacedByTokenId: string | null;
     userAgent: string | null;
     ipAddress: string | null;
+    userTenantId: string | null;
     createdAt: Date;
     updatedAt: Date;
   }): RefreshToken {
@@ -59,6 +64,7 @@ export class RefreshToken extends Entity {
     rt.replacedByTokenId = props.replacedByTokenId;
     rt.userAgent = props.userAgent;
     rt.ipAddress = props.ipAddress;
+    rt.userTenantId = props.userTenantId ?? null;
     (rt as any).createdAt = props.createdAt;
     rt.updatedAt = props.updatedAt;
     return rt;

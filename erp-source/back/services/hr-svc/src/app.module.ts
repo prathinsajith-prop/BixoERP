@@ -85,7 +85,7 @@ const ormEntities = [
         password: config.get<string>('database.password'),
         database: config.get<string>('database.database'),
         entities: ormEntities,
-        synchronize: true, // TODO: use migrations in production
+        synchronize: config.get<string>('NODE_ENV') === 'development',
         logging: config.get<boolean>('database.logging'),
       }),
     }),

@@ -54,24 +54,30 @@ export class RefreshTokenUseCase {
       throw new TokenExpiredException();
     }
 
-    const user = await this.userRepo.findById(existingToken.tenantId, existingToken.userId);
+    // userTenantId is the home org where the user record lives.
+    // tenantId is the active org (may differ after an org switch).
+    const userHomeTenantId = existingToken.userTenantId ?? existingToken.tenantId;
+    const activeTenantId = existingToken.tenantId;
+
+    const user = await this.userRepo.findById(userHomeTenantId, existingToken.userId);
     if (!user || !user.canLogin()) {
       throw new EntityNotFoundException('User', existingToken.userId);
     }
 
-    // Rotate: revoke old, create new
+    // Rotate: revoke old, create new — preserve userTenantId so future refreshes work
     const rawNewToken = RefreshToken.generateRawToken();
     const newTokenHash = createHash('sha256').update(rawNewToken).digest('hex');
-    const newRefreshToken = RefreshToken.create(existingToken.tenantId, user.id, newTokenHash, this.refreshTtlDays);
+    const newRefreshToken = RefreshToken.create(activeTenantId, user.id, newTokenHash, this.refreshTtlDays);
     newRefreshToken.userAgent = cmd.userAgent ?? null;
     newRefreshToken.ipAddress = cmd.ipAddress ?? null;
+    newRefreshToken.userTenantId = existingToken.userTenantId; // preserve home org
 
     existingToken.revoke(newRefreshToken.id);
     await this.refreshTokenRepo.update(existingToken);
     await this.refreshTokenRepo.save(newRefreshToken);
 
-    // Resolve permissions (cached for 5 min)
-    const cacheKey = `perms:${user.tenantId}:${user.id}`;
+    // Resolve permissions from the ACTIVE org (not the user's home org)
+    const cacheKey = `perms:${activeTenantId}:${user.id}`;
     let permissionCodes: string[];
     let roleNames: string[];
     const cached = await this.cache.get(cacheKey);
@@ -80,9 +86,9 @@ export class RefreshTokenUseCase {
       permissionCodes = parsed.permissionCodes;
       roleNames = parsed.roleNames;
     } else {
-      const roles = await this.roleRepo.findByIds(user.tenantId, user.roles);
+      const roles = await this.roleRepo.findByIds(activeTenantId, user.roles);
       const allPermissionIds = [...new Set(roles.flatMap((r) => r.permissions))];
-      const permissions = await this.permissionRepo.findByIds(user.tenantId, allPermissionIds);
+      const permissions = await this.permissionRepo.findByIds(activeTenantId, allPermissionIds);
       permissionCodes = permissions.map((p) => p.code);
       roleNames = roles.map((r) => r.name);
       await this.cache.set(cacheKey, JSON.stringify({ permissionCodes, roleNames }), 300);
@@ -90,7 +96,7 @@ export class RefreshTokenUseCase {
 
     const accessToken = this.tokenService.generateAccessToken({
       sub: user.id,
-      tenantId: user.tenantId,
+      tenantId: activeTenantId,  // issue token for the active org, not the user's home org
       email: user.email.value,
       roles: roleNames,
       permissions: permissionCodes,

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
 import PageHeader from '@/components/page-header';
@@ -50,7 +51,7 @@ const Icons = {
 };
 
 /* ── Types ──────────────────────────────────────────────────────── */
-interface User { id: string; email: string; firstName?: string; lastName?: string; isActive?: boolean; roles?: Role[]; createdAt?: string }
+interface User { id: string; email: string; firstName?: string; lastName?: string; status?: string; isActive?: boolean; roles?: Role[]; createdAt?: string }
 interface Role { id: string; name: string; description?: string }
 type StatusFilter = 'all' | 'active' | 'inactive';
 
@@ -194,24 +195,60 @@ export default function UserManagementPage() {
   const [roleModalOpen, setRoleModalOpen] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [toggleModalOpen, setToggleModalOpen] = useState(false);
+  const [toggling, setToggling] = useState(false);
   const [assigning, setAssigning] = useState(false);
+
+  /* ── Toast ─── */
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  const showToast = useCallback((type: 'success' | 'error', text: string) => {
+    setToast({ type, text });
+    setTimeout(() => setToast(null), 4000);
+  }, []);
 
   /* ── Add user form ─── */
   const [addForm, setAddForm] = useState({ firstName: '', lastName: '', email: '', password: '', roleId: '' });
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState('');
 
+  /* ── Helpers ─── */
+  const mapUsers = useCallback((rawList: User[], roleList: Role[]): User[] =>
+    rawList.map((u) => ({
+      ...u,
+      isActive: u.status ? u.status === 'ACTIVE' : u.isActive !== false,
+      roles: ((u.roles || []) as (Role | string)[]).map((r) => {
+        if (typeof r === 'string') {
+          return roleList.find((rl) => rl.id === r) ?? { id: r, name: r };
+        }
+        return r;
+      }),
+    })), []);
+
   /* ── Fetch (falls back to seed data when API is empty) ─── */
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await authApi.listUsers({ page: 1, limit: 200 });
-      const data = res.data?.data || res.data;
+      const [usersRes, rolesRes] = await Promise.all([
+        authApi.listUsers({ page: 1, limit: 200 }),
+        authApi.listRoles(),
+      ]);
+      const data = usersRes.data?.data || usersRes.data;
+      const rList: Role[] = rolesRes.data?.data || rolesRes.data || [];
+      const resolvedRoles = rList.length > 0 ? rList : DEMO_ROLES;
+      setRoles(resolvedRoles);
       const list: User[] = data.users || [];
-      if (list.length > 0) { setUsers(list); setTotal(list.length); }
-      else { const seed = generateSeedUsers(); setUsers(seed); setTotal(seed.length); }
-    } catch { const seed = generateSeedUsers(); setUsers(seed); setTotal(seed.length); } finally { setLoading(false); }
-  }, []);
+      if (list.length > 0) {
+        setUsers(mapUsers(list, resolvedRoles));
+        setTotal(list.length);
+      } else {
+        const seed = generateSeedUsers(); setUsers(seed); setTotal(seed.length);
+      }
+    } catch {
+      const seed = generateSeedUsers(); setUsers(seed); setTotal(seed.length);
+    } finally { setLoading(false); }
+  }, [mapUsers]);
 
   const fetchRoles = useCallback(async () => {
     try {
@@ -231,11 +268,16 @@ export default function UserManagementPage() {
       .then(([usersRes, rolesRes]) => {
         if (!ignore) {
           const data = usersRes.data?.data || usersRes.data;
+          const rList: Role[] = rolesRes.data?.data || rolesRes.data || [];
+          const resolvedRoles = rList.length > 0 ? rList : DEMO_ROLES;
+          setRoles(resolvedRoles);
           const list: User[] = data.users || [];
-          if (list.length > 0) { setUsers(list); setTotal(list.length); }
-          else { const seed = generateSeedUsers(); setUsers(seed); setTotal(seed.length); }
-          const rList = rolesRes.data?.data || rolesRes.data || [];
-          setRoles(rList.length > 0 ? rList : DEMO_ROLES);
+          if (list.length > 0) {
+            setUsers(mapUsers(list, resolvedRoles));
+            setTotal(list.length);
+          } else {
+            const seed = generateSeedUsers(); setUsers(seed); setTotal(seed.length);
+          }
         }
       })
       .catch(() => {
@@ -246,7 +288,7 @@ export default function UserManagementPage() {
       })
       .finally(() => { if (!ignore) setLoading(false); });
     return () => { ignore = true; };
-  }, []);
+  }, [mapUsers]);
 
   /* ── Filtering ─── */
   const filteredUsers = useMemo(() => {
@@ -300,11 +342,27 @@ export default function UserManagementPage() {
   /* ── Role handlers ─── */
   const handleAssignRole = async (userId: string, roleId: string) => {
     setAssigning(true);
-    try { await authApi.assignRoleToUser(userId, roleId); await fetchUsers(); setRoleModalOpen(false); setSelectedUser(null); } catch { } finally { setAssigning(false); }
+    try {
+      await authApi.assignRoleToUser(userId, roleId);
+      await fetchUsers();
+      setRoleModalOpen(false);
+      setSelectedUser(null);
+      showToast('success', 'Role assigned successfully.');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to assign role.';
+      showToast('error', msg);
+    } finally { setAssigning(false); }
   };
 
   const handleRemoveRole = async (userId: string, roleId: string) => {
-    try { await authApi.removeRoleFromUser(userId, roleId); await fetchUsers(); } catch { }
+    try {
+      await authApi.removeRoleFromUser(userId, roleId);
+      await fetchUsers();
+      showToast('success', 'Role removed successfully.');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to remove role.';
+      showToast('error', msg);
+    }
   };
 
   /* ── Add user ─── */
@@ -316,19 +374,66 @@ export default function UserManagementPage() {
       await fetchUsers();
       setAddModalOpen(false);
       setAddForm({ firstName: '', lastName: '', email: '', password: '', roleId: '' });
+      showToast('success', `User ${addForm.email} created successfully.`);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to create user';
-      setAddError(msg);
+      const msg = (err as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
+      const text = Array.isArray(msg) ? msg.join(', ') : (msg as string) || 'Failed to create user.';
+      setAddError(text);
     } finally { setAddLoading(false); }
   };
 
-  /* ── Delete user (placeholder — backend may not support yet) ─── */
+  /* ── Delete user ─── */
+  const [deleting, setDeleting] = useState(false);
   const handleDeleteUser = async () => {
     if (!selectedUser) return;
-    // TODO: connect to authApi.deleteUser() when available
-    setDeleteModalOpen(false);
-    setSelectedUser(null);
-    await fetchUsers();
+    setDeleting(true);
+    const email = selectedUser.email;
+    try {
+      await authApi.deleteUser(selectedUser.id);
+      setUsers((prev) => prev.filter((u) => u.id !== selectedUser.id));
+      setDeleteModalOpen(false);
+      setSelectedUser(null);
+      showToast('success', `User ${email} deleted successfully.`);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to delete user.';
+      showToast('error', msg);
+      setDeleteModalOpen(false);
+      setSelectedUser(null);
+    } finally { setDeleting(false); }
+  };
+
+  /* ── Activate / Deactivate user ─── */
+  const handleToggleActive = (user: User) => {
+    setSelectedUser(user);
+    setToggleModalOpen(true);
+  };
+
+  const confirmToggleActive = async () => {
+    if (!selectedUser) return;
+    setToggling(true);
+    const isCurrentlyActive = selectedUser.isActive !== false;
+    try {
+      const res = isCurrentlyActive
+        ? await authApi.deactivateUser(selectedUser.id)
+        : await authApi.activateUser(selectedUser.id);
+      const updated = (res as { data?: { data?: User } }).data?.data;
+      // Optimistically update user in list
+      setUsers((prev) => prev.map((u) =>
+        u.id === selectedUser.id
+          ? { ...u, status: updated?.status ?? (isCurrentlyActive ? 'INACTIVE' : 'ACTIVE'), isActive: !isCurrentlyActive }
+          : u
+      ));
+      setToggleModalOpen(false);
+      setSelectedUser(null);
+      const action = isCurrentlyActive ? 'deactivated' : 'activated';
+      showToast('success', `User ${selectedUser.email} ${action} successfully.`);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+        ?? (isCurrentlyActive ? 'Failed to deactivate user.' : 'Failed to activate user.');
+      showToast('error', msg);
+      setToggleModalOpen(false);
+      setSelectedUser(null);
+    } finally { setToggling(false); }
   };
 
   /* ── Export CSV ─── */
@@ -356,6 +461,25 @@ export default function UserManagementPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="User Management" subtitle="Manage users, roles, and access" />
+
+      {/* ── Toast (portal to body so fixed positioning isn't broken by parent transforms) ─── */}
+      {mounted && toast && createPortal(
+        <div role="status" aria-live="polite" className={`fixed right-5 top-5 z-[9999] flex items-center gap-3 rounded-xl px-4 py-3 shadow-xl ring-1 ${toast.type === 'success'
+            ? 'bg-white ring-emerald-200 dark:bg-gray-900 dark:ring-emerald-800'
+            : 'bg-white ring-red-200 dark:bg-gray-900 dark:ring-red-800'
+          }`}>
+          {toast.type === 'success'
+            ? <svg className="h-5 w-5 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            : <svg className="h-5 w-5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          }
+          <p className={`text-sm font-medium ${toast.type === 'success' ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300'
+            }`}>{toast.text}</p>
+          <button onClick={() => setToast(null)} className="ml-1 rounded p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>,
+        document.body
+      )}
 
       {/* ── Stat cards ─── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -514,7 +638,7 @@ export default function UserManagementPage() {
                         <RowActions user={user}
                           onView={() => router.push(`/admin/users/${user.id}`)}
                           onRoles={() => { setSelectedUser(user); setRoleModalOpen(true); }}
-                          onToggleStatus={() => { /* TODO: connect to toggle API */ }}
+                          onToggleStatus={() => handleToggleActive(user)}
                           onDelete={() => { setSelectedUser(user); setDeleteModalOpen(true); }}
                         />
                       </td>
@@ -673,6 +797,38 @@ export default function UserManagementPage() {
       )}
 
       {/* ── Delete confirmation modal ─── */}
+      {/* ── Toggle Active/Inactive confirmation modal ─── */}
+      {toggleModalOpen && selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-gray-200/60 dark:bg-gray-900 dark:ring-gray-700">
+            <div className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full ${selectedUser.isActive !== false ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-emerald-100 dark:bg-emerald-900/30'}`}>
+              <span className={selectedUser.isActive !== false ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}>{Icons.userToggle}</span>
+            </div>
+            <h3 className="mt-4 text-center text-lg font-bold text-gray-900 dark:text-white">
+              {selectedUser.isActive !== false ? 'Deactivate User' : 'Activate User'}
+            </h3>
+            <p className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
+              {selectedUser.isActive !== false
+                ? <>Are you sure you want to deactivate <span className="font-semibold text-gray-700 dark:text-gray-200">{selectedUser.email}</span>? They will lose access immediately.</>
+                : <>Are you sure you want to activate <span className="font-semibold text-gray-700 dark:text-gray-200">{selectedUser.email}</span>? They will regain access.</>
+              }
+            </p>
+            <div className="mt-6 flex gap-2">
+              <button onClick={() => { setToggleModalOpen(false); setSelectedUser(null); }}
+                className="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
+                Cancel
+              </button>
+              <button onClick={confirmToggleActive} disabled={toggling}
+                className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-60 ${selectedUser.isActive !== false ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-600 hover:bg-emerald-700'
+                  }`}>
+                {toggling && Icons.spinnerSm}
+                {selectedUser.isActive !== false ? 'Deactivate' : 'Activate'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {deleteModalOpen && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-gray-200/60 dark:bg-gray-900 dark:ring-gray-700">
@@ -688,8 +844,9 @@ export default function UserManagementPage() {
                 className="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
                 Cancel
               </button>
-              <button onClick={handleDeleteUser}
-                className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">
+              <button onClick={handleDeleteUser} disabled={deleting}
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60">
+                {deleting && Icons.spinnerSm}
                 Delete
               </button>
             </div>
