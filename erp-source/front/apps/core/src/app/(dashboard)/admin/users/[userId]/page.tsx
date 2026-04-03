@@ -79,7 +79,22 @@ export default function UserDetailsPage() {
 
   const fetchUser = useCallback(async () => {
     setLoading(true); setError(null);
-    try { const res = await authApi.getUser(userId); setUser(res.data?.data || res.data); } catch (err: any) { setError(err.response?.status === 404 ? 'User not found' : 'Failed to load user details'); } finally { setLoading(false); }
+    try {
+      const res = await authApi.getUser(userId);
+      const raw = res.data?.data || res.data;
+      // Normalise flat flags that the backend nests under `security`
+      setUser({
+        ...raw,
+        isActive: raw.isActive !== undefined ? raw.isActive : (raw.status === 'ACTIVE'),
+        emailVerified: raw.emailVerified !== undefined ? raw.emailVerified : (raw.security?.emailVerified ?? false),
+        twoFactorEnabled: raw.twoFactorEnabled !== undefined ? raw.twoFactorEnabled : (raw.security?.twoFactorEnabled ?? false),
+        failedLoginAttempts: raw.failedLoginAttempts ?? raw.security?.failedLoginAttempts ?? 0,
+        lockedUntil: raw.lockedUntil ?? raw.security?.lockedUntil ?? null,
+      });
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      setError(status === 404 ? 'User not found' : 'Failed to load user details');
+    } finally { setLoading(false); }
   }, [userId]);
 
   const fetchRoles = useCallback(async () => {

@@ -244,6 +244,25 @@ export default function OrganizationDetailPage() {
     const [loadingMembers, setLoadingMembers] = useState(false);
     const [showInvite, setShowInvite] = useState(false);
     const [removingId, setRemovingId] = useState<string | null>(null);
+    const [togglingStatus, setTogglingStatus] = useState(false);
+
+    const handleToggleOrgStatus = async () => {
+        if (!org) return;
+        const isActive = (org.status || 'ACTIVE').toUpperCase() === 'ACTIVE';
+        const newStatus = isActive ? 'INACTIVE' : 'ACTIVE';
+        if (!confirm(`${isActive ? 'Deactivate' : 'Activate'} organization "${org.name}"?`)) return;
+        setTogglingStatus(true);
+        try {
+            await authApi.updateOrganization(orgId, { status: newStatus });
+            setOrg({ ...org, status: newStatus });
+            showToast.success(isActive ? 'Organization deactivated' : 'Organization activated');
+        } catch (err: unknown) {
+            const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            showToast.error('Update failed', msg || 'Could not update status.');
+        } finally {
+            setTogglingStatus(false);
+        }
+    };
 
     const fetchOrg = useCallback(async () => {
         setLoadingOrg(true);
@@ -482,6 +501,20 @@ export default function OrganizationDetailPage() {
                                     </button>
                                     <button onClick={() => setActiveTab('settings')} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800">
                                         {Icons.pencil} Edit settings
+                                    </button>
+                                    <button
+                                        onClick={handleToggleOrgStatus}
+                                        disabled={togglingStatus}
+                                        className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition disabled:opacity-50 ${(org.status || 'ACTIVE').toUpperCase() === 'ACTIVE'
+                                                ? 'text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20'
+                                                : 'text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-900/20'
+                                            }`}
+                                    >
+                                        {togglingStatus
+                                            ? <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                                            : <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5.636 5.636a9 9 0 1012.728 0M12 3v9" /></svg>
+                                        }
+                                        {(org.status || 'ACTIVE').toUpperCase() === 'ACTIVE' ? 'Deactivate organization' : 'Activate organization'}
                                     </button>
                                 </div>
                             </div>

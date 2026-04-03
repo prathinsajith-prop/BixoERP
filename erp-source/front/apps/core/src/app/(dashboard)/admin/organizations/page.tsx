@@ -48,7 +48,6 @@ interface Organization {
     status?: string;
     ownerId?: string;
     createdAt?: string;
-    memberCount?: number;
 }
 
 type StatusFilter = 'all' | 'ACTIVE' | 'INACTIVE';

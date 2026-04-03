@@ -217,7 +217,7 @@ export default function UserManagementPage() {
       }),
     })), []);
 
-  /* ── Fetch (falls back to seed data when API is empty) ─── */
+  /* ── Fetch ─── */
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
@@ -230,14 +230,12 @@ export default function UserManagementPage() {
       const resolvedRoles = rList.length > 0 ? rList : DEMO_ROLES;
       setRoles(resolvedRoles);
       const list: User[] = data.users || [];
-      if (list.length > 0) {
-        setUsers(mapUsers(list, resolvedRoles));
-        setTotal(list.length);
-      } else {
-        const seed = generateSeedUsers(); setUsers(seed); setTotal(seed.length);
-      }
+      setUsers(mapUsers(list, resolvedRoles));
+      setTotal(list.length);
     } catch {
-      const seed = generateSeedUsers(); setUsers(seed); setTotal(seed.length);
+      showToast.error('Load failed', 'Could not fetch users.');
+      setUsers([]);
+      setTotal(0);
     } finally { setLoading(false); }
   }, [mapUsers]);
 
@@ -263,17 +261,15 @@ export default function UserManagementPage() {
           const resolvedRoles = rList.length > 0 ? rList : DEMO_ROLES;
           setRoles(resolvedRoles);
           const list: User[] = data.users || [];
-          if (list.length > 0) {
-            setUsers(mapUsers(list, resolvedRoles));
-            setTotal(list.length);
-          } else {
-            const seed = generateSeedUsers(); setUsers(seed); setTotal(seed.length);
-          }
+          setUsers(mapUsers(list, resolvedRoles));
+          setTotal(list.length);
         }
       })
       .catch(() => {
         if (!ignore) {
-          const seed = generateSeedUsers(); setUsers(seed); setTotal(seed.length);
+          showToast.error('Load failed', 'Could not fetch users.');
+          setUsers([]);
+          setTotal(0);
           setRoles(DEMO_ROLES);
         }
       })
@@ -361,7 +357,11 @@ export default function UserManagementPage() {
     if (!addForm.email || !addForm.firstName || !addForm.lastName || !addForm.password) { setAddError('All fields are required'); return; }
     setAddLoading(true); setAddError('');
     try {
-      await authApi.register({ email: addForm.email, password: addForm.password, firstName: addForm.firstName, lastName: addForm.lastName });
+      const regRes = await authApi.register({ email: addForm.email, password: addForm.password, firstName: addForm.firstName, lastName: addForm.lastName });
+      const newUserId = regRes.data?.data?.id ?? regRes.data?.id;
+      if (addForm.roleId && newUserId) {
+        try { await authApi.assignRoleToUser(newUserId, addForm.roleId); } catch { /* non-fatal */ }
+      }
       await fetchUsers();
       setAddModalOpen(false);
       setAddForm({ firstName: '', lastName: '', email: '', password: '', roleId: '' });
