@@ -25,21 +25,21 @@ SERVICES=(
   audit-svc
   notification-web
   # ── Frontend ─────────────────────────────────────────
-  erp-frontend
-  hr-frontend
-  finance-frontend
-  apar-frontend
-  inventory-frontend
-  procurement-frontend
-  manufacturing-frontend
-  sales-frontend
-  projects-frontend
-  reports-frontend
-  workflow-frontend
-  notifications-frontend
-  files-frontend
-  audit-frontend
-  integrations-frontend
+  # erp-frontend
+  # hr-frontend
+  # finance-frontend
+  # apar-frontend
+  # inventory-frontend
+  # procurement-frontend
+  # manufacturing-frontend
+  # sales-frontend
+  # projects-frontend
+  # reports-frontend
+  # workflow-frontend
+  # notifications-frontend
+  # files-frontend
+  # audit-frontend
+  # integrations-frontend
 )
 
 TOTAL=${#SERVICES[@]}

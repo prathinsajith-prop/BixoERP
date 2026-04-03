@@ -1,57 +1,86 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { Plus, Search } from "lucide-react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Modal, Button, Input, Select, LoadingSpinner, EmptyState } from "@erp/ui";
+import {
+  Modal, Button, Input, Select,
+  DataTable, EntityCard, EntityCardGrid,
+  KPICard, SearchFilterBar, StatusBadge, Pagination, PageHeader,
+  type ActiveFilters, type ViewMode, type FilterConfig, type RowAction,
+} from "@erp/ui";
 import { api, type EmployeeResponse, type DepartmentResponse, type PositionResponse } from "../../lib/api";
+import { RefreshCw, Plus, Eye, Pencil, Trash2, Users, UserCheck, UserMinus, Building2 } from "lucide-react";
 
+/* ─── Single source of mock data ─── */
+const MOCK_EMPLOYEES: EmployeeResponse[] = [
+  { id: "m1", employeeNumber: "EMP-001", firstName: "Alice",  lastName: "Chen",      email: "alice.chen@erp.com",    phone: null, dateOfBirth: "1990-03-15", hireDate: "2021-01-10", terminationDate: null, departmentId: "d1", departmentName: "Finance",     positionId: "p1", positionTitle: "Sr. Accountant",     managerId: null, status: "ACTIVE",     baseSalary: { amount: 85000, currency: "USD" }, currency: "USD", createdAt: "", updatedAt: "" },
+  { id: "m2", employeeNumber: "EMP-002", firstName: "Bob",    lastName: "Ramírez",   email: "bob.ramirez@erp.com",   phone: null, dateOfBirth: "1988-07-22", hireDate: "2020-06-01", terminationDate: null, departmentId: "d2", departmentName: "HR",          positionId: "p2", positionTitle: "HR Manager",          managerId: null, status: "ACTIVE",     baseSalary: { amount: 72000, currency: "USD" }, currency: "USD", createdAt: "", updatedAt: "" },
+  { id: "m3", employeeNumber: "EMP-003", firstName: "Carol",  lastName: "Santos",    email: "carol.santos@erp.com",  phone: null, dateOfBirth: "1993-11-08", hireDate: "2022-03-14", terminationDate: null, departmentId: "d3", departmentName: "Sales",       positionId: "p3", positionTitle: "Sales Executive",     managerId: null, status: "ACTIVE",     baseSalary: { amount: 65000, currency: "USD" }, currency: "USD", createdAt: "", updatedAt: "" },
+  { id: "m4", employeeNumber: "EMP-004", firstName: "David",  lastName: "Kim",       email: "david.kim@erp.com",     phone: null, dateOfBirth: "1985-02-19", hireDate: "2019-09-23", terminationDate: null, departmentId: "d4", departmentName: "Engineering", positionId: "p4", positionTitle: "Software Engineer",   managerId: null, status: "PROBATION",  baseSalary: { amount: 95000, currency: "USD" }, currency: "USD", createdAt: "", updatedAt: "" },
+  { id: "m5", employeeNumber: "EMP-005", firstName: "Eva",    lastName: "Müller",    email: "eva.muller@erp.com",    phone: null, dateOfBirth: "1991-05-30", hireDate: "2021-11-09", terminationDate: null, departmentId: "d5", departmentName: "Operations",  positionId: "p5", positionTitle: "Ops Analyst",         managerId: null, status: "ON_LEAVE",   baseSalary: { amount: 70000, currency: "USD" }, currency: "USD", createdAt: "", updatedAt: "" },
+  { id: "m6", employeeNumber: "EMP-006", firstName: "Frank",  lastName: "Okafor",    email: "frank.okafor@erp.com",  phone: null, dateOfBirth: "1987-09-14", hireDate: "2023-01-03", terminationDate: null, departmentId: "d6", departmentName: "Marketing",  positionId: "p6", positionTitle: "Marketing Specialist", managerId: null, status: "ACTIVE",     baseSalary: { amount: 68000, currency: "USD" }, currency: "USD", createdAt: "", updatedAt: "" },
+  { id: "m7", employeeNumber: "EMP-007", firstName: "Grace",  lastName: "Patel",     email: "grace.patel@erp.com",   phone: null, dateOfBirth: "1995-08-03", hireDate: "2023-07-17", terminationDate: null, departmentId: "d4", departmentName: "Engineering", positionId: "p7", positionTitle: "Frontend Developer",  managerId: null, status: "ACTIVE",     baseSalary: { amount: 88000, currency: "USD" }, currency: "USD", createdAt: "", updatedAt: "" },
+  { id: "m8", employeeNumber: "EMP-008", firstName: "Henry",  lastName: "Johansson", email: "henry.j@erp.com",       phone: null, dateOfBirth: "1982-12-25", hireDate: "2018-04-02", terminationDate: null, departmentId: "d1", departmentName: "Finance",     positionId: "p8", positionTitle: "CFO",                 managerId: null, status: "ACTIVE",     baseSalary: { amount: 140000, currency: "USD" }, currency: "USD", createdAt: "", updatedAt: "" },
+];
+
+const AVATAR_COLORS = ["#922c88","#6d2166","#b14fa5","#0ea5e9","#7c3aed","#10b981","#f59e0b","#e91e63"];
+function avatarColor(seed: string) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = seed.charCodeAt(i) + ((h << 5) - h);
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+}
+
+function EmployeeBadge({ status }: { status: string }) {
+  return <StatusBadge status={status.toLowerCase().replace(/_/g, "-")} />;
+}
+
+/* ─── Form schema ─── */
 const employeeSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  email: z.string().email("Enter a valid email address"),
-  phone: z.string().optional(),
-  dateOfBirth: z.string().min(1, "Date of birth is required"),
-  hireDate: z.string().min(1, "Hire date is required"),
+  firstName:    z.string().min(1, "First name is required"),
+  lastName:     z.string().min(1, "Last name is required"),
+  email:        z.string().email("Enter a valid email address"),
+  phone:        z.string().optional(),
+  dateOfBirth:  z.string().min(1, "Date of birth is required"),
+  hireDate:     z.string().min(1, "Hire date is required"),
   departmentId: z.string().min(1, "Please select a department"),
-  positionId: z.string().min(1, "Please select a position"),
-  baseSalary: z.coerce.number({ invalid_type_error: "Salary must be a number" }).positive("Salary must be greater than 0"),
-  currency: z.string().default("USD"),
+  positionId:   z.string().min(1, "Please select a position"),
+  baseSalary:   z.coerce.number({ invalid_type_error: "Salary must be a number" }).positive("Salary must be greater than 0"),
+  currency:     z.string().default("USD"),
 });
 type EmployeeFormData = z.infer<typeof employeeSchema>;
 
-const statusStyles: Record<string, string> = {
-  ACTIVE: "bg-green-100 text-green-800",
-  ON_LEAVE: "bg-yellow-100 text-yellow-800",
-  TERMINATED: "bg-red-100 text-red-800",
-  PROBATION: "bg-blue-100 text-blue-800",
-};
-
+/* ═══════════════════════════════════════════════════════════
+   Page component
+   ═══════════════════════════════════════════════════════════ */
 export default function EmployeesPage() {
-  const [employees, setEmployees] = useState<EmployeeResponse[]>([]);
+  /* ─── Data ─── */
+  const [employees, setEmployees]   = useState<EmployeeResponse[]>(MOCK_EMPLOYEES);
   const [departments, setDepartments] = useState<DepartmentResponse[]>([]);
-  const [positions, setPositions] = useState<PositionResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [positions, setPositions]   = useState<PositionResponse[]>([]);
+  const [apiLoaded, setApiLoaded]   = useState(false);
+  const [apiError, setApiError]     = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [showCreate, setShowCreate] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<EmployeeFormData>({
+  /* ─── UI state ─── */
+  const [search, setSearch]               = useState("");
+  const [activeFilters, setActiveFilters] = useState<ActiveFilters>({});
+  const [view, setView]                   = useState<ViewMode>("table");
+  const [showCreate, setShowCreate]       = useState(false);
+  const [page, setPage]                   = useState(1);
+  const [pageSize, setPageSize]           = useState(10);
+
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<EmployeeFormData>({
     resolver: zodResolver(employeeSchema),
     defaultValues: { currency: "USD" },
   });
 
-  const load = useCallback(async () => {
+  /* ─── Load API data in background ─── */
+  const load = useCallback(async (showSpinner = false) => {
+    if (showSpinner) setRefreshing(true);
     try {
-      setLoading(true);
       const [emps, depts, pos] = await Promise.all([
         api.employees.list(),
         api.departments.list(),
@@ -60,155 +89,342 @@ export default function EmployeesPage() {
       setEmployees(emps);
       setDepartments(depts);
       setPositions(pos);
-      setError(null);
+      setApiError(null);
+      setApiLoaded(true);
     } catch (err: unknown) {
-      setError((err as { message?: string }).message ?? "Failed to load employees");
+      setApiError((err as { message?: string }).message ?? "Could not load live data");
     } finally {
-      setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
-  useEffect(() => {
-    let ignore = false;
-    setLoading(true);
-    Promise.all([api.employees.list(), api.departments.list(), api.positions.list()])
-      .then(([emps, depts, pos]) => {
-        if (!ignore) { setEmployees(emps); setDepartments(depts); setPositions(pos); setError(null); }
-      })
-      .catch((err: unknown) => {
-        if (!ignore) setError((err as { message?: string }).message ?? 'Failed to load employees');
-      })
-      .finally(() => { if (!ignore) setLoading(false); });
-    return () => { ignore = true; };
-  }, []);
+  useEffect(() => { load(); }, [load]);
 
-  const filtered = employees.filter((e) => {
-    const q = search.toLowerCase();
-    const name = `${e.firstName} ${e.lastName}`.toLowerCase();
-    return name.includes(q) || (e.departmentName ?? "").toLowerCase().includes(q) || e.email.toLowerCase().includes(q);
-  });
+  /* ─── KPI stats computed from data source ─── */
+  const stats = useMemo(() => {
+    const total  = employees.length;
+    const active = employees.filter((e) => e.status === "ACTIVE").length;
+    const onLeave = employees.filter((e) => e.status === "ON_LEAVE").length;
+    const depts  = new Set(employees.map((e) => e.departmentId)).size;
+    return { total, active, onLeave, depts };
+  }, [employees]);
 
-  function closeModal() {
-    setShowCreate(false);
-    setServerError(null);
-    reset();
-  }
+  /* ─── Filter config (dept options from API or mock fallback) ─── */
+  const filterConfigs: FilterConfig[] = useMemo(() => {
+    const deptOptions = departments.length > 0
+      ? departments.map((d) => ({ value: d.id, label: d.name }))
+      : [...new Set(MOCK_EMPLOYEES.map((e) => e.departmentName ?? ""))].map((d) => ({ value: d, label: d }));
+    return [
+      {
+        key: "status", label: "Status", type: "multiselect" as const,
+        options: [
+          { value: "ACTIVE", label: "Active" }, { value: "ON_LEAVE", label: "On Leave" },
+          { value: "PROBATION", label: "Probation" }, { value: "TERMINATED", label: "Terminated" },
+        ],
+        quickOptions: [{ value: "ACTIVE", label: "Active only" }, { value: "ON_LEAVE", label: "On Leave" }],
+      },
+      { key: "department", label: "Department", type: "multiselect" as const, options: deptOptions },
+    ];
+  }, [departments]);
 
+  /* ─── Derived: filtered + paginated ─── */
+  const filtered = useMemo(() => {
+    const q            = search.toLowerCase();
+    const statusFilter = (activeFilters.status ?? []) as string[];
+    const deptFilter   = (activeFilters.department ?? []) as string[];
+    return employees.filter((e) => {
+      if (q) {
+        const name = `${e.firstName} ${e.lastName}`.toLowerCase();
+        if (!name.includes(q) && !e.email.toLowerCase().includes(q) && !(e.departmentName ?? "").toLowerCase().includes(q))
+          return false;
+      }
+      if (statusFilter.length > 0 && !statusFilter.includes(e.status)) return false;
+      if (deptFilter.length > 0 && !deptFilter.includes(e.departmentId) && !deptFilter.includes(e.departmentName ?? ""))
+        return false;
+      return true;
+    });
+  }, [employees, search, activeFilters]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginated  = filtered.slice((page - 1) * pageSize, page * pageSize);
+  useEffect(() => { setPage(1); }, [search, activeFilters, pageSize]);
+
+  /* ─── Handlers ─── */
+  const handleFilterChange  = (key: string, value: string | string[]) =>
+    setActiveFilters((prev) => ({ ...prev, [key]: value }));
+  const handleFilterClear   = (key: string) =>
+    setActiveFilters((prev) => { const n = { ...prev }; delete n[key]; return n; });
+  const handleFilterClearAll = () => setActiveFilters({});
+
+  function closeModal() { setShowCreate(false); setServerError(null); reset(); }
   async function onSubmit(data: EmployeeFormData) {
     setServerError(null);
-    try {
-      await api.employees.create(data);
-      closeModal();
-      load();
-    } catch (err: unknown) {
-      setServerError((err as { message?: string }).message ?? "Failed to create employee");
-    }
+    try { await api.employees.create(data); closeModal(); load(); }
+    catch (err: unknown) { setServerError((err as { message?: string }).message ?? "Failed to create employee"); }
   }
 
-  if (loading) return <LoadingSpinner />;
-  if (error) return <EmptyState title="Error loading employees" description={error} action={<Button onClick={load}>Retry</Button>} />;
+  /* ─── Table columns ─── */
+  const columns = [
+    {
+      key: "name", header: "Employee", sortable: true,
+      render: (emp: EmployeeResponse) => (
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
+            style={{ backgroundColor: avatarColor(`${emp.firstName}${emp.lastName}`) }}>
+            {emp.firstName[0]}{emp.lastName[0]}
+          </div>
+          <div>
+            <p className="text-sm font-semibold" style={{ color: "var(--gogo-text-primary)" }}>{emp.firstName} {emp.lastName}</p>
+            <p className="text-xs" style={{ color: "var(--gogo-text-secondary)" }}>{emp.email}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "departmentName", header: "Department", sortable: true,
+      render: (e: EmployeeResponse) => <span className="text-sm">{e.departmentName ?? "—"}</span>,
+    },
+    {
+      key: "positionTitle", header: "Position",
+      render: (e: EmployeeResponse) => <span className="text-sm">{e.positionTitle ?? "—"}</span>,
+    },
+    {
+      key: "hireDate", header: "Joined", sortable: true,
+      render: (e: EmployeeResponse) => (
+        <span className="text-sm">{new Date(e.hireDate).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}</span>
+      ),
+    },
+    {
+      key: "status", header: "Status", sortable: true,
+      render: (e: EmployeeResponse) => <EmployeeBadge status={e.status} />,
+    },
+  ];
 
+  const rowActions: RowAction<EmployeeResponse>[] = [
+    {
+      label: "View",
+      icon: <Eye className="h-4 w-4" />,
+      onClick: (emp) => console.log("view", emp.id),
+    },
+    {
+      label: "Edit",
+      icon: <Pencil className="h-4 w-4" />,
+      onClick: (emp) => console.log("edit", emp.id),
+    },
+    {
+      label: "Delete",
+      icon: <Trash2 className="h-4 w-4" />,
+      onClick: (emp) => console.log("delete", emp.id),
+      danger: true,
+    },
+  ];
+
+  /* ─── Toolbar action buttons ─── */
+  const toolbarActions = (
+    <div className="flex items-center gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => load(true)}
+        disabled={refreshing}
+        className="gap-1.5"
+      >
+        <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+        Refresh
+      </Button>
+      <Button
+        size="sm"
+        onClick={() => setShowCreate(true)}
+        className="gap-1.5"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        Create
+      </Button>
+    </div>
+  );
+
+  /* ─── Render ─── */
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Employees</h1>
-          <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">{employees.length} team members</p>
-        </div>
-        <Button onClick={() => setShowCreate(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Employee
-        </Button>
-      </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Search employees..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:border-blue-300 focus:ring-2 focus:ring-blue-100 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-blue-500 dark:focus:ring-blue-900"
+      {/* ── Page header with breadcrumb ── */}
+      <PageHeader
+        title="Employee List"
+        breadcrumbs={[
+          { label: "Dashboard", href: "/" },
+          { label: "Human Resource", href: "/hr" },
+          { label: "Employee List" },
+        ]}
+      />
+
+      {/* ── KPI summary cards ── */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <KPICard
+          title="Total Employees"
+          value={String(stats.total)}
+          trend="flat"
+          change={0}
+          subtitle="all time"
+          icon={<Users className="h-5 w-5" />}
+        />
+        <KPICard
+          title="Active"
+          value={String(stats.active)}
+          trend="up"
+          change={+(((stats.active / Math.max(stats.total, 1)) * 100).toFixed(1))}
+          subtitle="of total"
+          icon={<UserCheck className="h-5 w-5" />}
+        />
+        <KPICard
+          title="On Leave"
+          value={String(stats.onLeave)}
+          trend={stats.onLeave > 0 ? "down" : "flat"}
+          change={0}
+          subtitle="currently"
+          icon={<UserMinus className="h-5 w-5" />}
+        />
+        <KPICard
+          title="Departments"
+          value={String(stats.depts)}
+          trend="flat"
+          subtitle="active"
+          icon={<Building2 className="h-5 w-5" />}
         />
       </div>
 
-      {filtered.length === 0 ? (
-        <EmptyState title="No employees found" description={search ? "Try a different search" : "Add your first employee"} />
-      ) : (
-        <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 overflow-x-auto max-w-full dark:bg-gray-800 dark:ring-gray-700">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-800/80">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Position</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-              {filtered.map((emp) => (
-                <tr key={emp.id} className="hover:bg-gray-50 cursor-pointer dark:hover:bg-gray-700/50">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600">
-                        {emp.firstName[0]}{emp.lastName[0]}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{emp.firstName} {emp.lastName}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{emp.email}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{emp.departmentName ?? "—"}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{emp.positionTitle ?? "—"}</td>
-                  <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{new Date(emp.hireDate).toLocaleDateString()}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium capitalize ${statusStyles[emp.status] ?? "bg-gray-100 text-gray-800"}`}>
-                      {emp.status.toLowerCase().replace(/_/g, " ")}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* ── API error banner ── */}
+      {apiError && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
+          <span>Showing preview data — {apiError}.</span>
+          <button onClick={() => load()} className="ml-auto font-medium underline">Retry</button>
         </div>
       )}
 
+      {/* ── Search + Filters + Actions toolbar ── */}
+      <SearchFilterBar
+        searchPlaceholder="Search employees…"
+        searchValue={search}
+        onSearchChange={setSearch}
+        filters={filterConfigs}
+        activeFilters={activeFilters}
+        onFilterChange={handleFilterChange}
+        onFilterClear={handleFilterClear}
+        onFilterClearAll={handleFilterClearAll}
+        view={view}
+        onViewChange={setView}
+        showViewSwitcher
+        actions={toolbarActions}
+      />
+
+      {/* ── Result count ── */}
+      {(search || Object.keys(activeFilters).length > 0) && (
+        <p className="text-xs" style={{ color: "var(--gogo-text-secondary)" }}>
+          Showing <strong>{filtered.length}</strong> result{filtered.length !== 1 ? "s" : ""}
+          {!apiLoaded && <span className="ml-2 opacity-60">(preview data)</span>}
+        </p>
+      )}
+
+      {/* ── Table view ── */}
+      {view === "table" && (
+        <div
+          className="overflow-hidden"
+          style={{ borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)", backgroundColor: "var(--gogo-surface)" }}
+        >
+          <DataTable
+            columns={columns}
+            data={paginated}
+            keyExtractor={(e) => e.id}
+            rowActions={rowActions}
+            emptyMessage={search || Object.keys(activeFilters).length > 0 ? "No employees match your filters" : "No employees yet"}
+          />
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={filtered.length}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+        </div>
+      )}
+
+      {/* ── Grid / Card view ── */}
+      {view === "grid" && (
+        paginated.length === 0 ? (
+          <div className="py-16 text-center text-sm" style={{ color: "var(--gogo-text-secondary)" }}>
+            {search || Object.keys(activeFilters).length > 0 ? "No employees match your filters" : "No employees yet"}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <EntityCardGrid columns={3}>
+              {paginated.map((emp) => (
+                <EntityCard
+                  key={emp.id}
+                  avatar={`${emp.firstName[0]}${emp.lastName[0]}`}
+                  avatarColor={avatarColor(`${emp.firstName}${emp.lastName}`)}
+                  name={`${emp.firstName} ${emp.lastName}`}
+                  subtitle={emp.positionTitle ?? emp.email}
+                  badge={<EmployeeBadge status={emp.status} />}
+                  fields={[
+                    { label: "Dept",   value: emp.departmentName ?? "—" },
+                    { label: "Joined", value: new Date(emp.hireDate).toLocaleDateString() },
+                    { label: "Salary", value: `${emp.baseSalary.currency} ${emp.baseSalary.amount.toLocaleString()}` },
+                  ]}
+                  actions={[
+                    { label: "View",   onClick: () => console.log("view", emp.id) },
+                    { label: "Edit",   onClick: () => console.log("edit", emp.id) },
+                    { label: "Delete", onClick: () => console.log("delete", emp.id), danger: true },
+                  ]}
+                />
+              ))}
+            </EntityCardGrid>
+            {/* Grid pagination */}
+            <div
+              className="overflow-hidden"
+              style={{ borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)", backgroundColor: "var(--gogo-surface)" }}
+            >
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                totalItems={filtered.length}
+                pageSize={pageSize}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+              />
+            </div>
+          </div>
+        )
+      )}
+
+      {/* ── Add Employee Modal ── */}
       <Modal open={showCreate} onClose={closeModal} title="Add New Employee" size="lg">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {serverError && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{serverError}</p>}
+          {serverError && (
+            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{serverError}</p>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <Input label="First Name" error={errors.firstName?.message} {...register("firstName")} />
-            <Input label="Last Name" error={errors.lastName?.message} {...register("lastName")} />
+            <Input label="Last Name"  error={errors.lastName?.message}  {...register("lastName")} />
           </div>
           <Input label="Email" type="email" error={errors.email?.message} {...register("email")} />
           <Input label="Phone" {...register("phone")} />
           <div className="grid grid-cols-2 gap-4">
             <Input label="Date of Birth" type="date" error={errors.dateOfBirth?.message} {...register("dateOfBirth")} />
-            <Input label="Hire Date" type="date" error={errors.hireDate?.message} {...register("hireDate")} />
+            <Input label="Hire Date"     type="date" error={errors.hireDate?.message}     {...register("hireDate")} />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Select
-              label="Department"
-              error={errors.departmentId?.message}
+            <Select label="Department" error={errors.departmentId?.message}
               options={[{ value: "", label: "Select department" }, ...departments.map((d) => ({ value: d.id, label: d.name }))]}
-              {...register("departmentId")}
-            />
-            <Select
-              label="Position"
-              error={errors.positionId?.message}
+              {...register("departmentId")} />
+            <Select label="Position" error={errors.positionId?.message}
               options={[{ value: "", label: "Select position" }, ...positions.map((p) => ({ value: p.id, label: p.title }))]}
-              {...register("positionId")}
-            />
+              {...register("positionId")} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Input label="Base Salary" type="number" step="0.01" error={errors.baseSalary?.message} {...register("baseSalary")} />
-            <Select
-              label="Currency"
+            <Select label="Currency"
               options={[{ value: "USD", label: "USD" }, { value: "EUR", label: "EUR" }, { value: "GBP", label: "GBP" }]}
-              {...register("currency")}
-            />
+              {...register("currency")} />
           </div>
           <div className="flex justify-end gap-3 pt-4">
             <Button variant="outline" type="button" onClick={closeModal}>Cancel</Button>
