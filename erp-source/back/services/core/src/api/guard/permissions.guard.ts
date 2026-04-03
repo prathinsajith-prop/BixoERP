@@ -7,12 +7,29 @@ import {
 import { Reflector } from '@nestjs/core';
 
 export const PERMISSIONS_KEY = 'permissions';
+
+/**
+ * Declare that a handler requires a specific permission.
+ *
+ * Accepts either:
+ *  - a plain string   → "invoice:approve" or "invoice:approve:department"
+ *  - a structured arg → RequirePermission('invoice', 'approve', 'department')
+ *
+ * Permission codes in the JWT take the form "resource:action:scope"
+ * where scope is optional.  A match occurs when jwt_permission starts
+ * with the required prefix, so "invoice:approve" matches both
+ * "invoice:approve" and "invoice:approve:department".
+ */
 export const RequirePermissions = (...permissions: string[]) =>
   Reflect.metadata(PERMISSIONS_KEY, permissions);
 
+/** Structured decorator — preferred for readability */
+export const RequirePermission = (resource: string, action: string, scope?: string) =>
+  RequirePermissions(scope ? `${resource}:${action}:${scope}` : `${resource}:${action}`);
+
 @Injectable()
 export class PermissionsGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
+  constructor(private readonly reflector: Reflector) { }
 
   canActivate(context: ExecutionContext): boolean {
     const required = this.reflector.getAllAndOverride<string[]>(PERMISSIONS_KEY, [
@@ -31,11 +48,16 @@ export class PermissionsGuard implements CanActivate {
       throw new ForbiddenException('Insufficient permissions');
     }
 
-    const hasAll = required.every((perm) => user.permissions.includes(perm));
-    if (!hasAll) {
-      throw new ForbiddenException(
-        `Missing required permissions: ${required.filter((p) => !user.permissions.includes(p)).join(', ')}`,
-      );
+    const jwtPerms: string[] = Array.isArray(user.permissions) ? user.permissions : [];
+
+    // For each required permission, check if any JWT permission starts with it
+    // (allowing scope-level wildcards: "invoice:approve" covers "invoice:approve:department")
+    const missing = required.filter(
+      (req) => !jwtPerms.some((p) => p === req || p.startsWith(`${req}:`)),
+    );
+
+    if (missing.length > 0) {
+      throw new ForbiddenException(`Missing required permissions: ${missing.join(', ')}`);
     }
 
     return true;

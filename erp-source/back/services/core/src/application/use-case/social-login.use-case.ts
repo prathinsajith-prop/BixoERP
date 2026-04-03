@@ -386,7 +386,7 @@ export class SocialLoginUseCase {
     await this.refreshTokenRepo.save(refreshToken);
 
     user.recordSuccessfulLogin();
-    await this.userRepo.update(user);
+    await this.userRepo.updateLastLogin(user.id, new Date());
 
     for (const event of user.pullDomainEvents()) {
       await this.eventPublisher.publish('erp.auth.user.logged-in', {

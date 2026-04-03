@@ -65,6 +65,8 @@ function LoginContent() {
         sessionStorage.setItem('2fa_token', result.twoFactorToken || '');
         sessionStorage.setItem('2fa_email', data.email);
         router.replace('/2fa/verify');
+      } else if (result?.needsOrgSelection) {
+        router.replace('/select-org');
       } else {
         router.replace('/');
       }

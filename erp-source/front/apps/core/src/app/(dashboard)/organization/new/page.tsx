@@ -55,12 +55,14 @@ export default function CreateOrganizationPage() {
         description: data.description?.trim() || undefined,
       });
       const orgId = res.data?.data?.id;
-      if (orgId) localStorage.setItem('organizationId', orgId);
-      const resData = res.data?.data;
-      if (resData?.accessToken) {
-        // Access token in memory only; refresh cookie set server-side automatically
-        useAuthStore.setState({ accessToken: resData.accessToken, isAuthenticated: true });
-        if (resData.tenantId) sessionStorage.setItem('tenantId', resData.tenantId);
+      if (orgId) {
+        localStorage.setItem('organizationId', orgId);
+        // Switch JWT to the new org so all subsequent data requests use the correct tenantId
+        try {
+          await useAuthStore.getState().switchOrg(orgId);
+        } catch {
+          // fall back to old token
+        }
       }
       router.push('/organization');
     } catch (err: unknown) {

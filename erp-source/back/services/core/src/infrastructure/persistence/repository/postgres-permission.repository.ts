@@ -10,7 +10,7 @@ export class PostgresPermissionRepository implements PermissionRepository {
   constructor(
     @InjectRepository(PermissionOrmEntity)
     private readonly repo: Repository<PermissionOrmEntity>,
-  ) {}
+  ) { }
 
   async findById(tenantId: string, id: string): Promise<Permission | null> {
     const row = await this.repo.findOne({ where: { id, tenant_id: tenantId } });
@@ -38,7 +38,7 @@ export class PostgresPermissionRepository implements PermissionRepository {
   }
 
   async delete(tenantId: string, id: string): Promise<void> {
-    await this.repo.delete({ id, tenant_id: tenantId });
+    await this.repo.softDelete({ id, tenant_id: tenantId });
   }
 
   private toDomain(orm: PermissionOrmEntity): Permission {

@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { QueryFailedError } from 'typeorm';
 import {
   DomainException,
   EntityNotFoundException,
@@ -97,6 +98,19 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       status = HttpStatus.BAD_REQUEST;
       code = exception.code;
       message = exception.message;
+    } else if (exception instanceof QueryFailedError) {
+      const msg = (exception as QueryFailedError & { message: string }).message ?? '';
+      if (msg.includes('invalid input syntax for type uuid')) {
+        status = HttpStatus.BAD_REQUEST;
+        code = 'INVALID_ID_FORMAT';
+        message = 'Invalid ID format — expected a UUID.';
+      } else if (msg.includes('duplicate key value')) {
+        status = HttpStatus.CONFLICT;
+        code = 'DUPLICATE_ENTRY';
+        message = 'A record with this value already exists.';
+      } else {
+        this.logger.error(msg, (exception as Error).stack);
+      }
     } else if (exception instanceof DomainException) {
       status = HttpStatus.BAD_REQUEST;
       code = exception.code;

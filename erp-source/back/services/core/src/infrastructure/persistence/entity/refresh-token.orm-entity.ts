@@ -40,6 +40,9 @@ export class RefreshTokenOrmEntity {
   @Column({ type: 'varchar', length: 45, nullable: true })
   ip_address: string | null;
 
+  @Column({ type: 'uuid', nullable: true })
+  user_tenant_id: string | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 

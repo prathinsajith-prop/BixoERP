@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -11,6 +12,7 @@ import {
   HttpStatus,
   Query,
   NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../guard/jwt-auth.guard';
 import { PermissionsGuard, RequirePermissions } from '../guard/permissions.guard';
@@ -32,6 +34,7 @@ import { USER_ORGANIZATION_REPOSITORY, UserOrganizationRepository } from '../../
 import { ORGANIZATION_REPOSITORY, OrganizationRepository } from '../../domain/repository/organization.repository';
 import { PostgresTwoFactorRepository } from '../../infrastructure/persistence/repository/postgres-two-factor.repository';
 import { PostgresUserProfileRepository } from '../../infrastructure/persistence/repository/postgres-user-profile.repository';
+import { PostgresLoginHistoryRepository } from '../../infrastructure/persistence/repository/postgres-login-history.repository';
 
 @Controller('api/v1/auth')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -47,6 +50,7 @@ export class AdminController {
     @Inject(ORGANIZATION_REPOSITORY) private readonly orgRepo: OrganizationRepository,
     private readonly twoFactorRepo: PostgresTwoFactorRepository,
     private readonly profileRepo: PostgresUserProfileRepository,
+    private readonly loginHistoryRepo: PostgresLoginHistoryRepository,
   ) { }
 
   // ─── Users ─────────────────────────────────────────
@@ -72,6 +76,7 @@ export class AdminController {
           firstName: u.firstName,
           lastName: u.lastName,
           status: u.status,
+          isActive: u.status === 'ACTIVE',
           roles: u.roles,
           lastLoginAt: u.lastLoginAt,
           createdAt: u.createdAt,
@@ -97,14 +102,14 @@ export class AdminController {
       twoFactor,
       socialAccounts,
       userOrgs,
-      loginHistory,
+      loginHistoryResult,
       profile,
     ] = await Promise.all([
       this.roleRepo.findByIds(tenantId, user.roles),
       this.twoFactorRepo.findByUserId(tenantId, userId),
       this.socialAccountRepo.findByUserId(tenantId, userId),
       this.userOrgRepo.findByUserId(userId),
-      this.refreshTokenRepo.findByUserId(tenantId, userId, 20),
+      this.loginHistoryRepo.findByUserId(tenantId, userId, 20),
       this.profileRepo.findByUserId(tenantId, userId),
     ]);
 
@@ -144,13 +149,14 @@ export class AdminController {
           failedLoginAttempts: user.failedLoginAttempts,
           lockedUntil: user.lockedUntil,
           isLocked: user.isLocked(),
-          loginHistory: loginHistory.tokens.map((t) => ({
-            ipAddress: t.ipAddress,
-            userAgent: t.userAgent,
-            createdAt: t.createdAt,
-            revokedAt: t.revokedAt,
+          loginHistory: loginHistoryResult.entries.map((e) => ({
+            ipAddress: e.ipAddress,
+            userAgent: e.userAgent,
+            createdAt: e.createdAt,
+            status: e.status,
+            failureReason: e.failureReason ?? null,
           })),
-          loginHistoryTotal: loginHistory.total,
+          loginHistoryTotal: loginHistoryResult.total,
           socialAccounts: socialAccounts.map((sa) => ({
             provider: sa.provider,
             email: sa.email,
@@ -253,26 +259,111 @@ export class AdminController {
 
   // ─── Role Assignment ───────────────────────────────
 
+  // ─── User status & deletion ───────────────────────
+
+  @Patch('users/:userId')
+  @RequirePermissions('auth:users:write')
+  async updateUserDetails(
+    @Param('userId') userId: string,
+    @TenantId() tenantId: string,
+    @Body() body: { firstName?: string; lastName?: string; phone?: string },
+  ) {
+    const user = await this.userRepo.findById(tenantId, userId);
+    if (!user) throw new NotFoundException('User not found');
+    if (body.firstName !== undefined) user.firstName = body.firstName.trim();
+    if (body.lastName !== undefined) user.lastName = body.lastName.trim();
+    await this.userRepo.update(user);
+    return {
+      statusCode: 200,
+      data: {
+        id: user.id,
+        email: user.email.value,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        status: user.status,
+        isActive: user.status === 'ACTIVE',
+      },
+    };
+  }
+
+  @Patch('users/:userId/activate')
+  @RequirePermissions('auth:users:write')
+  async activateUser(
+    @Param('userId') userId: string,
+    @TenantId() tenantId: string,
+  ) {
+    const user = await this.userRepo.findById(tenantId, userId);
+    if (!user) throw new NotFoundException('User not found');
+    user.activate();
+    await this.userRepo.update(user);
+    return {
+      success: true,
+      message: 'User activated successfully.',
+      data: { id: user.id, status: user.status, isActive: true, email: user.email.value, firstName: user.firstName, lastName: user.lastName },
+    };
+  }
+
+  @Patch('users/:userId/deactivate')
+  @RequirePermissions('auth:users:write')
+  async deactivateUser(
+    @Param('userId') userId: string,
+    @TenantId() tenantId: string,
+  ) {
+    const user = await this.userRepo.findById(tenantId, userId);
+    if (!user) throw new NotFoundException('User not found');
+    user.deactivate();
+    await this.userRepo.update(user);
+    return {
+      success: true,
+      message: 'User deactivated successfully.',
+      data: { id: user.id, status: user.status, isActive: false, email: user.email.value, firstName: user.firstName, lastName: user.lastName },
+    };
+  }
+
+  @Delete('users/:userId')
+  @RequirePermissions('auth:users:delete')
+  async deleteUser(
+    @Param('userId') userId: string,
+    @TenantId() tenantId: string,
+  ) {
+    const user = await this.userRepo.findById(tenantId, userId);
+    if (!user) throw new NotFoundException('User not found');
+    await this.userRepo.delete(tenantId, userId);
+    return { success: true, message: 'User deleted successfully.' };
+  }
+
   @Post('users/:userId/roles/:roleId')
-  @RequirePermissions('auth:roles:assign')
+  @RequirePermissions('auth:roles:write')
   @HttpCode(HttpStatus.NO_CONTENT)
   async assignRole(
     @Param('userId') userId: string,
     @Param('roleId') roleId: string,
     @TenantId() tenantId: string,
   ) {
-    await this.manageRoles.assignRole({ tenantId, userId, roleId });
+    try {
+      await this.manageRoles.assignRole({ tenantId, userId, roleId });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('not found') || msg.includes('Not found')) throw new NotFoundException(msg);
+      throw err;
+    }
   }
 
   @Delete('users/:userId/roles/:roleId')
-  @RequirePermissions('auth:roles:assign')
+  @RequirePermissions('auth:roles:write')
   @HttpCode(HttpStatus.NO_CONTENT)
   async removeRole(
     @Param('userId') userId: string,
     @Param('roleId') roleId: string,
     @TenantId() tenantId: string,
   ) {
-    await this.manageRoles.removeRole({ tenantId, userId, roleId });
+    try {
+      await this.manageRoles.removeRole({ tenantId, userId, roleId });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('not found') || msg.includes('Not found')) throw new NotFoundException(msg);
+      throw err;
+    }
   }
 
   // ─── Permissions ───────────────────────────────────

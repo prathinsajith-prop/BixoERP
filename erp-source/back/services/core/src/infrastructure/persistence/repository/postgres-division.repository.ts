@@ -10,7 +10,7 @@ export class PostgresDivisionRepository implements DivisionRepository {
   constructor(
     @InjectRepository(DivisionOrmEntity)
     private readonly repo: Repository<DivisionOrmEntity>,
-  ) {}
+  ) { }
 
   async findById(tenantId: string, id: string): Promise<Division | null> {
     const row = await this.repo.findOne({ where: { id, tenant_id: tenantId } });
@@ -41,7 +41,7 @@ export class PostgresDivisionRepository implements DivisionRepository {
   }
 
   async delete(tenantId: string, id: string): Promise<void> {
-    await this.repo.delete({ id, tenant_id: tenantId });
+    await this.repo.softDelete({ id, tenant_id: tenantId });
   }
 
   private toDomain(orm: DivisionOrmEntity): Division {

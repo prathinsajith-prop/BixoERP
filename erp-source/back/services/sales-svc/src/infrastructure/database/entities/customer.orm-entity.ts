@@ -23,7 +23,7 @@ export class CustomerOrmEntity {
   @Column({ length: 255 })
   email!: string;
 
-  @Column({ length: 30, nullable: true })
+  @Column({ type: 'varchar', length: 30, nullable: true })
   phone!: string | null;
 
   @Column({ name: 'billing_address', type: 'text', nullable: true })
@@ -32,7 +32,7 @@ export class CustomerOrmEntity {
   @Column({ name: 'shipping_address', type: 'text', nullable: true })
   shippingAddress!: string | null;
 
-  @Column({ name: 'tax_id', length: 50, nullable: true })
+  @Column({ name: 'tax_id', type: 'varchar', length: 50, nullable: true })
   taxId!: string | null;
 
   @Column({ name: 'credit_limit', type: 'numeric', precision: 19, scale: 4, default: '0.0000' })

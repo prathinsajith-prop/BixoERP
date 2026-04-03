@@ -24,7 +24,7 @@ export class DelegationRuleOrmEntity {
   @Index()
   tenantId!: string;
 
-  @Column({ name: 'entity_type', length: 50, nullable: true })
+  @Column({ name: 'entity_type', type: 'varchar', length: 50, nullable: true })
   entityType!: string | null;
 
   @Column({ name: 'start_date', type: 'timestamptz' })

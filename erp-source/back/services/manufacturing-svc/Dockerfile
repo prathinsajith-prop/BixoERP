@@ -10,8 +10,7 @@ RUN mvn clean package -DskipTests -B
 FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
-RUN chown -R appuser:appgroup /app
+COPY --from=build --chown=appuser:appgroup /app/target/*.jar app.jar
 USER appuser
 EXPOSE 3007
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

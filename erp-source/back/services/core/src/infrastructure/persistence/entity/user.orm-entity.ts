@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   Index,
 } from 'typeorm';
 
@@ -54,4 +55,7 @@ export class UserOrmEntity {
 
   @UpdateDateColumn({ type: 'timestamptz' })
   updated_at: Date;
+
+  @DeleteDateColumn({ type: 'timestamptz', nullable: true })
+  deleted_at: Date | null;
 }

@@ -74,7 +74,7 @@ export class PostgresOrganizationRepository implements OrganizationRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.repo.delete(id);
+    await this.repo.softDelete(id);
   }
 
   private toDomain(row: OrganizationOrmEntity): Organization {

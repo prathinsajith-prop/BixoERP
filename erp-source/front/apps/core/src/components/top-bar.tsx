@@ -1,23 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { AppSelector, AlertsDropdown, authApi } from '@erp/shell';
+import { AppSelector, AlertsDropdown } from '@erp/shell';
 import { usePageTitleState } from '../context/page-title';
+import { useOrgContext } from '../context/org';
 
 export function TopBar() {
-  const { title, subtitle } = usePageTitleState();
-  const [orgName, setOrgName] = useState('');
-
-  useEffect(() => {
-    authApi.myOrganizations()
-      .then((res: { data?: { data?: Array<{ organizationId?: string; id?: string; name: string }> } }) => {
-        const list = res.data?.data || [];
-        const storedId = localStorage.getItem('organizationId');
-        const current = list.find((o) => (o.organizationId || o.id) === storedId) || list[0];
-        if (current?.name) setOrgName(current.name);
-      })
-      .catch(() => {});
-  }, []);
+  const { title } = usePageTitleState();
+  const { orgName } = useOrgContext();
 
   return (
     <div className="flex items-center justify-between px-5 py-4">

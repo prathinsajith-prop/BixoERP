@@ -10,7 +10,7 @@ export class PostgresRefreshTokenRepository implements RefreshTokenRepository {
   constructor(
     @InjectRepository(RefreshTokenOrmEntity)
     private readonly repo: Repository<RefreshTokenOrmEntity>,
-  ) {}
+  ) { }
 
   async findByTokenHash(tokenHash: string): Promise<RefreshToken | null> {
     const row = await this.repo.findOne({ where: { token_hash: tokenHash } });
@@ -59,6 +59,7 @@ export class PostgresRefreshTokenRepository implements RefreshTokenRepository {
       replacedByTokenId: orm.replaced_by_token_id,
       userAgent: orm.user_agent,
       ipAddress: orm.ip_address,
+      userTenantId: orm.user_tenant_id ?? null,
       createdAt: orm.created_at,
       updatedAt: orm.updated_at,
     });
@@ -75,6 +76,7 @@ export class PostgresRefreshTokenRepository implements RefreshTokenRepository {
       replaced_by_token_id: token.replacedByTokenId,
       user_agent: token.userAgent,
       ip_address: token.ipAddress,
+      user_tenant_id: token.userTenantId ?? null,
     };
   }
 }

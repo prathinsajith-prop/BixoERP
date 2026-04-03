@@ -35,6 +35,7 @@ function OrgSelector() {
   const [currentOrg, setCurrentOrg] = useState<Org | null>(null);
   const [open, setOpen] = useState(false);
   const [switching, setSwitching] = useState<string | null>(null);
+  const [switchError, setSwitchError] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const close = useCallback(() => setOpen(false), []);
   useClickOutside(ref, close);
@@ -51,19 +52,20 @@ function OrgSelector() {
   const handleSwitch = async (org: Org) => {
     if (!org.id || org.id === currentOrg?.id) { setOpen(false); return; }
     setSwitching(org.id);
+    setSwitchError(null);
     try {
       const res = await authApi.switchOrganization({ organizationId: org.id });
       const data = (res as { data?: { data?: { accessToken?: string; tenantId?: string } } }).data?.data;
       if (data?.accessToken) {
-        // Access token stored in memory only — cookie is set server-side automatically
         useAuthStore.setState({ accessToken: data.accessToken, fullAccessToken: data.accessToken, isAuthenticated: true });
-        if (data.tenantId) sessionStorage.setItem('tenantId', data.tenantId);
       }
+      if (data?.tenantId) sessionStorage.setItem('tenantId', data.tenantId);
       localStorage.setItem('organizationId', org.id);
       window.location.reload();
     } catch {
-      localStorage.setItem('organizationId', org.id);
-      window.location.reload();
+      setSwitching(null);
+      setSwitchError('Failed to switch organization. Please try again.');
+      setTimeout(() => setSwitchError(null), 4000);
     }
   };
 
@@ -93,6 +95,9 @@ function OrgSelector() {
       {open && (
         <div className="absolute left-0 top-full z-50 mt-1 w-72 rounded-xl bg-white py-2 shadow-xl ring-1 ring-gray-200/60 dark:bg-gray-800 dark:ring-gray-700">
           <p className="mb-1 px-4 text-[10px] font-bold uppercase tracking-wider text-gray-400">Organizations</p>
+          {switchError && (
+            <div className="mx-2 mb-1 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-900/30 dark:text-red-300">{switchError}</div>
+          )}
           {orgs.map((org, idx) => {
             const isActive = org.id === currentOrg?.id;
             const isSwitching = switching === org.id;
