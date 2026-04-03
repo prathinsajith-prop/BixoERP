@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { authApi } from '@/lib/api/auth';
 import { useOrgContext } from '@/context/org';
 import { useAuthStore } from '@/store/auth';
+import { showToast } from '@erp/shell';
 import PageHeader from '@/components/page-header';
 
 interface OrgMembership {
@@ -79,7 +80,7 @@ export default function OrganisationsPage() {
             await switchOrg(orgId);
             window.location.reload();
         } catch {
-            setError('Failed to switch organisation');
+            showToast.error('Something went wrong', 'Failed to switch organisation');
             setSwitching(null);
         }
     };
@@ -96,7 +97,7 @@ export default function OrganisationsPage() {
             await authApi.removeMemberFromOrganization(orgId, 'me');
             await load();
         } catch {
-            setError('Failed to leave organisation');
+            showToast.error('Something went wrong', 'Failed to leave organisation');
         } finally {
             setLeaving(null);
         }
@@ -136,8 +137,8 @@ export default function OrganisationsPage() {
                             <div
                                 key={org.orgId}
                                 className={`flex items-center gap-4 rounded-2xl border p-4 transition ${isActive
-                                        ? 'border-indigo-300 bg-indigo-50 dark:border-indigo-700 dark:bg-indigo-900/20'
-                                        : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800'
+                                    ? 'border-indigo-300 bg-indigo-50 dark:border-indigo-700 dark:bg-indigo-900/20'
+                                    : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800'
                                     }`}
                             >
                                 {/* Avatar */}
