@@ -1,7 +1,10 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ClsModule } from 'nestjs-cls';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 import configuration from './infrastructure/config/configuration';
 
@@ -24,6 +27,8 @@ import { AuditLogOrmEntity } from './infrastructure/persistence/entity/audit-log
 import { LoginHistoryOrmEntity } from './infrastructure/persistence/entity/login-history.orm-entity';
 import { ManagerAssignmentOrmEntity } from './infrastructure/persistence/entity/manager-assignment.orm-entity';
 import { ManagerSettingsOrmEntity } from './infrastructure/persistence/entity/manager-settings.orm-entity';
+import { MembershipPermissionOrmEntity } from './infrastructure/persistence/entity/membership-permission.orm-entity';
+import { InviteTokenOrmEntity } from './infrastructure/persistence/entity/invite-token.orm-entity';
 
 // Repositories
 import { PostgresUserRepository } from './infrastructure/persistence/repository/postgres-user.repository';
@@ -40,6 +45,8 @@ import { PostgresDepartmentRepository } from './infrastructure/persistence/repos
 import { PostgresDivisionRepository } from './infrastructure/persistence/repository/postgres-division.repository';
 import { PostgresTeamRepository } from './infrastructure/persistence/repository/postgres-team.repository';
 import { PostgresLoginHistoryRepository } from './infrastructure/persistence/repository/postgres-login-history.repository';
+import { PostgresInviteTokenRepository } from './infrastructure/persistence/repository/postgres-invite-token.repository';
+import { PostgresMembershipPermissionRepository } from './infrastructure/persistence/repository/postgres-membership-permission.repository';
 
 // Infrastructure
 import { KafkaEventPublisher } from './infrastructure/messaging/kafka-event-publisher';
@@ -48,6 +55,7 @@ import { JwtTokenService } from './infrastructure/auth/jwt-token.service';
 import { OutboxRelay } from './infrastructure/messaging/outbox-relay';
 import { AuditLogService } from './infrastructure/audit/audit-log.service';
 import { ManagerService } from './infrastructure/manager/manager.service';
+import { NestedSetDepartmentService } from './infrastructure/department/nested-set-department.service';
 
 // Domain Repository Tokens
 import { USER_REPOSITORY } from './domain/repository/user.repository';
@@ -78,6 +86,8 @@ import { TwoFactorUseCase } from './application/use-case/two-factor.use-case';
 import { SocialLoginUseCase } from './application/use-case/social-login.use-case';
 import { OrganizationUseCase } from './application/use-case/organization.use-case';
 import { OrgStructureUseCase } from './application/use-case/org-structure.use-case';
+import { SelectOrgUseCase } from './application/use-case/select-org.use-case';
+import { InvitationUseCase } from './application/use-case/invitation.use-case';
 
 // Controllers
 import { AuthController } from './api/controller/auth.controller';
@@ -89,10 +99,14 @@ import { TwoFactorController } from './api/controller/two-factor.controller';
 import { SocialLoginController } from './api/controller/social-login.controller';
 import { OrganizationController } from './api/controller/organization.controller';
 import { OrgStructureController } from './api/controller/org-structure.controller';
+import { InvitationController } from './api/controller/invitation.controller';
 
 // Guards
 import { JwtAuthGuard } from './api/guard/jwt-auth.guard';
 import { PermissionsGuard } from './api/guard/permissions.guard';
+
+// Middleware
+import { OrgContextMiddleware } from './api/middleware/org-context.middleware';
 
 const ormEntities = [
   UserOrmEntity,
@@ -114,6 +128,8 @@ const ormEntities = [
   LoginHistoryOrmEntity,
   ManagerAssignmentOrmEntity,
   ManagerSettingsOrmEntity,
+  MembershipPermissionOrmEntity,
+  InviteTokenOrmEntity,
 ];
 
 @Module({
@@ -138,8 +154,18 @@ const ormEntities = [
     }),
     TypeOrmModule.forFeature(ormEntities),
     ScheduleModule.forRoot(),
+    ClsModule.forRoot({ global: true, middleware: { mount: true } }),
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => [
+        {
+          ttl: config.get<number>('THROTTLE_TTL_MS', 60_000),
+          limit: config.get<number>('THROTTLE_LIMIT', 60),
+        },
+      ],
+    }),
   ],
-  controllers: [AuthController, AdminController, HealthController, SettingsController, ProfileController, TwoFactorController, SocialLoginController, OrganizationController, OrgStructureController],
+  controllers: [AuthController, AdminController, HealthController, SettingsController, ProfileController, TwoFactorController, SocialLoginController, OrganizationController, OrgStructureController, InvitationController],
   providers: [
     // Infrastructure → Port bindings
     { provide: USER_REPOSITORY, useClass: PostgresUserRepository },
@@ -168,20 +194,31 @@ const ormEntities = [
     SocialLoginUseCase,
     OrganizationUseCase,
     OrgStructureUseCase,
+    SelectOrgUseCase,
+    InvitationUseCase,
 
     // Infrastructure services
     OutboxRelay,
     AuditLogService,
     ManagerService,
+    NestedSetDepartmentService,
     PostgresUserSettingsRepository,
     PostgresUserProfileRepository,
     PostgresTwoFactorRepository,
     PostgresSocialAccountRepository,
     PostgresLoginHistoryRepository,
+    PostgresInviteTokenRepository,
+    PostgresMembershipPermissionRepository,
 
     // Guards (available for DI)
     JwtAuthGuard,
     PermissionsGuard,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    OrgContextMiddleware,
   ],
 })
-export class AppModule { }
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(OrgContextMiddleware).forRoutes('*');
+  }
+}

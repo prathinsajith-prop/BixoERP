@@ -418,7 +418,7 @@ export default function ProfilePage() {
                         onClick={async () => {
                           try {
                             await useAuthStore.getState().switchOrg(org.id!);
-                            setOrganizations((prev) => prev.map((o) => ({ ...o, isActive: o.id === org.id })));
+                            window.location.reload();
                           } catch {
                             setMessage({ type: 'error', text: 'Failed to switch organization.' });
                           }

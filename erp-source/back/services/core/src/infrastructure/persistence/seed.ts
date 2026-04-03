@@ -28,6 +28,7 @@ const permissionsDef: { resource: string; action: string; description: string }[
   { resource: 'auth:roles', action: 'delete', description: 'Delete roles' },
   { resource: 'auth:permissions', action: 'read', description: 'View permissions' },
   { resource: 'auth:permissions', action: 'write', description: 'Create/update permissions' },
+  { resource: 'auth:permissions', action: 'delete', description: 'Delete permissions' },
   // Organizations
   { resource: 'auth:organizations', action: 'read', description: 'View organizations' },
   { resource: 'auth:organizations', action: 'write', description: 'Create/update organizations' },

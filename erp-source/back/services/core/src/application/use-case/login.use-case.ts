@@ -5,6 +5,7 @@ import { ROLE_REPOSITORY, RoleRepository } from '../../domain/repository/role.re
 import { PERMISSION_REPOSITORY, PermissionRepository } from '../../domain/repository/permission.repository';
 import { REFRESH_TOKEN_REPOSITORY, RefreshTokenRepository } from '../../domain/repository/refresh-token.repository';
 import { USER_ORGANIZATION_REPOSITORY, UserOrganizationRepository } from '../../domain/repository/user-organization.repository';
+import { ORGANIZATION_REPOSITORY, OrganizationRepository } from '../../domain/repository/organization.repository';
 import { PostgresLoginHistoryRepository } from '../../infrastructure/persistence/repository/postgres-login-history.repository';
 import { TOKEN_SERVICE, TokenService } from '../port/token-service.port';
 import { EVENT_PUBLISHER, EventPublisher } from '../port/event-publisher.port';
@@ -27,11 +28,24 @@ export interface LoginCommand {
   ipAddress?: string;
 }
 
+export interface OrgSummary {
+  orgId: string;
+  orgName: string;
+  orgSlug: string;
+  membershipId: string;
+  role: string;
+  membershipType: string;
+}
+
 export interface LoginResult {
+  /** Issued when the user belongs to exactly one org */
   accessToken?: string;
   refreshToken?: string;
   expiresIn?: number;
   tenantId?: string;
+  /** Issued when the user belongs to multiple orgs — client must call POST /auth/select-org */
+  pendingToken?: string;
+  organisations?: OrgSummary[];
   twoFactorRequired?: boolean;
   twoFactorToken?: string;
 }
@@ -48,6 +62,7 @@ export class LoginUseCase {
     @Inject(PERMISSION_REPOSITORY) private readonly permissionRepo: PermissionRepository,
     @Inject(REFRESH_TOKEN_REPOSITORY) private readonly refreshTokenRepo: RefreshTokenRepository,
     @Inject(USER_ORGANIZATION_REPOSITORY) private readonly userOrgRepo: UserOrganizationRepository,
+    @Inject(ORGANIZATION_REPOSITORY) private readonly orgRepo: OrganizationRepository,
     @Inject(TOKEN_SERVICE) private readonly tokenService: TokenService,
     @Inject(EVENT_PUBLISHER) private readonly eventPublisher: EventPublisher,
     @Inject(CACHE_PORT) private readonly cache: CachePort,
@@ -130,15 +145,50 @@ export class LoginUseCase {
       await this.cache.set(cacheKey, JSON.stringify({ permissionCodes, roleNames }), 300);
     }
 
-    // Generate access token
-    // Look up the user's active org membership to embed org_id + org_role
+    // Look up user's active org memberships
     const memberships = await this.userOrgRepo.findByUserId(user.id);
-    const activeMembership = memberships.find((m) => m.isActive()) ?? memberships[0] ?? null;
+    const activeMemberships = memberships.filter((m) => m.isActive());
+
+    // Multi-org: if user belongs to more than one active org, return a short-lived
+    // pending token and the list of orgs so the frontend can show a picker.
+    if (activeMemberships.length > 1) {
+      const pendingToken = this.tokenService.generatePendingOrgToken({
+        sub: user.id,
+        tenantId: user.tenantId,
+        email: user.email.value,
+        pendingOrgSelection: true,
+      });
+
+      // Load org details for the picker
+      const orgIds = activeMemberships.map((m) => m.organizationId);
+      const orgs = await this.orgRepo.findByIds(orgIds);
+      const orgMap = new Map(orgs.map((o) => [o.id, o]));
+
+      const organisations: OrgSummary[] = activeMemberships.map((m) => ({
+        orgId: m.organizationId,
+        orgName: orgMap.get(m.organizationId)?.name ?? '',
+        orgSlug: orgMap.get(m.organizationId)?.slug ?? '',
+        membershipId: m.id,
+        role: m.role,
+        membershipType: (m as any).membershipType ?? 'MEMBER',
+      }));
+
+      return { pendingToken, organisations, tenantId: user.tenantId };
+    }
+
+    // Single-org or no-org: issue a full access token immediately.
+    const activeMembership = activeMemberships[0] ?? memberships[0] ?? null;
+    let org = activeMembership ? await this.orgRepo.findById(activeMembership.organizationId) : null;
+
     const accessToken = this.tokenService.generateAccessToken({
       sub: user.id,
       tenantId: user.tenantId,
       orgId: activeMembership?.organizationId ?? user.tenantId,
       orgRole: activeMembership?.role ?? undefined,
+      orgName: org?.name ?? undefined,
+      orgSlug: org?.slug ?? undefined,
+      membershipId: activeMembership?.id ?? undefined,
+      membershipType: (activeMembership as any)?.membershipType ?? 'MEMBER',
       email: user.email.value,
       roles: roleNames,
       permissions: permissionCodes,

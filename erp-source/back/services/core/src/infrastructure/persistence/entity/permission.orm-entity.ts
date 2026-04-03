@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 
 @TypeOrmEntity('permissions')
-@Unique(['tenant_id', 'resource', 'action'])
+@Unique(['tenant_id', 'resource', 'action', 'scope'])
 export class PermissionOrmEntity {
   @PrimaryColumn('uuid')
   id: string;
@@ -20,10 +20,14 @@ export class PermissionOrmEntity {
   tenant_id: string;
 
   @Column({ length: 100 })
-  resource: string;
+  resource: string; // 'invoice', 'employee', 'payroll', etc.
 
   @Column({ length: 50 })
-  action: string;
+  action: string; // 'create' | 'read' | 'update' | 'delete' | 'approve' | 'export' | 'all'
+
+  // scope determines what data the permission applies to
+  @Column({ length: 30, default: 'organisation' })
+  scope: string; // 'own' | 'department' | 'organisation' | 'all'
 
   @Column({ type: 'text', default: '' })
   description: string;

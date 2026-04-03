@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
 import PageHeader from '@/components/page-header';
+import CanDo from '@/components/can-do';
 
 const AVATAR_COLORS = ['from-violet-500 to-purple-600', 'from-blue-500 to-cyan-500', 'from-emerald-500 to-teal-500', 'from-rose-500 to-pink-500', 'from-amber-500 to-orange-500', 'from-indigo-500 to-blue-600', 'from-fuchsia-500 to-purple-500', 'from-sky-500 to-blue-500'];
 
@@ -69,7 +70,13 @@ export default function UserDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [roleModalOpen, setRoleModalOpen] = useState(false);
   const [assigning, setAssigning] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState('overview');
+  const [editOpen, setEditOpen] = useState(false);
+  const [editFirstName, setEditFirstName] = useState('');
+  const [editLastName, setEditLastName] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   const fetchUser = useCallback(async () => {
     setLoading(true); setError(null);
@@ -84,11 +91,38 @@ export default function UserDetailsPage() {
 
   const handleAssignRole = async (roleId: string) => {
     setAssigning(true);
-    try { await authApi.assignRoleToUser(userId, roleId); await fetchUser(); setRoleModalOpen(false); } catch { } finally { setAssigning(false); }
+    setAssignError(null);
+    try { await authApi.assignRoleToUser(userId, roleId); await fetchUser(); setRoleModalOpen(false); } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to assign role.';
+      setAssignError(msg);
+    } finally { setAssigning(false); }
   };
 
   const handleRemoveRole = async (roleId: string) => {
     try { await authApi.removeRoleFromUser(userId, roleId); await fetchUser(); } catch { }
+  };
+
+  const openEdit = () => {
+    setEditFirstName(user?.firstName ?? '');
+    setEditLastName(user?.lastName ?? '');
+    setEditError(null);
+    setEditOpen(true);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setEditSaving(true);
+    setEditError(null);
+    try {
+      await authApi.updateUser(userId, { firstName: editFirstName.trim(), lastName: editLastName.trim() });
+      await fetchUser();
+      setEditOpen(false);
+    } catch (err: unknown) {
+      setEditError((err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to save changes');
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   if (loading) return <div className="space-y-6"><div className="flex items-center justify-center py-32"><svg className="h-8 w-8 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg></div></div>;
@@ -148,6 +182,18 @@ export default function UserDetailsPage() {
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.745 3.745 0 011.043 3.296A3.745 3.745 0 0121 12z" /></svg>
                     Verified
                   </span>}
+                  {/* Edit User — only visible to admins with user:update permission */}
+                  <CanDo resource="user" action="update">
+                    <button
+                      onClick={openEdit}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                      </svg>
+                      Edit User
+                    </button>
+                  </CanDo>
                 </div>
               </div>
             </div>
@@ -352,9 +398,10 @@ export default function UserDetailsPage() {
       {roleModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-gray-200/60 dark:bg-gray-900 dark:ring-gray-700">
-            <button onClick={() => setRoleModalOpen(false)} className="absolute right-4 top-4 rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"><svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <button onClick={() => { setRoleModalOpen(false); setAssignError(null); }} className="absolute right-4 top-4 rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"><svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">Assign Role</h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Select a role to assign to <span className="font-semibold text-gray-700 dark:text-gray-200">{displayName}</span></p>
+            {assignError && <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">{assignError}</div>}
             {userRoles.length > 0 && <div className="mb-4 mt-4"><p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-400">Current Roles</p><div className="flex flex-wrap gap-2">{userRoles.map((role) => <span key={role.id || role.name} className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">{role.name}</span>)}</div></div>}
             <div className="mt-4"><p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-400">Available Roles</p>
               <div className="max-h-48 space-y-1.5 overflow-y-auto">
@@ -367,6 +414,60 @@ export default function UserDetailsPage() {
                 {roles.filter((r) => !userRoles.some((ur) => ur.id === r.id)).length === 0 && <p className="py-4 text-center text-xs text-gray-400">All roles assigned</p>}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {editOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-800">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Edit User</h2>
+              <button onClick={() => setEditOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            {editError && (
+              <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">{editError}</div>
+            )}
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">First Name</label>
+                <input
+                  type="text"
+                  value={editFirstName}
+                  onChange={(e) => setEditFirstName(e.target.value)}
+                  required
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Last Name</label>
+                <input
+                  type="text"
+                  value={editLastName}
+                  onChange={(e) => setEditLastName(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setEditOpen(false)} className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700">
+                  Cancel
+                </button>
+                <button type="submit" disabled={editSaving} className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-60">
+                  {editSaving && (
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                  )}
+                  {editSaving ? 'Saving…' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

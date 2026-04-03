@@ -261,6 +261,31 @@ export class AdminController {
 
   // ─── User status & deletion ───────────────────────
 
+  @Patch('users/:userId')
+  @RequirePermissions('auth:users:write')
+  async updateUserDetails(
+    @Param('userId') userId: string,
+    @TenantId() tenantId: string,
+    @Body() body: { firstName?: string; lastName?: string; phone?: string },
+  ) {
+    const user = await this.userRepo.findById(tenantId, userId);
+    if (!user) throw new NotFoundException('User not found');
+    if (body.firstName !== undefined) user.firstName = body.firstName.trim();
+    if (body.lastName !== undefined) user.lastName = body.lastName.trim();
+    await this.userRepo.update(user);
+    return {
+      statusCode: 200,
+      data: {
+        id: user.id,
+        email: user.email.value,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        status: user.status,
+        isActive: user.status === 'ACTIVE',
+      },
+    };
+  }
+
   @Patch('users/:userId/activate')
   @RequirePermissions('auth:users:write')
   async activateUser(
@@ -308,7 +333,7 @@ export class AdminController {
   }
 
   @Post('users/:userId/roles/:roleId')
-  @RequirePermissions('auth:roles:assign')
+  @RequirePermissions('auth:roles:write')
   @HttpCode(HttpStatus.NO_CONTENT)
   async assignRole(
     @Param('userId') userId: string,
@@ -325,7 +350,7 @@ export class AdminController {
   }
 
   @Delete('users/:userId/roles/:roleId')
-  @RequirePermissions('auth:roles:assign')
+  @RequirePermissions('auth:roles:write')
   @HttpCode(HttpStatus.NO_CONTENT)
   async removeRole(
     @Param('userId') userId: string,
