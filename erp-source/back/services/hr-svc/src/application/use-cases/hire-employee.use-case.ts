@@ -29,7 +29,7 @@ export interface HireEmployeeInput {
 
 export interface HireEmployeeOutput {
   id: string;
-  employeeNumber: string;
+  employeeCode: string;
   status: string;
 }
 
@@ -51,12 +51,12 @@ export class HireEmployeeUseCase {
       throw new DuplicateEntryException('email', input.email);
     }
 
-    // Generate employee number
-    const employeeNumber = await this.employeeRepo.nextEmployeeNumber(input.tenantId);
+    // Generate employee code
+    const employeeCode = await this.employeeRepo.generateEmployeeCode(input.tenantId);
 
     // Create aggregate
     const employee = Employee.create({
-      employeeNumber,
+      employeeCode,
       firstName: input.firstName,
       lastName: input.lastName,
       email: input.email,
@@ -86,7 +86,7 @@ export class HireEmployeeUseCase {
 
     return {
       id: saved.id,
-      employeeNumber: saved.employeeNumber,
+      employeeCode: saved.employeeCode,
       status: saved.status,
     };
   }

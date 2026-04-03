@@ -77,7 +77,10 @@ export class RefreshTokenUseCase {
     await this.refreshTokenRepo.save(newRefreshToken);
 
     // Resolve permissions from the ACTIVE org (not the user's home org)
-    const cacheKey = `perms:${activeTenantId}:${user.id}`;
+    // Resolve permissions from the user's HOME tenant (where their roles actually live).
+    // The active tenant may differ after an org switch, but role IDs on the user entity
+    // are always scoped to their home org.
+    const cacheKey = `perms:${userHomeTenantId}:${user.id}`;
     let permissionCodes: string[];
     let roleNames: string[];
     const cached = await this.cache.get(cacheKey);
@@ -86,9 +89,9 @@ export class RefreshTokenUseCase {
       permissionCodes = parsed.permissionCodes;
       roleNames = parsed.roleNames;
     } else {
-      const roles = await this.roleRepo.findByIds(activeTenantId, user.roles);
+      const roles = await this.roleRepo.findByIds(userHomeTenantId, user.roles);
       const allPermissionIds = [...new Set(roles.flatMap((r) => r.permissions))];
-      const permissions = await this.permissionRepo.findByIds(activeTenantId, allPermissionIds);
+      const permissions = await this.permissionRepo.findByIds(userHomeTenantId, allPermissionIds);
       permissionCodes = permissions.map((p) => p.code);
       roleNames = roles.map((r) => r.name);
       await this.cache.set(cacheKey, JSON.stringify({ permissionCodes, roleNames }), 300);
@@ -96,7 +99,8 @@ export class RefreshTokenUseCase {
 
     const accessToken = this.tokenService.generateAccessToken({
       sub: user.id,
-      tenantId: activeTenantId,  // issue token for the active org, not the user's home org
+      tenantId: activeTenantId,       // active org for operations
+      userTenantId: userHomeTenantId, // home org preserved so future switches work
       email: user.email.value,
       roles: roleNames,
       permissions: permissionCodes,

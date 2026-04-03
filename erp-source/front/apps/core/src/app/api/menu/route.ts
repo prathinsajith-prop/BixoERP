@@ -22,15 +22,15 @@ const PORTAL_MENU: MenuItem[] = [
     // Always visible
     { label: 'Dashboard', href: '/', icon: 'home', position: 1 },
     // Org management — visible to admins and owners
-    { label: 'Members', href: '/settings/members', icon: 'users', permission: 'member:read', position: 2 },
-    { label: 'Departments', href: '/settings/departments', icon: 'building', permission: 'department:read', position: 3 },
+    { label: 'Members', href: '/settings/members', icon: 'users', permission: 'auth:org-structure:read', position: 2 },
+    { label: 'Departments', href: '/settings/departments', icon: 'building', permission: 'auth:org-structure:read', position: 3 },
     // User self-service — always visible
     { label: 'Profile', href: '/profile', icon: 'user-circle', position: 4 },
     { label: 'Organisations', href: '/profile/organisations', icon: 'globe', position: 5 },
     // Settings — visible to admins
-    { label: 'Settings', href: '/settings', icon: 'settings', permission: 'role:read', position: 6 },
+    { label: 'Settings', href: '/settings', icon: 'settings', permission: 'auth:roles:read', position: 6 },
     // Admin panel sections
-    { label: 'Users & Roles', href: '/admin/users', icon: 'shield', permission: 'user:read', position: 7 },
+    { label: 'Users & Roles', href: '/admin/users', icon: 'shield', permission: 'auth:users:read', position: 7 },
 ];
 
 function decodeJwtPermissions(token: string): string[] {

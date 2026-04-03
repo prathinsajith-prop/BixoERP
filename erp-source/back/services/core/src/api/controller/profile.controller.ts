@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../guard/jwt-auth.guard';
-import { TenantId, CurrentUser } from '../decorator/auth.decorators';
+import { TenantId, UserTenantId, CurrentUser } from '../decorator/auth.decorators';
 import { ZodValidationPipe } from '../pipe/zod-validation.pipe';
 import { UpdateProfileDto } from '../dto/profile.dto';
 import { PostgresUserProfileRepository } from '../../infrastructure/persistence/repository/postgres-user-profile.repository';
@@ -40,20 +40,21 @@ export class ProfileController {
   @Get()
   async getProfile(
     @TenantId() tenantId: string,
+    @UserTenantId() homeTenantId: string,
     @CurrentUser() user: { sub: string },
   ) {
     const [profile, userEntity, loginHistoryResult, userOrgs] = await Promise.all([
-      this.profileRepo.findByUserId(tenantId, user.sub),
-      this.userRepo.findById(tenantId, user.sub),
-      this.loginHistoryRepo.findByUserId(tenantId, user.sub, 15),
+      this.profileRepo.findByUserId(homeTenantId, user.sub),
+      this.userRepo.findById(homeTenantId, user.sub),
+      this.loginHistoryRepo.findByUserId(homeTenantId, user.sub, 15),
       this.userOrgRepo.findByUserId(user.sub),
     ]);
 
     // Resolve roles with permissions
     const roleIds: string[] = userEntity?.roles ?? [];
-    const roles = roleIds.length > 0 ? await this.roleRepo.findByIds(tenantId, roleIds) : [];
+    const roles = roleIds.length > 0 ? await this.roleRepo.findByIds(homeTenantId, roleIds) : [];
     const allPermIds = [...new Set(roles.flatMap((r) => r.permissions))];
-    const permissions = allPermIds.length > 0 ? await this.permissionRepo.findByIds(tenantId, allPermIds) : [];
+    const permissions = allPermIds.length > 0 ? await this.permissionRepo.findByIds(homeTenantId, allPermIds) : [];
     const permMap = new Map(permissions.map((p) => [p.id, p]));
 
     // Resolve org details
@@ -116,13 +117,14 @@ export class ProfileController {
   async updateProfile(
     @Body(new ZodValidationPipe(UpdateProfileDto)) dto: UpdateProfileDto,
     @TenantId() tenantId: string,
+    @UserTenantId() homeTenantId: string,
     @CurrentUser() user: { sub: string; email?: string },
     @Req() req: Request,
   ) {
     // Capture previous values
     const [prevProfile, prevUser] = await Promise.all([
-      this.profileRepo.findByUserId(tenantId, user.sub),
-      this.userRepo.findById(tenantId, user.sub),
+      this.profileRepo.findByUserId(homeTenantId, user.sub),
+      this.userRepo.findById(homeTenantId, user.sub),
     ]);
 
     const changeset: Array<{ field: string; previous: unknown; current: unknown }> = [];
@@ -157,7 +159,7 @@ export class ProfileController {
       }
     }
 
-    const profile = await this.profileRepo.upsert(tenantId, user.sub, profileData as Record<string, unknown>);
+    const profile = await this.profileRepo.upsert(homeTenantId, user.sub, profileData as Record<string, unknown>);
 
     // Audit log
     const changedFields = changeset.map((c) => c.field);

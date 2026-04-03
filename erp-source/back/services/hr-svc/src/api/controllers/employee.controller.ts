@@ -138,6 +138,23 @@ export class EmployeeController {
     return employees.map((e) => this.toResponse(e, dept?.name, posMap.get(e.positionId)));
   }
 
+  @Get('by-code/:code')
+  @ApiOperation({ summary: 'Get employee by employee code' })
+  async findByCode(
+    @Param('code') code: string,
+    @TenantId() tenantId: string,
+  ) {
+    const employee = await this.employeeRepo.findByEmployeeCode(code, tenantId);
+    if (!employee) {
+      throw new EntityNotFoundException('Employee', code);
+    }
+    const [dept, pos] = await Promise.all([
+      this.departmentRepo.findById(employee.departmentId, tenantId),
+      this.positionRepo.findById(employee.positionId, tenantId),
+    ]);
+    return this.toResponse(employee, dept?.name, pos?.title);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get employee by ID' })
   async findById(
@@ -158,7 +175,7 @@ export class EmployeeController {
   private toResponse(emp: Employee, departmentName?: string, positionTitle?: string) {
     return {
       id: emp.id,
-      employeeNumber: emp.employeeNumber,
+      employeeCode: emp.employeeCode,
       firstName: emp.firstName,
       lastName: emp.lastName,
       email: emp.email,
