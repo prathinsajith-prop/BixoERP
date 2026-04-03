@@ -51,8 +51,12 @@ export class PostgresUserOrganizationRepository implements UserOrganizationRepos
       userId: row.user_id,
       organizationId: row.organization_id,
       role: row.role as OrgMemberRole,
+      roleId: row.role_id ?? null,
+      employeeId: row.employee_id ?? null,
+      invitedBy: row.invited_by ?? null,
       status: (row.status as OrgMemberStatus) ?? OrgMemberStatus.ACTIVE,
       joinedAt: row.joined_at,
+      leftAt: row.left_at ?? null,
     });
   }
 }

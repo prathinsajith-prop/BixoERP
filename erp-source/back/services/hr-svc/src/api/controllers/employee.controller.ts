@@ -2,8 +2,10 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
+  Query,
   HttpCode,
   HttpStatus,
   Inject,
@@ -18,10 +20,13 @@ import {
   TerminateEmployeeDtoType,
   TransferEmployeeDto,
   TransferEmployeeDtoType,
+  UpdateEmployeeDto,
+  UpdateEmployeeDtoType,
 } from '../dto/hr.dto';
 import {
   HireEmployeeUseCase,
   TerminateEmployeeUseCase,
+  UpdateEmployeeUseCase,
 } from '../../application/use-cases';
 import {
   EmployeeRepository,
@@ -45,6 +50,7 @@ export class EmployeeController {
   constructor(
     private readonly hireEmployee: HireEmployeeUseCase,
     private readonly terminateEmployee: TerminateEmployeeUseCase,
+    private readonly updateEmployee: UpdateEmployeeUseCase,
     @Inject(EMPLOYEE_REPOSITORY)
     private readonly employeeRepo: EmployeeRepository,
     @Inject(DEPARTMENT_REPOSITORY)
@@ -112,17 +118,55 @@ export class EmployeeController {
     return { message: 'Employee transferred successfully' };
   }
 
+  @Patch(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update employee personal details' })
+  async update(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(UpdateEmployeeDto)) dto: UpdateEmployeeDtoType,
+    @TenantId() tenantId: string,
+    @CurrentUser() user: { userId: string },
+  ) {
+    return this.updateEmployee.execute({
+      employeeId: id,
+      tenantId,
+      updatedBy: user.userId,
+      ...dto,
+    });
+  }
+
   @Get()
-  @ApiOperation({ summary: 'List all employees for current tenant' })
-  async list(@TenantId() tenantId: string) {
-    const [employees, departments, positions] = await Promise.all([
-      this.employeeRepo.findAll(tenantId),
+  @ApiOperation({ summary: 'List employees with optional search, filter and pagination' })
+  async list(
+    @TenantId() tenantId: string,
+    @Query('search') search?: string,
+    @Query('departmentId') departmentId?: string,
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: string,
+  ) {
+    const pageNum = Math.max(1, parseInt(page ?? '1', 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit ?? '25', 10) || 25));
+    const [result, departments, positions] = await Promise.all([
+      this.employeeRepo.findAllPaginated(tenantId, {
+        search, departmentId, status,
+        page: pageNum, limit: limitNum,
+        sortBy, sortOrder: (sortOrder === 'asc' || sortOrder === 'desc') ? sortOrder : 'asc',
+      }),
       this.departmentRepo.findAll(tenantId),
       this.positionRepo.findAll(tenantId),
     ]);
     const deptMap = new Map(departments.map((d) => [d.id, d.name]));
     const posMap = new Map(positions.map((p) => [p.id, p.title]));
-    return employees.map((e) => this.toResponse(e, deptMap.get(e.departmentId), posMap.get(e.positionId)));
+    return {
+      data: result.data.map((e) => this.toResponse(e, deptMap.get(e.departmentId), posMap.get(e.positionId))),
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      totalPages: Math.ceil(result.total / result.limit),
+    };
   }
 
   @Get('department/:departmentId')

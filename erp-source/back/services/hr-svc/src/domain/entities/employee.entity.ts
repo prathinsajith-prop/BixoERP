@@ -235,4 +235,28 @@ export class Employee extends AggregateRoot<EmployeeProps> {
     this.props.status = EmploymentStatus.ACTIVE;
     this.props.updatedAt = new Date();
   }
+
+  updatePersonalInfo(data: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string | null;
+    managerId?: string | null;
+  }): void {
+    if (this.props.status === EmploymentStatus.TERMINATED) {
+      throw new BusinessRuleViolation('Cannot update a terminated employee');
+    }
+    if (data.firstName !== undefined) this.props.firstName = data.firstName;
+    if (data.lastName !== undefined) this.props.lastName = data.lastName;
+    if (data.phone !== undefined) this.props.phone = data.phone;
+    if (data.managerId !== undefined) this.props.managerId = data.managerId;
+    this.props.updatedAt = new Date();
+    this.addDomainEvent({
+      eventId: uuidv4(),
+      eventType: 'employee.updated',
+      aggregateId: this.id,
+      tenantId: this.props.tenantId,
+      occurredAt: new Date(),
+      payload: { employeeCode: this.props.employeeCode, changes: data },
+    });
+  }
 }
