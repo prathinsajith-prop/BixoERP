@@ -278,13 +278,16 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
           /* Module-specific nav items loaded from /{moduleId}/api/menu */
           <div className="contents md:flex md:flex-col md:items-center md:gap-1">
             {menuItems.map((item) => {
-              const isActive = pathname === item.href || pathname === item.href.replace(`/${moduleId}`, '') || pathname === '/';
+              const itemHasChildren = (item.children?.length ?? 0) > 0;
+              const isActive = itemHasChildren
+                ? activePanel === item.href
+                : pathname === item.href || pathname === item.href.replace(`/${moduleId}`, '') || pathname === '/';
               return (
                 <SidebarIcon
                   key={item.href}
                   icon={getIcon(item.icon, 'h-5 w-5')}
                   label={item.label}
-                  onClick={() => goTo(item.href)}
+                  onClick={() => itemHasChildren ? toggle(item.href) : goTo(item.href)}
                   active={isActive}
                 />
               );
@@ -340,6 +343,23 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
 
       {/* ─── Flyout Panels ─── */}
       <div className="contents md:relative md:h-full">
+        {/* Flyouts for module menu items with sub-navigation (children) */}
+        {hasModuleMenu && menuItems.filter((item) => (item.children?.length ?? 0) > 0).map((item) => (
+          <Flyout key={item.href} open={activePanel === item.href} onClose={closePanel} title={item.label}>
+            <div className="space-y-0.5 px-2">
+              {item.children!.map((child) => (
+                <AdminLink
+                  key={child.href}
+                  label={child.label}
+                  path={child.href}
+                  active={pathname === child.href}
+                  icon={getIcon(child.icon, 'h-4 w-4')}
+                />
+              ))}
+            </div>
+          </Flyout>
+        ))}
+
         {/* Users & Roles */}
         {!hasModuleMenu && (
           <Flyout open={activePanel === 'users'} onClose={closePanel} title="Users & Access">
