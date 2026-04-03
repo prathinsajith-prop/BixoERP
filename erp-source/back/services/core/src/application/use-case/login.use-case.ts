@@ -183,6 +183,7 @@ export class LoginUseCase {
     const accessToken = this.tokenService.generateAccessToken({
       sub: user.id,
       tenantId: user.tenantId,
+      userTenantId: user.tenantId,  // home tenant — same as tenantId on initial login
       orgId: activeMembership?.organizationId ?? user.tenantId,
       orgRole: activeMembership?.role ?? undefined,
       orgName: org?.name ?? undefined,

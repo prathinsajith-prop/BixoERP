@@ -82,6 +82,7 @@ export class JwtTokenService implements TokenService {
       sub: body.sub,
       jti: body.jti,
       tenantId: body.tenantId ?? body.tenant_id,
+      userTenantId: body.userTenantId ?? undefined,
       orgId: body.orgId ?? body.org_id ?? body.tenantId ?? body.tenant_id,
       orgRole: body.orgRole ?? body.org_role ?? undefined,
       orgName: body.orgName ?? body.org_name ?? undefined,

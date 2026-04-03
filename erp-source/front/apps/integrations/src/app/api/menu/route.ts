@@ -5,7 +5,7 @@ export async function GET() {
     moduleId: "integrations",
     moduleName: "Integrations",
     items: [
-      { label: "Webhooks", href: "/integrations", icon: "Plug" },
+      { label: "Webhooks", href: "/integrations", icon: "PlugZap" },
       { label: "API Keys", href: "/integrations/api-keys", icon: "Key" },
       { label: "Connections", href: "/integrations/connections", icon: "Link" },
     ],

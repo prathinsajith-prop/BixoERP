@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 
 @Entity('employees')
-@Index(['tenantId', 'employeeNumber'], { unique: true })
+@Index(['tenantId', 'employeeCode'], { unique: true })
 @Index(['tenantId', 'email'], { unique: true })
 @Index(['tenantId', 'departmentId'])
 @Index(['tenantId', 'status'])
@@ -16,8 +16,9 @@ export class EmployeeOrmEntity {
   @PrimaryColumn('uuid')
   id!: string;
 
-  @Column({ name: 'employee_number', length: 30 })
-  employeeNumber!: string;
+  @Column({ name: 'employee_code', length: 30 })
+  @Index()
+  employeeCode!: string;
 
   @Column({ name: 'first_name', length: 100 })
   firstName!: string;

@@ -10,6 +10,7 @@ import configuration from './infrastructure/config/configuration';
 // ORM Entities
 import {
   EmployeeOrmEntity,
+  EmployeeCodeSequenceOrmEntity,
   DepartmentOrmEntity,
   PositionOrmEntity,
   LeaveRequestOrmEntity,
@@ -60,6 +61,7 @@ import { JwtMiddleware } from './api/middleware/jwt.middleware';
 
 const ormEntities = [
   EmployeeOrmEntity,
+  EmployeeCodeSequenceOrmEntity,
   DepartmentOrmEntity,
   PositionOrmEntity,
   LeaveRequestOrmEntity,

@@ -17,7 +17,7 @@ import { Request, Response } from 'express';
 import { JwtAuthGuard } from '../guard/jwt-auth.guard';
 import { PermissionsGuard, RequirePermissions } from '../guard/permissions.guard';
 import { ZodValidationPipe } from '../pipe/zod-validation.pipe';
-import { TenantId, CurrentUser } from '../decorator/auth.decorators';
+import { TenantId, UserTenantId, CurrentUser } from '../decorator/auth.decorators';
 import { OrganizationUseCase } from '../../application/use-case/organization.use-case';
 import { AuditLogService } from '../../infrastructure/audit/audit-log.service';
 import { OrgMemberRole } from '../../domain/entity/user-organization.entity';
@@ -81,6 +81,7 @@ export class OrganizationController {
   async switchOrganization(
     @Body(new ZodValidationPipe(SwitchOrganizationDto)) dto: SwitchOrganizationDto,
     @TenantId() tenantId: string,
+    @UserTenantId() userTenantId: string,
     @CurrentUser() user: { sub: string },
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
@@ -88,6 +89,7 @@ export class OrganizationController {
     const result = await this.orgUseCase.switchOrganization({
       userId: user.sub,
       currentTenantId: tenantId,
+      userTenantId,
       targetOrganizationId: dto.organizationId,
       userAgent: req.headers['user-agent'],
       ipAddress: req.ip,

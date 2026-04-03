@@ -5,7 +5,7 @@ import { Money } from '../value-objects/money';
 import { BusinessRuleViolation } from '../exceptions/domain.exceptions';
 
 export interface EmployeeProps {
-  employeeNumber: string;
+  employeeCode: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -28,7 +28,7 @@ export interface EmployeeProps {
 export class Employee extends AggregateRoot<EmployeeProps> {
   static create(
     props: {
-      employeeNumber: string;
+      employeeCode: string;
       firstName: string;
       lastName: string;
       email: string;
@@ -63,7 +63,7 @@ export class Employee extends AggregateRoot<EmployeeProps> {
       tenantId: props.tenantId,
       occurredAt: new Date(),
       payload: {
-        employeeNumber: props.employeeNumber,
+        employeeCode: props.employeeCode,
         firstName: props.firstName,
         lastName: props.lastName,
         email: props.email,
@@ -80,8 +80,8 @@ export class Employee extends AggregateRoot<EmployeeProps> {
     return new Employee(props, id);
   }
 
-  get employeeNumber(): string {
-    return this.props.employeeNumber;
+  get employeeCode(): string {
+    return this.props.employeeCode;
   }
 
   get firstName(): string {
@@ -173,7 +173,7 @@ export class Employee extends AggregateRoot<EmployeeProps> {
       tenantId: this.props.tenantId,
       occurredAt: new Date(),
       payload: {
-        employeeNumber: this.props.employeeNumber,
+        employeeCode: this.props.employeeCode,
         firstName: this.props.firstName,
         lastName: this.props.lastName,
         reason,
@@ -203,7 +203,7 @@ export class Employee extends AggregateRoot<EmployeeProps> {
       tenantId: this.props.tenantId,
       occurredAt: new Date(),
       payload: {
-        employeeNumber: this.props.employeeNumber,
+        employeeCode: this.props.employeeCode,
         previousDepartmentId,
         newDepartmentId,
         previousPositionId,

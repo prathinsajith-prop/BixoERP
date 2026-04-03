@@ -5,7 +5,7 @@ export async function GET() {
     moduleId: "audit",
     moduleName: "Audit",
     items: [
-      { label: "Audit Log", href: "/audit", icon: "Shield" },
+      { label: "Audit Log", href: "/audit", icon: "ShieldCheck" },
       { label: "Activity", href: "/audit/activity", icon: "Activity" },
     ],
   });

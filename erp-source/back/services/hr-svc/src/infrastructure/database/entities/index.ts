@@ -1,4 +1,5 @@
 export { EmployeeOrmEntity } from './employee.orm-entity';
+export { EmployeeCodeSequenceOrmEntity } from './employee-code-sequence.orm-entity';
 export { DepartmentOrmEntity } from './department.orm-entity';
 export { PositionOrmEntity } from './position.orm-entity';
 export { LeaveRequestOrmEntity } from './leave-request.orm-entity';
