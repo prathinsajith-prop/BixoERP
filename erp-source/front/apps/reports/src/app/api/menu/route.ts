@@ -5,7 +5,7 @@ export async function GET() {
     moduleId: "reports",
     moduleName: "Reports",
     items: [
-      { label: "Dashboard", href: "/reports", icon: "LayoutDashboard" },
+      { label: "Dashboard", href: "/reports", icon: "BarChart3" },
       { label: "Financial Reports", href: "/reports/financial", icon: "Banknote" },
       { label: "Inventory Reports", href: "/reports/inventory", icon: "Package" },
       { label: "Sales Reports", href: "/reports/sales", icon: "TrendingUp" },

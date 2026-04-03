@@ -19,7 +19,11 @@
       { "module": "core", "version": ">=1.0.0", "optional": false },
       { "module": "finance_module", "version": ">=1.0.0", "optional": false },
       { "module": "auth_module", "version": ">=1.0.0", "optional": false },
-      { "module": "notifications_module", "version": ">=1.0.0", "optional": true }
+      {
+        "module": "notifications_module",
+        "version": ">=1.0.0",
+        "optional": true
+      }
     ]
   },
 
@@ -48,7 +52,13 @@
         "href": "/hr",
         "icon": "LayoutDashboard",
         "permission": "hr:dashboard.view",
-        "visibleTo": ["hr_admin", "hr_manager", "hr_officer", "hr_payroll_officer", "hr_viewer"],
+        "visibleTo": [
+          "hr_admin",
+          "hr_manager",
+          "hr_officer",
+          "hr_payroll_officer",
+          "hr_viewer"
+        ],
         "position": 1
       },
       {
@@ -56,7 +66,13 @@
         "href": "/hr/employees",
         "icon": "Users",
         "permission": "hr:employee.read",
-        "visibleTo": ["hr_admin", "hr_manager", "hr_officer", "hr_payroll_officer", "hr_viewer"],
+        "visibleTo": [
+          "hr_admin",
+          "hr_manager",
+          "hr_officer",
+          "hr_payroll_officer",
+          "hr_viewer"
+        ],
         "position": 2
       },
       {
@@ -70,23 +86,35 @@
       {
         "label": "Attendance",
         "href": "/hr/attendance",
-        "icon": "Clock",
+        "icon": "ClipboardList",
         "permission": "hr:attendance.read",
-        "visibleTo": ["hr_admin", "hr_manager", "hr_officer", "hr_viewer", "employee_self"],
+        "visibleTo": [
+          "hr_admin",
+          "hr_manager",
+          "hr_officer",
+          "hr_viewer",
+          "employee_self"
+        ],
         "position": 4
       },
       {
         "label": "Leave Requests",
         "href": "/hr/leave",
-        "icon": "CalendarOff",
+        "icon": "CalendarDays",
         "permission": "hr:leave.read",
-        "visibleTo": ["hr_admin", "hr_manager", "hr_officer", "hr_viewer", "employee_self"],
+        "visibleTo": [
+          "hr_admin",
+          "hr_manager",
+          "hr_officer",
+          "hr_viewer",
+          "employee_self"
+        ],
         "position": 5
       },
       {
         "label": "Payroll",
         "href": "/hr/payroll",
-        "icon": "Banknote",
+        "icon": "DollarSign",
         "permission": "hr:payroll.read",
         "visibleTo": ["hr_admin", "hr_manager", "hr_payroll_officer"],
         "position": 6
@@ -109,11 +137,36 @@
       }
     ],
     "widgets": [
-      { "id": "hr_headcount",       "label": "Headcount Summary",         "dashboard": true, "size": "small" },
-      { "id": "hr_attendance_today", "label": "Today's Attendance",       "dashboard": true, "size": "medium" },
-      { "id": "hr_pending_leaves",  "label": "Pending Leave Approvals",   "dashboard": true, "size": "small" },
-      { "id": "hr_payroll_summary", "label": "Latest Payroll Summary",    "dashboard": true, "size": "medium" },
-      { "id": "hr_dept_headcount",  "label": "Department Headcount",      "dashboard": true, "size": "large" }
+      {
+        "id": "hr_headcount",
+        "label": "Headcount Summary",
+        "dashboard": true,
+        "size": "small"
+      },
+      {
+        "id": "hr_attendance_today",
+        "label": "Today's Attendance",
+        "dashboard": true,
+        "size": "medium"
+      },
+      {
+        "id": "hr_pending_leaves",
+        "label": "Pending Leave Approvals",
+        "dashboard": true,
+        "size": "small"
+      },
+      {
+        "id": "hr_payroll_summary",
+        "label": "Latest Payroll Summary",
+        "dashboard": true,
+        "size": "medium"
+      },
+      {
+        "id": "hr_dept_headcount",
+        "label": "Department Headcount",
+        "dashboard": true,
+        "size": "large"
+      }
     ]
   },
 
@@ -130,14 +183,29 @@
       "name": "HR Administrator",
       "description": "Full access to all HR module features",
       "scopes": [
-        "hr:employee.read", "hr:employee.create", "hr:employee.update", "hr:employee.delete",
-        "hr:department.read", "hr:department.create", "hr:department.update", "hr:department.delete",
-        "hr:leave.read", "hr:leave.create", "hr:leave.update", "hr:leave.delete",
-        "hr:attendance.read", "hr:attendance.create",
-        "hr:payroll.read", "hr:payroll.process", "hr:payroll.approve", "hr:payroll.export",
-        "hr:reports.view", "hr:settings.manage",
+        "hr:employee.read",
+        "hr:employee.create",
+        "hr:employee.update",
+        "hr:employee.delete",
+        "hr:department.read",
+        "hr:department.create",
+        "hr:department.update",
+        "hr:department.delete",
+        "hr:leave.read",
+        "hr:leave.create",
+        "hr:leave.update",
+        "hr:leave.delete",
+        "hr:attendance.read",
+        "hr:attendance.create",
+        "hr:payroll.read",
+        "hr:payroll.process",
+        "hr:payroll.approve",
+        "hr:payroll.export",
+        "hr:reports.view",
+        "hr:settings.manage",
         "hr:dashboard.view",
-        "hr:sync.pull", "hr:sync.push"
+        "hr:sync.pull",
+        "hr:sync.push"
       ]
     },
     {
@@ -145,11 +213,18 @@
       "name": "HR Manager",
       "description": "Manage employees, departments, and approve leave & payroll",
       "scopes": [
-        "hr:employee.read", "hr:employee.create", "hr:employee.update",
-        "hr:department.read", "hr:department.create", "hr:department.update",
-        "hr:leave.read", "hr:leave.update",
+        "hr:employee.read",
+        "hr:employee.create",
+        "hr:employee.update",
+        "hr:department.read",
+        "hr:department.create",
+        "hr:department.update",
+        "hr:leave.read",
+        "hr:leave.update",
         "hr:attendance.read",
-        "hr:payroll.read", "hr:payroll.process", "hr:payroll.approve",
+        "hr:payroll.read",
+        "hr:payroll.process",
+        "hr:payroll.approve",
         "hr:reports.view",
         "hr:dashboard.view"
       ]
@@ -159,9 +234,13 @@
       "name": "HR Officer",
       "description": "View and manage employee records and leave requests",
       "scopes": [
-        "hr:employee.read", "hr:employee.create", "hr:employee.update",
+        "hr:employee.read",
+        "hr:employee.create",
+        "hr:employee.update",
         "hr:department.read",
-        "hr:leave.read", "hr:leave.create", "hr:leave.update",
+        "hr:leave.read",
+        "hr:leave.create",
+        "hr:leave.update",
         "hr:attendance.read",
         "hr:dashboard.view"
       ]
@@ -172,7 +251,10 @@
       "description": "Process and manage payroll runs",
       "scopes": [
         "hr:employee.read",
-        "hr:payroll.read", "hr:payroll.process", "hr:payroll.approve", "hr:payroll.export",
+        "hr:payroll.read",
+        "hr:payroll.process",
+        "hr:payroll.approve",
+        "hr:payroll.export",
         "hr:dashboard.view"
       ]
     },
@@ -193,8 +275,10 @@
       "name": "Employee Self-Service",
       "description": "Access own profile, attendance, and submit leave requests",
       "scopes": [
-        "hr:employee.read.self", "hr:employee.update.self",
-        "hr:leave.read.self", "hr:leave.create.self",
+        "hr:employee.read.self",
+        "hr:employee.update.self",
+        "hr:leave.read.self",
+        "hr:leave.create.self",
         "hr:attendance.read.self"
       ]
     }
@@ -204,74 +288,186 @@
     {
       "resource": "dashboard",
       "actions": [
-        { "id": "hr:dashboard.view", "name": "View Dashboard", "description": "View HR dashboard and KPIs" }
+        {
+          "id": "hr:dashboard.view",
+          "name": "View Dashboard",
+          "description": "View HR dashboard and KPIs"
+        }
       ]
     },
     {
       "resource": "employee",
       "actions": [
-        { "id": "hr:employee.read",        "name": "View Employees",       "description": "View employee list and details" },
-        { "id": "hr:employee.read.self",    "name": "View Own Profile",     "description": "View own employee profile" },
-        { "id": "hr:employee.create",       "name": "Create Employee",      "description": "Hire new employees" },
-        { "id": "hr:employee.update",       "name": "Update Employee",      "description": "Edit employee details" },
-        { "id": "hr:employee.update.self",  "name": "Update Own Profile",   "description": "Edit own employee profile" },
-        { "id": "hr:employee.delete",       "name": "Delete Employee",      "description": "Remove employee records" }
+        {
+          "id": "hr:employee.read",
+          "name": "View Employees",
+          "description": "View employee list and details"
+        },
+        {
+          "id": "hr:employee.read.self",
+          "name": "View Own Profile",
+          "description": "View own employee profile"
+        },
+        {
+          "id": "hr:employee.create",
+          "name": "Create Employee",
+          "description": "Hire new employees"
+        },
+        {
+          "id": "hr:employee.update",
+          "name": "Update Employee",
+          "description": "Edit employee details"
+        },
+        {
+          "id": "hr:employee.update.self",
+          "name": "Update Own Profile",
+          "description": "Edit own employee profile"
+        },
+        {
+          "id": "hr:employee.delete",
+          "name": "Delete Employee",
+          "description": "Remove employee records"
+        }
       ]
     },
     {
       "resource": "department",
       "actions": [
-        { "id": "hr:department.read",   "name": "View Departments",  "description": "View department list and details" },
-        { "id": "hr:department.create", "name": "Create Department", "description": "Create new departments" },
-        { "id": "hr:department.update", "name": "Update Department", "description": "Edit department details" },
-        { "id": "hr:department.delete", "name": "Delete Department", "description": "Remove departments" }
+        {
+          "id": "hr:department.read",
+          "name": "View Departments",
+          "description": "View department list and details"
+        },
+        {
+          "id": "hr:department.create",
+          "name": "Create Department",
+          "description": "Create new departments"
+        },
+        {
+          "id": "hr:department.update",
+          "name": "Update Department",
+          "description": "Edit department details"
+        },
+        {
+          "id": "hr:department.delete",
+          "name": "Delete Department",
+          "description": "Remove departments"
+        }
       ]
     },
     {
       "resource": "attendance",
       "actions": [
-        { "id": "hr:attendance.read",      "name": "View Attendance",      "description": "View attendance records" },
-        { "id": "hr:attendance.read.self",  "name": "View Own Attendance",  "description": "View own attendance records" },
-        { "id": "hr:attendance.create",     "name": "Record Attendance",    "description": "Manually record attendance" }
+        {
+          "id": "hr:attendance.read",
+          "name": "View Attendance",
+          "description": "View attendance records"
+        },
+        {
+          "id": "hr:attendance.read.self",
+          "name": "View Own Attendance",
+          "description": "View own attendance records"
+        },
+        {
+          "id": "hr:attendance.create",
+          "name": "Record Attendance",
+          "description": "Manually record attendance"
+        }
       ]
     },
     {
       "resource": "leave",
       "actions": [
-        { "id": "hr:leave.read",        "name": "View Leave Requests",  "description": "View all leave requests" },
-        { "id": "hr:leave.read.self",    "name": "View Own Leave",       "description": "View own leave requests" },
-        { "id": "hr:leave.create",       "name": "Submit Leave",         "description": "Submit leave requests on behalf of employees" },
-        { "id": "hr:leave.create.self",  "name": "Submit Own Leave",     "description": "Submit own leave requests" },
-        { "id": "hr:leave.update",       "name": "Approve/Reject Leave", "description": "Approve or reject leave requests" },
-        { "id": "hr:leave.delete",       "name": "Cancel Leave",         "description": "Cancel leave requests" }
+        {
+          "id": "hr:leave.read",
+          "name": "View Leave Requests",
+          "description": "View all leave requests"
+        },
+        {
+          "id": "hr:leave.read.self",
+          "name": "View Own Leave",
+          "description": "View own leave requests"
+        },
+        {
+          "id": "hr:leave.create",
+          "name": "Submit Leave",
+          "description": "Submit leave requests on behalf of employees"
+        },
+        {
+          "id": "hr:leave.create.self",
+          "name": "Submit Own Leave",
+          "description": "Submit own leave requests"
+        },
+        {
+          "id": "hr:leave.update",
+          "name": "Approve/Reject Leave",
+          "description": "Approve or reject leave requests"
+        },
+        {
+          "id": "hr:leave.delete",
+          "name": "Cancel Leave",
+          "description": "Cancel leave requests"
+        }
       ]
     },
     {
       "resource": "payroll",
       "actions": [
-        { "id": "hr:payroll.read",    "name": "View Payroll",    "description": "View payroll runs and history" },
-        { "id": "hr:payroll.process", "name": "Process Payroll", "description": "Run payroll calculations" },
-        { "id": "hr:payroll.approve", "name": "Approve Payroll", "description": "Approve processed payroll runs" },
-        { "id": "hr:payroll.export",  "name": "Export Payroll",  "description": "Export payroll reports" }
+        {
+          "id": "hr:payroll.read",
+          "name": "View Payroll",
+          "description": "View payroll runs and history"
+        },
+        {
+          "id": "hr:payroll.process",
+          "name": "Process Payroll",
+          "description": "Run payroll calculations"
+        },
+        {
+          "id": "hr:payroll.approve",
+          "name": "Approve Payroll",
+          "description": "Approve processed payroll runs"
+        },
+        {
+          "id": "hr:payroll.export",
+          "name": "Export Payroll",
+          "description": "Export payroll reports"
+        }
       ]
     },
     {
       "resource": "reports",
       "actions": [
-        { "id": "hr:reports.view", "name": "View Reports", "description": "Access HR analytics and reports" }
+        {
+          "id": "hr:reports.view",
+          "name": "View Reports",
+          "description": "Access HR analytics and reports"
+        }
       ]
     },
     {
       "resource": "settings",
       "actions": [
-        { "id": "hr:settings.manage", "name": "Manage Settings", "description": "Configure HR module settings" }
+        {
+          "id": "hr:settings.manage",
+          "name": "Manage Settings",
+          "description": "Configure HR module settings"
+        }
       ]
     },
     {
       "resource": "sync",
       "actions": [
-        { "id": "hr:sync.pull", "name": "Sync Pull", "description": "Pull data from core" },
-        { "id": "hr:sync.push", "name": "Sync Push", "description": "Push data to core" }
+        {
+          "id": "hr:sync.pull",
+          "name": "Sync Pull",
+          "description": "Pull data from core"
+        },
+        {
+          "id": "hr:sync.push",
+          "name": "Sync Push",
+          "description": "Push data to core"
+        }
       ]
     }
   ],
@@ -287,23 +483,111 @@
       "sync_enabled": true,
       "sync_direction": "bidirectional",
       "fields": [
-        { "name": "employee_id",   "type": "uuid",      "required": true,  "readonly": true },
-        { "name": "employee_number","type": "string",    "required": true,  "readonly": true },
-        { "name": "first_name",    "type": "string",     "required": true,  "readonly": false },
-        { "name": "last_name",     "type": "string",     "required": true,  "readonly": false },
-        { "name": "email",         "type": "email",      "required": true,  "readonly": false },
-        { "name": "phone",         "type": "string",     "required": false, "readonly": false },
-        { "name": "department_id", "type": "uuid",       "required": true,  "readonly": false },
-        { "name": "position_id",   "type": "uuid",       "required": true,  "readonly": false },
-        { "name": "manager_id",    "type": "uuid",       "required": false, "readonly": false },
-        { "name": "hire_date",     "type": "date",       "required": true,  "readonly": false },
-        { "name": "status",        "type": "enum",       "required": true,  "readonly": false,
-          "enum_values": ["active", "inactive", "on_leave", "terminated", "probation"] },
-        { "name": "base_salary",   "type": "decimal",    "required": false, "readonly": false, "sensitive": true },
-        { "name": "currency",      "type": "string",     "required": false, "readonly": false },
-        { "name": "date_of_birth", "type": "date",       "required": false, "readonly": false, "sensitive": true },
-        { "name": "created_at",    "type": "timestamp",  "required": true,  "readonly": true },
-        { "name": "updated_at",    "type": "timestamp",  "required": true,  "readonly": true }
+        {
+          "name": "employee_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "employee_number",
+          "type": "string",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "last_name",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "email",
+          "type": "email",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "phone",
+          "type": "string",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "department_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "position_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "manager_id",
+          "type": "uuid",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "hire_date",
+          "type": "date",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": [
+            "active",
+            "inactive",
+            "on_leave",
+            "terminated",
+            "probation"
+          ]
+        },
+        {
+          "name": "base_salary",
+          "type": "decimal",
+          "required": false,
+          "readonly": false,
+          "sensitive": true
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "date_of_birth",
+          "type": "date",
+          "required": false,
+          "readonly": false,
+          "sensitive": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": true,
+          "readonly": true
+        }
       ],
       "indexes": ["email", "employee_number", "department_id", "status"],
       "soft_delete": true,
@@ -319,14 +603,54 @@
       "sync_enabled": true,
       "sync_direction": "push_to_core",
       "fields": [
-        { "name": "department_id",    "type": "uuid",    "required": true,  "readonly": true },
-        { "name": "code",             "type": "string",  "required": true,  "readonly": false },
-        { "name": "name",             "type": "string",  "required": true,  "readonly": false },
-        { "name": "description",      "type": "text",    "required": false, "readonly": false },
-        { "name": "parent_id",        "type": "uuid",    "required": false, "readonly": false },
-        { "name": "manager_id",       "type": "uuid",    "required": false, "readonly": false },
-        { "name": "cost_center_code", "type": "string",  "required": false, "readonly": false },
-        { "name": "is_active",        "type": "boolean", "required": true,  "readonly": false }
+        {
+          "name": "department_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "code",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "parent_id",
+          "type": "uuid",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "manager_id",
+          "type": "uuid",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "cost_center_code",
+          "type": "string",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": true,
+          "readonly": false
+        }
       ],
       "indexes": ["code", "parent_id"]
     },
@@ -339,11 +663,36 @@
       "apiPath": "/api/v1/hr/positions",
       "sync_enabled": false,
       "fields": [
-        { "name": "position_id",    "type": "uuid",    "required": true,  "readonly": true },
-        { "name": "title",          "type": "string",  "required": true,  "readonly": false },
-        { "name": "department_id",  "type": "uuid",    "required": true,  "readonly": false },
-        { "name": "grade",          "type": "string",  "required": false, "readonly": false },
-        { "name": "is_active",      "type": "boolean", "required": true,  "readonly": false }
+        {
+          "name": "position_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "department_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "grade",
+          "type": "string",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": true,
+          "readonly": false
+        }
       ],
       "indexes": ["department_id"]
     },
@@ -357,13 +706,43 @@
       "sync_enabled": true,
       "sync_direction": "push_to_core",
       "fields": [
-        { "name": "attendance_id", "type": "uuid",      "required": true,  "readonly": true },
-        { "name": "employee_id",   "type": "uuid",      "required": true,  "readonly": false },
-        { "name": "check_in",      "type": "timestamp", "required": true,  "readonly": false },
-        { "name": "check_out",     "type": "timestamp", "required": false, "readonly": false },
-        { "name": "hours_worked",  "type": "decimal",   "required": false, "readonly": true },
-        { "name": "source",        "type": "enum",      "required": true,  "readonly": false,
-          "enum_values": ["biometric", "manual", "mobile_app", "web"] }
+        {
+          "name": "attendance_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "employee_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "check_in",
+          "type": "timestamp",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "check_out",
+          "type": "timestamp",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "hours_worked",
+          "type": "decimal",
+          "required": false,
+          "readonly": true
+        },
+        {
+          "name": "source",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": ["biometric", "manual", "mobile_app", "web"]
+        }
       ],
       "indexes": ["employee_id", "check_in"]
     },
@@ -376,18 +755,82 @@
       "apiPath": "/api/v1/hr/payroll",
       "sync_enabled": false,
       "fields": [
-        { "name": "payroll_run_id",  "type": "uuid",      "required": true,  "readonly": true },
-        { "name": "run_number",      "type": "string",    "required": true,  "readonly": true },
-        { "name": "period_start",    "type": "date",      "required": true,  "readonly": false },
-        { "name": "period_end",      "type": "date",      "required": true,  "readonly": false },
-        { "name": "status",          "type": "enum",      "required": true,  "readonly": false,
-          "enum_values": ["draft", "calculated", "approved", "processed", "paid"] },
-        { "name": "total_gross",     "type": "decimal",   "required": false, "readonly": true, "sensitive": true },
-        { "name": "total_deductions","type": "decimal",   "required": false, "readonly": true, "sensitive": true },
-        { "name": "total_net",       "type": "decimal",   "required": false, "readonly": true, "sensitive": true },
-        { "name": "employee_count",  "type": "integer",   "required": false, "readonly": true },
-        { "name": "currency",        "type": "string",    "required": true,  "readonly": false },
-        { "name": "created_at",      "type": "timestamp", "required": true,  "readonly": true }
+        {
+          "name": "payroll_run_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "run_number",
+          "type": "string",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "period_start",
+          "type": "date",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "period_end",
+          "type": "date",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": [
+            "draft",
+            "calculated",
+            "approved",
+            "processed",
+            "paid"
+          ]
+        },
+        {
+          "name": "total_gross",
+          "type": "decimal",
+          "required": false,
+          "readonly": true,
+          "sensitive": true
+        },
+        {
+          "name": "total_deductions",
+          "type": "decimal",
+          "required": false,
+          "readonly": true,
+          "sensitive": true
+        },
+        {
+          "name": "total_net",
+          "type": "decimal",
+          "required": false,
+          "readonly": true,
+          "sensitive": true
+        },
+        {
+          "name": "employee_count",
+          "type": "integer",
+          "required": false,
+          "readonly": true
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": true,
+          "readonly": true
+        }
       ],
       "indexes": ["status", "period_start"]
     },
@@ -401,17 +844,70 @@
       "sync_enabled": true,
       "sync_direction": "bidirectional",
       "fields": [
-        { "name": "leave_id",     "type": "uuid",   "required": true,  "readonly": true },
-        { "name": "employee_id",  "type": "uuid",   "required": true,  "readonly": false },
-        { "name": "leave_type",   "type": "enum",   "required": true,  "readonly": false,
-          "enum_values": ["annual", "sick", "maternity", "paternity", "unpaid", "bereavement", "emergency"] },
-        { "name": "start_date",   "type": "date",   "required": true,  "readonly": false },
-        { "name": "end_date",     "type": "date",   "required": true,  "readonly": false },
-        { "name": "total_days",   "type": "decimal", "required": true,  "readonly": false },
-        { "name": "status",       "type": "enum",   "required": true,  "readonly": false,
-          "enum_values": ["pending", "approved", "rejected", "cancelled"] },
-        { "name": "approved_by",  "type": "uuid",   "required": false, "readonly": false },
-        { "name": "reason",       "type": "text",   "required": false, "readonly": false }
+        {
+          "name": "leave_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "employee_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "leave_type",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": [
+            "annual",
+            "sick",
+            "maternity",
+            "paternity",
+            "unpaid",
+            "bereavement",
+            "emergency"
+          ]
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "total_days",
+          "type": "decimal",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": ["pending", "approved", "rejected", "cancelled"]
+        },
+        {
+          "name": "approved_by",
+          "type": "uuid",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "required": false,
+          "readonly": false
+        }
       ],
       "indexes": ["employee_id", "status", "start_date"]
     }
@@ -419,21 +915,51 @@
 
   "events": {
     "published": [
-      { "name": "hr:employee.created",    "description": "Fired when a new employee is onboarded" },
-      { "name": "hr:employee.updated",    "description": "Fired on any employee record change" },
-      { "name": "hr:employee.terminated", "description": "Fired on employee termination" },
-      { "name": "hr:employee.transferred","description": "Fired when employee changes department" },
-      { "name": "hr:leave.requested",     "description": "Fired when a leave request is submitted" },
-      { "name": "hr:leave.approved",      "description": "Fired when a leave request is approved" },
-      { "name": "hr:leave.rejected",      "description": "Fired when a leave request is rejected" },
-      { "name": "hr:payroll.processed",   "description": "Fired when a payroll run is processed" },
-      { "name": "hr:department.changed",  "description": "Fired when department structure changes" }
+      {
+        "name": "hr:employee.created",
+        "description": "Fired when a new employee is onboarded"
+      },
+      {
+        "name": "hr:employee.updated",
+        "description": "Fired on any employee record change"
+      },
+      {
+        "name": "hr:employee.terminated",
+        "description": "Fired on employee termination"
+      },
+      {
+        "name": "hr:employee.transferred",
+        "description": "Fired when employee changes department"
+      },
+      {
+        "name": "hr:leave.requested",
+        "description": "Fired when a leave request is submitted"
+      },
+      {
+        "name": "hr:leave.approved",
+        "description": "Fired when a leave request is approved"
+      },
+      {
+        "name": "hr:leave.rejected",
+        "description": "Fired when a leave request is rejected"
+      },
+      {
+        "name": "hr:payroll.processed",
+        "description": "Fired when a payroll run is processed"
+      },
+      {
+        "name": "hr:department.changed",
+        "description": "Fired when department structure changes"
+      }
     ],
     "subscribed": [
       { "name": "finance:payroll.processed", "handler": "hr:sync.payroll_ack" },
-      { "name": "auth:user.deactivated",     "handler": "hr:sync.deactivate_employee" },
-      { "name": "auth:user.created",         "handler": "hr:sync.link_employee" },
-      { "name": "core:org.updated",          "handler": "hr:sync.org_structure" }
+      {
+        "name": "auth:user.deactivated",
+        "handler": "hr:sync.deactivate_employee"
+      },
+      { "name": "auth:user.created", "handler": "hr:sync.link_employee" },
+      { "name": "core:org.updated", "handler": "hr:sync.org_structure" }
     ]
   },
 
@@ -445,30 +971,82 @@
       "burst": 50
     },
     "endpoints": [
-      { "method": "GET",    "path": "/employees",             "scope": "hr:employee.read" },
-      { "method": "POST",   "path": "/employees",             "scope": "hr:employee.create" },
-      { "method": "GET",    "path": "/employees/:id",         "scope": "hr:employee.read" },
-      { "method": "PUT",    "path": "/employees/:id",         "scope": "hr:employee.update" },
-      { "method": "DELETE", "path": "/employees/:id",         "scope": "hr:employee.delete" },
-      { "method": "POST",   "path": "/employees/:id/terminate","scope": "hr:employee.delete" },
-      { "method": "POST",   "path": "/employees/:id/transfer", "scope": "hr:employee.update" },
-      { "method": "GET",    "path": "/departments",           "scope": "hr:department.read" },
-      { "method": "POST",   "path": "/departments",           "scope": "hr:department.create" },
-      { "method": "GET",    "path": "/departments/:id",       "scope": "hr:department.read" },
-      { "method": "PUT",    "path": "/departments/:id",       "scope": "hr:department.update" },
-      { "method": "DELETE", "path": "/departments/:id",       "scope": "hr:department.delete" },
-      { "method": "GET",    "path": "/positions",             "scope": "hr:employee.read" },
-      { "method": "POST",   "path": "/positions",             "scope": "hr:employee.create" },
-      { "method": "GET",    "path": "/attendance",            "scope": "hr:attendance.read" },
-      { "method": "POST",   "path": "/attendance",            "scope": "hr:attendance.create" },
-      { "method": "GET",    "path": "/leave",                 "scope": "hr:leave.read" },
-      { "method": "POST",   "path": "/leave",                 "scope": "hr:leave.create" },
-      { "method": "PATCH",  "path": "/leave/:id",             "scope": "hr:leave.update" },
-      { "method": "GET",    "path": "/payroll",               "scope": "hr:payroll.read" },
-      { "method": "POST",   "path": "/payroll/process",       "scope": "hr:payroll.process" },
-      { "method": "POST",   "path": "/payroll/:id/approve",   "scope": "hr:payroll.approve" },
-      { "method": "POST",   "path": "/sync/pull",             "scope": "hr:sync.pull" },
-      { "method": "POST",   "path": "/sync/push",             "scope": "hr:sync.push" }
+      { "method": "GET", "path": "/employees", "scope": "hr:employee.read" },
+      { "method": "POST", "path": "/employees", "scope": "hr:employee.create" },
+      {
+        "method": "GET",
+        "path": "/employees/:id",
+        "scope": "hr:employee.read"
+      },
+      {
+        "method": "PUT",
+        "path": "/employees/:id",
+        "scope": "hr:employee.update"
+      },
+      {
+        "method": "DELETE",
+        "path": "/employees/:id",
+        "scope": "hr:employee.delete"
+      },
+      {
+        "method": "POST",
+        "path": "/employees/:id/terminate",
+        "scope": "hr:employee.delete"
+      },
+      {
+        "method": "POST",
+        "path": "/employees/:id/transfer",
+        "scope": "hr:employee.update"
+      },
+      {
+        "method": "GET",
+        "path": "/departments",
+        "scope": "hr:department.read"
+      },
+      {
+        "method": "POST",
+        "path": "/departments",
+        "scope": "hr:department.create"
+      },
+      {
+        "method": "GET",
+        "path": "/departments/:id",
+        "scope": "hr:department.read"
+      },
+      {
+        "method": "PUT",
+        "path": "/departments/:id",
+        "scope": "hr:department.update"
+      },
+      {
+        "method": "DELETE",
+        "path": "/departments/:id",
+        "scope": "hr:department.delete"
+      },
+      { "method": "GET", "path": "/positions", "scope": "hr:employee.read" },
+      { "method": "POST", "path": "/positions", "scope": "hr:employee.create" },
+      { "method": "GET", "path": "/attendance", "scope": "hr:attendance.read" },
+      {
+        "method": "POST",
+        "path": "/attendance",
+        "scope": "hr:attendance.create"
+      },
+      { "method": "GET", "path": "/leave", "scope": "hr:leave.read" },
+      { "method": "POST", "path": "/leave", "scope": "hr:leave.create" },
+      { "method": "PATCH", "path": "/leave/:id", "scope": "hr:leave.update" },
+      { "method": "GET", "path": "/payroll", "scope": "hr:payroll.read" },
+      {
+        "method": "POST",
+        "path": "/payroll/process",
+        "scope": "hr:payroll.process"
+      },
+      {
+        "method": "POST",
+        "path": "/payroll/:id/approve",
+        "scope": "hr:payroll.approve"
+      },
+      { "method": "POST", "path": "/sync/pull", "scope": "hr:sync.pull" },
+      { "method": "POST", "path": "/sync/push", "scope": "hr:sync.push" }
     ]
   },
 
@@ -481,6 +1059,12 @@
   "logging": {
     "level": "info",
     "audit_trail": true,
-    "sensitive_fields_masked": ["base_salary", "total_gross", "total_deductions", "total_net", "date_of_birth"]
+    "sensitive_fields_masked": [
+      "base_salary",
+      "total_gross",
+      "total_deductions",
+      "total_net",
+      "date_of_birth"
+    ]
   }
 }
