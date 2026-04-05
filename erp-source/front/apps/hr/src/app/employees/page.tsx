@@ -241,7 +241,7 @@ export default function EmployeesPage() {
     return employees.filter((e) => {
       if (q) {
         const name = `${e.firstName} ${e.lastName}`.toLowerCase();
-        const code = (e.employeeCode ?? e.employeeNumber ?? "").toLowerCase();
+        const code = (e.employeeCode ?? "").toLowerCase();
         const email = e.email.toLowerCase();
         if (!name.includes(q) && !code.includes(q) && !email.includes(q)) return false;
       }
@@ -340,7 +340,7 @@ export default function EmployeesPage() {
       header: "Employee ID",
       size: 140,
       cell: ({ row }) => {
-        const code = row.original.employeeCode ?? row.original.employeeNumber ?? "—";
+        const code = row.original.employeeCode ?? "—";
         return code !== "—" ? <CopyableId value={code} /> : <span className="text-gray-400 font-mono text-xs">—</span>;
       },
     }),
@@ -705,7 +705,7 @@ export default function EmployeesPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 dark:text-white">{emp.firstName} {emp.lastName}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{emp.employeeCode ?? emp.employeeNumber ?? "—"}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{emp.employeeCode ?? "—"}</p>
               </div>
               <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[emp.status] ?? "bg-gray-100 text-gray-600"}`}>
                 {emp.status.replace(/_/g, " ").toLowerCase()}

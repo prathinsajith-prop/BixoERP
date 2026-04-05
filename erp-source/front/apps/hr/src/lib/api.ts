@@ -29,7 +29,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
 export interface EmployeeResponse {
   id: string;
-  employeeNumber: string;
+  employeeCode: string;
   firstName: string;
   lastName: string;
   email: string;

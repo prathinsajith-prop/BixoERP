@@ -10,19 +10,31 @@ import { useAuthStore } from '@/store/auth';
 
 /**
  * Decoded JWT payload fields that relate to org membership.
- * The custom JWT encodes these as snake_case claims.
+ * The backend emits both camelCase (from payload spread) and snake_case aliases.
  */
 interface JwtOrgPayload {
     sub?: string;
+    // camelCase (from ...payload spread in jwt-token.service.ts)
+    orgId?: string;
+    tenantId?: string;
+    orgName?: string;
+    orgSlug?: string;
+    orgRole?: string;       // the role field actually populated: OWNER | ADMIN | MEMBER
+    membershipId?: string;
+    roleId?: string;
+    roleName?: string;      // populated only when roleName is explicitly passed (rarely)
+    membershipType?: string;
+    // snake_case aliases also present in the JWT
     org_id?: string;
     tenant_id?: string;
-    email?: string;
     org_name?: string;
     org_slug?: string;
+    org_role?: string;
     membership_id?: string;
     role_id?: string;
     role_name?: string;
     membership_type?: string;
+    email?: string;
     permissions?: string[];
 }
 
@@ -109,13 +121,15 @@ export function OrgProvider({ children }: { children: ReactNode }) {
 
         return {
             userId: payload.sub ?? null,
-            orgId: payload.org_id ?? payload.tenant_id ?? null,
-            orgName: payload.org_name ?? null,
-            orgSlug: payload.org_slug ?? null,
-            membershipId: payload.membership_id ?? null,
-            roleId: payload.role_id ?? null,
-            roleName: payload.role_name ?? null,
-            membershipType: payload.membership_type ?? null,
+            orgId: payload.orgId ?? payload.org_id ?? payload.tenantId ?? payload.tenant_id ?? null,
+            orgName: payload.orgName ?? payload.org_name ?? null,
+            orgSlug: payload.orgSlug ?? payload.org_slug ?? null,
+            membershipId: payload.membershipId ?? payload.membership_id ?? null,
+            roleId: payload.roleId ?? payload.role_id ?? null,
+            // roleName: backend sets orgRole (camelCase) but roleName is rarely populated;
+            // fall back through all known forms
+            roleName: payload.roleName ?? payload.role_name ?? payload.orgRole ?? payload.org_role ?? null,
+            membershipType: payload.membershipType ?? payload.membership_type ?? null,
             permissions,
             hasPermission,
             isReady: true,

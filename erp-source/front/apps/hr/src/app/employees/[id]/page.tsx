@@ -424,7 +424,7 @@ export default function EmployeeDetailPage() {
                             </span>
                         </div>
                         <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                            <CopyBadge text={emp.employeeNumber} />
+                            <CopyBadge text={emp.employeeCode} />
                             {emp.positionTitle && <span>{emp.positionTitle}</span>}
                             {emp.departmentName && (
                                 <>
@@ -443,7 +443,7 @@ export default function EmployeeDetailPage() {
                             Edit
                         </Button>
                         {emp.status !== "TERMINATED" && (
-                            <Button variant="destructive" size="sm"
+                            <Button variant="danger" size="sm"
                                 onClick={() => router.push(`/employees/${emp.id}?tab=status`)}>
                                 Terminate
                             </Button>
@@ -460,8 +460,8 @@ export default function EmployeeDetailPage() {
                             key={t.key}
                             onClick={() => setActiveTab(t.key)}
                             className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${activeTab === t.key
-                                    ? "border-primary-500 text-primary-600 dark:text-primary-400"
-                                    : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                                ? "border-primary-500 text-primary-600 dark:text-primary-400"
+                                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                                 }`}
                         >
                             {t.label}
