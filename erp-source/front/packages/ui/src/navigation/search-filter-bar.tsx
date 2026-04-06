@@ -23,13 +23,6 @@ export interface FilterConfig {
 export type ActiveFilters = Record<string, string | string[]>;
 export type ActiveOperators = Record<string, string>;
 
-export type ViewMode = 'table' | 'grid' | 'list';
-
-export interface ViewOption {
-  value: ViewMode;
-  label: string;
-}
-
 interface SearchHistoryEntry {
   id: string;
   searchText: string;
@@ -52,11 +45,6 @@ interface SearchFilterBarProps {
   onFilterStateChange?: (key: string, state: { value: string | string[]; operator: string }) => void;
   onFilterClear?: (key: string) => void;
   onFilterClearAll?: () => void;
-  /** View mode switcher */
-  view?: ViewMode;
-  onViewChange?: (view: ViewMode) => void;
-  showViewSwitcher?: boolean;
-  viewOptions?: ViewOption[];
   /** Extra right-side actions (e.g. Add button) */
   actions?: React.ReactNode;
   className?: string;

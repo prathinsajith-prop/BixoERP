@@ -6,13 +6,15 @@ import { useRouter } from 'next/navigation';
 import { List, TableProperties } from 'lucide-react';
 import { authApi } from '@/lib/api/auth';
 import {
+  ActionButtons,
   Button,
   DataTable,
   ListView,
   PageHeader,
   Pagination,
-  SearchFilterBar,
+  SearchFilter,
   StatusBadge,
+  ViewSwitcher,
   type ActiveFilters,
   type ActiveOperators,
   type FilterConfig,
@@ -176,7 +178,6 @@ function RowActions({ user, onView, onRoles, onToggleStatus, onDelete }: {
    ══════════════════════════════════════════════════════════════════ */
 export default function UserManagementPage() {
   const router = useRouter();
-  const viewSwitcherRef = useRef<HTMLDivElement>(null);
 
   /* ── Data state ─── */
   const [users, setUsers] = useState<User[]>([]);
@@ -193,7 +194,6 @@ export default function UserManagementPage() {
   const [roleFilter, setRoleFilter] = useState<string[]>([]);
   const [roleOperator, setRoleOperator] = useState<RoleOperator>('in');
   const [view, setView] = useState<ViewMode>('table');
-  const [viewPopoverOpen, setViewPopoverOpen] = useState(false);
 
   /* ── Selection ─── */
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -211,18 +211,6 @@ export default function UserManagementPage() {
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
-  useEffect(() => {
-    if (!viewPopoverOpen) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (viewSwitcherRef.current && !viewSwitcherRef.current.contains(event.target as Node)) {
-        setViewPopoverOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [viewPopoverOpen]);
 
   const showToast = useCallback((type: 'success' | 'error', text: string) => {
     setToast({ type, text });
@@ -569,65 +557,44 @@ export default function UserManagementPage() {
 
   const selectedKeys = useMemo(() => Array.from(selectedIds), [selectedIds]);
 
+  const viewOptions = useMemo(
+    () => [
+      { value: 'table' as ViewMode, label: 'Table view', icon: <TableProperties className="h-4 w-4" /> },
+      { value: 'list' as ViewMode, label: 'List view', icon: <List className="h-4 w-4" /> },
+    ],
+    []
+  );
+
   const toolbarActions = (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="relative" ref={viewSwitcherRef}>
-        <button
-          type="button"
-          onClick={() => setViewPopoverOpen((open) => !open)}
-          className="gogo-input inline-flex h-12 w-12 items-center justify-center bg-white text-[var(--gogo-text-secondary)] transition hover:border-[var(--gogo-primary)] hover:text-[var(--gogo-primary)] dark:bg-white"
-          title="Change view"
-          aria-label="Change view"
-          aria-haspopup="menu"
-          aria-expanded={viewPopoverOpen}
-        >
-          {view === 'list' ? <List className="h-[18px] w-[18px]" /> : <TableProperties className="h-[18px] w-[18px]" />}
-        </button>
-
-        {viewPopoverOpen && (
-          <div className="absolute right-0 top-full z-50 mt-2 min-w-48 overflow-hidden rounded-[var(--radius-modal)] border border-gray-200 bg-white shadow-[var(--shadow-hover)] ring-1 ring-gray-200/60">
-            <div className="py-2">
-              {[
-                { value: 'table' as ViewMode, label: 'Table view', icon: <TableProperties className="h-4 w-4" /> },
-                { value: 'list' as ViewMode, label: 'List view', icon: <List className="h-4 w-4" /> },
-              ].map((option) => {
-                const selected = option.value === view;
-
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => {
-                      setView(option.value);
-                      setViewPopoverOpen(false);
-                    }}
-                    className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition ${selected ? 'bg-[var(--gogo-grey-100)] font-medium text-[var(--gogo-primary)]' : 'text-gray-700 hover:bg-gray-50'}`}
-                  >
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-current">
-                      {option.icon}
-                    </span>
-                    <span className="flex-1">{option.label}</span>
-                    {selected && <span className="h-2.5 w-2.5 rounded-full bg-[var(--gogo-primary)]" />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <Button variant="outline" size="sm" onClick={() => { fetchUsers(); fetchRoles(); }} className="h-12 gap-1.5 px-4">
-        {Icons.refresh}
-        Refresh
-      </Button>
-      <Button variant="outline" size="sm" onClick={handleExport} className="h-12 gap-1.5 px-4">
-        {Icons.download}
-        Export CSV
-      </Button>
-      <Button size="sm" onClick={() => setAddModalOpen(true)} className="h-12 gap-1.5 px-4">
-        {Icons.plus}
-        Create User
-      </Button>
+      <ViewSwitcher view={view} onViewChange={setView} options={viewOptions} />
+      <ActionButtons
+        actions={[
+          {
+            key: 'refresh-users',
+            label: 'Refresh',
+            icon: Icons.refresh,
+            variant: 'outline',
+            onClick: () => {
+              fetchUsers();
+              fetchRoles();
+            },
+          },
+          {
+            key: 'export-users',
+            label: 'Export CSV',
+            icon: Icons.download,
+            variant: 'outline',
+            onClick: handleExport,
+          },
+          {
+            key: 'create-user',
+            label: 'Create User',
+            icon: Icons.plus,
+            onClick: () => setAddModalOpen(true),
+          },
+        ]}
+      />
     </div>
   );
 
@@ -770,7 +737,7 @@ export default function UserManagementPage() {
       </div>
 
       {/* ── Toolbar ─── */}
-      <SearchFilterBar
+      <SearchFilter
         searchPlaceholder="Search users by name or email"
         searchValue={search}
         onSearchChange={setSearch}

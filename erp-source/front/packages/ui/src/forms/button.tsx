@@ -13,19 +13,11 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: "text-white hover:opacity-90 focus:ring-2 focus:ring-offset-2",
-  secondary: "bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500 focus:ring-2 focus:ring-offset-2",
-  danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 focus:ring-2 focus:ring-offset-2",
-  ghost: "bg-transparent hover:bg-gray-100 focus:ring-gray-500 focus:ring-2 dark:hover:bg-white/10",
-  outline: "border bg-transparent hover:bg-gray-50 focus:ring-2 focus:ring-offset-2",
-};
-
-const variantInlineStyles: Record<ButtonVariant, React.CSSProperties> = {
-  primary: { backgroundColor: 'var(--gogo-primary)', color: '#fff' },
-  secondary: {},
-  danger: {},
-  ghost: { color: 'var(--gogo-text-primary)' },
-  outline: { borderColor: 'var(--gogo-divider)', color: 'var(--gogo-text-primary)' },
+  primary: "gogo-btn-primary shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-hover)] focus:ring-2 focus:ring-[var(--gogo-primary)]/20 focus:ring-offset-2",
+  secondary: "bg-[var(--gogo-text-secondary)] text-white hover:opacity-90 focus:ring-2 focus:ring-[var(--gogo-text-secondary)]/20 focus:ring-offset-2",
+  danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500/20 focus:ring-offset-2",
+  ghost: "bg-transparent text-[var(--gogo-text-primary)] hover:bg-[var(--gogo-grey-100)] focus:ring-2 focus:ring-[var(--gogo-primary)]/20",
+  outline: "border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] text-[var(--gogo-text-primary)] hover:bg-[var(--gogo-grey-100)] focus:ring-2 focus:ring-[var(--gogo-primary)]/20 focus:ring-offset-2",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -46,7 +38,6 @@ export function Button({
   return (
     <button
       className={`gogo-btn inline-flex items-center justify-center font-medium transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
-      style={{ borderRadius: 'var(--radius-button)', fontSize: 'var(--font-size-body)', fontWeight: 'var(--font-weight-btn)', ...variantInlineStyles[variant] }}
       disabled={disabled || loading}
       {...props}
     >

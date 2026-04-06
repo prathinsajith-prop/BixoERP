@@ -13,7 +13,7 @@ export function Input({ label, error, helperText, className = "", id, ref, ...pr
   return (
     <div className="space-y-1">
       {label && (
-        <label htmlFor={inputId} className="block text-sm font-medium text-gray-700">
+        <label htmlFor={inputId} className="block text-sm font-medium text-[var(--gogo-text-primary)]">
           {label}
         </label>
       )}
@@ -25,11 +25,10 @@ export function Input({ label, error, helperText, className = "", id, ref, ...pr
             ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-200"
             : ""
         } ${className}`}
-        style={!error ? { borderRadius: 'var(--radius-input)', border: '1px solid var(--gogo-divider)', backgroundColor: 'var(--gogo-surface)', color: 'var(--gogo-text-primary)' } : { borderRadius: 'var(--radius-input)' }}
         {...props}
       />
       {error && <p className="text-xs text-red-600">{error}</p>}
-      {helperText && !error && <p className="text-xs text-gray-500">{helperText}</p>}
+      {helperText && !error && <p className="text-xs text-[var(--gogo-text-secondary)]">{helperText}</p>}
     </div>
   );
 }
@@ -45,7 +44,7 @@ export function Select({ label, error, options, className = "", id, ref, ...prop
   return (
     <div className="space-y-1">
       {label && (
-        <label htmlFor={selectId} className="block text-sm font-medium text-gray-700">
+        <label htmlFor={selectId} className="block text-sm font-medium text-[var(--gogo-text-primary)]">
           {label}
         </label>
       )}
@@ -57,7 +56,6 @@ export function Select({ label, error, options, className = "", id, ref, ...prop
             ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-200"
             : ""
         } ${className}`}
-        style={!error ? { borderRadius: 'var(--radius-input)', border: '1px solid var(--gogo-divider)', backgroundColor: 'var(--gogo-surface)', color: 'var(--gogo-text-primary)' } : { borderRadius: 'var(--radius-input)' }}
         {...props}
       >
         {options.map((opt) => (
@@ -81,7 +79,7 @@ export function Textarea({ label, error, className = "", id, ref, ...props }: Te
   return (
     <div className="space-y-1">
       {label && (
-        <label htmlFor={textareaId} className="block text-sm font-medium text-gray-700">
+        <label htmlFor={textareaId} className="block text-sm font-medium text-[var(--gogo-text-primary)]">
           {label}
         </label>
       )}
@@ -93,7 +91,6 @@ export function Textarea({ label, error, className = "", id, ref, ...props }: Te
             ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-200"
             : ""
         } ${className}`}
-        style={!error ? { borderRadius: 'var(--radius-input)', border: '1px solid var(--gogo-divider)', backgroundColor: 'var(--gogo-surface)', color: 'var(--gogo-text-primary)' } : { borderRadius: 'var(--radius-input)' }}
         {...props}
       />
       {error && <p className="text-xs text-red-600">{error}</p>}

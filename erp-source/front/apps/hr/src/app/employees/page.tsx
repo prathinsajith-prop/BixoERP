@@ -5,13 +5,28 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
-  Modal, Button, Input, Select,
-  DataTable, EntityCard, EntityCardGrid,
-  KPICard, SearchFilterBar, StatusBadge, Pagination, PageHeader,
-  type ActiveFilters, type ViewMode, type FilterConfig, type RowAction,
+  ActionButtons,
+  Button,
+  Card,
+  Input,
+  KPICard,
+  ListView,
+  Modal,
+  Pagination,
+  PageHeader,
+  SearchFilter,
+  Select,
+  StatusBadge,
+  Table,
+  ViewSwitcher,
+  type ActiveFilters,
+  type FilterConfig,
+  type RowAction,
+  type TableColumn,
+  type ViewMode,
 } from "@erp/ui";
 import { api, type EmployeeResponse, type DepartmentResponse, type PositionResponse } from "../../lib/api";
-import { RefreshCw, Plus, Eye, Pencil, Trash2, Users, UserCheck, UserMinus, Building2 } from "lucide-react";
+import { Building2, Eye, List, Pencil, Plus, RefreshCw, TableProperties, Trash2, UserCheck, UserMinus, Users } from "lucide-react";
 
 /* ─── Single source of mock data ─── */
 const MOCK_EMPLOYEES: EmployeeResponse[] = [
@@ -25,11 +40,21 @@ const MOCK_EMPLOYEES: EmployeeResponse[] = [
   { id: "m8", employeeNumber: "EMP-008", firstName: "Henry",  lastName: "Johansson", email: "henry.j@erp.com",       phone: null, dateOfBirth: "1982-12-25", hireDate: "2018-04-02", terminationDate: null, departmentId: "d1", departmentName: "Finance",     positionId: "p8", positionTitle: "CFO",                 managerId: null, status: "ACTIVE",     baseSalary: { amount: 140000, currency: "USD" }, currency: "USD", createdAt: "", updatedAt: "" },
 ];
 
-const AVATAR_COLORS = ["#922c88","#6d2166","#b14fa5","#0ea5e9","#7c3aed","#10b981","#f59e0b","#e91e63"];
-function avatarColor(seed: string) {
+const AVATAR_COLOR_CLASSES = [
+  "bg-[var(--gogo-primary)]",
+  "bg-[var(--gogo-primary-dark)]",
+  "bg-[var(--gogo-primary-light)]",
+  "bg-sky-500",
+  "bg-violet-600",
+  "bg-emerald-500",
+  "bg-amber-500",
+  "bg-pink-500",
+];
+
+function avatarColorClass(seed: string) {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = seed.charCodeAt(i) + ((h << 5) - h);
-  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+  return AVATAR_COLOR_CLASSES[Math.abs(h) % AVATAR_COLOR_CLASSES.length];
 }
 
 function EmployeeBadge({ status }: { status: string }) {
@@ -164,18 +189,17 @@ export default function EmployeesPage() {
   }
 
   /* ─── Table columns ─── */
-  const columns = [
+  const columns: TableColumn<EmployeeResponse>[] = [
     {
       key: "name", header: "Employee", sortable: true,
       render: (emp: EmployeeResponse) => (
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
-            style={{ backgroundColor: avatarColor(`${emp.firstName}${emp.lastName}`) }}>
+          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white ${avatarColorClass(`${emp.firstName}${emp.lastName}`)}`}>
             {emp.firstName[0]}{emp.lastName[0]}
           </div>
           <div>
-            <p className="text-sm font-semibold" style={{ color: "var(--gogo-text-primary)" }}>{emp.firstName} {emp.lastName}</p>
-            <p className="text-xs" style={{ color: "var(--gogo-text-secondary)" }}>{emp.email}</p>
+            <p className="text-sm font-semibold text-[var(--gogo-text-primary)]">{emp.firstName} {emp.lastName}</p>
+            <p className="text-xs text-[var(--gogo-text-secondary)]">{emp.email}</p>
           </div>
         </div>
       ),
@@ -219,27 +243,59 @@ export default function EmployeesPage() {
     },
   ];
 
+  const listColumns: TableColumn<EmployeeResponse>[] = [
+    {
+      key: "departmentName",
+      header: "Department",
+      render: (employee: EmployeeResponse) => employee.departmentName ?? "—",
+    },
+    {
+      key: "positionTitle",
+      header: "Position",
+      render: (employee: EmployeeResponse) => employee.positionTitle ?? "—",
+    },
+    {
+      key: "hireDate",
+      header: "Joined",
+      render: (employee: EmployeeResponse) => new Date(employee.hireDate).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }),
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (employee: EmployeeResponse) => <EmployeeBadge status={employee.status} />,
+    },
+  ];
+
+  const viewOptions = useMemo(
+    () => [
+      { value: "table" as ViewMode, label: "Table view", icon: <TableProperties className="h-4 w-4" /> },
+      { value: "list" as ViewMode, label: "List view", icon: <List className="h-4 w-4" /> },
+    ],
+    []
+  );
+
   /* ─── Toolbar action buttons ─── */
   const toolbarActions = (
     <div className="flex items-center gap-2">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => load(true)}
-        disabled={refreshing}
-        className="gap-1.5"
-      >
-        <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
-        Refresh
-      </Button>
-      <Button
-        size="sm"
-        onClick={() => setShowCreate(true)}
-        className="gap-1.5"
-      >
-        <Plus className="h-3.5 w-3.5" />
-        Create
-      </Button>
+      <ViewSwitcher view={view} onViewChange={setView} options={viewOptions} />
+      <ActionButtons
+        actions={[
+          {
+            key: "refresh-employees",
+            label: "Refresh",
+            icon: <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />,
+            variant: "outline",
+            loading: refreshing,
+            onClick: () => load(true),
+          },
+          {
+            key: "create-employee",
+            label: "Create",
+            icon: <Plus className="h-3.5 w-3.5" />,
+            onClick: () => setShowCreate(true),
+          },
+        ]}
+      />
     </div>
   );
 
@@ -301,7 +357,7 @@ export default function EmployeesPage() {
       )}
 
       {/* ── Search + Filters + Actions toolbar ── */}
-      <SearchFilterBar
+      <SearchFilter
         searchPlaceholder="Search employees…"
         searchValue={search}
         onSearchChange={setSearch}
@@ -310,15 +366,12 @@ export default function EmployeesPage() {
         onFilterChange={handleFilterChange}
         onFilterClear={handleFilterClear}
         onFilterClearAll={handleFilterClearAll}
-        view={view}
-        onViewChange={setView}
-        showViewSwitcher
         actions={toolbarActions}
       />
 
       {/* ── Result count ── */}
       {(search || Object.keys(activeFilters).length > 0) && (
-        <p className="text-xs" style={{ color: "var(--gogo-text-secondary)" }}>
+        <p className="text-xs text-[var(--gogo-text-secondary)]">
           Showing <strong>{filtered.length}</strong> result{filtered.length !== 1 ? "s" : ""}
           {!apiLoaded && <span className="ml-2 opacity-60">(preview data)</span>}
         </p>
@@ -326,11 +379,8 @@ export default function EmployeesPage() {
 
       {/* ── Table view ── */}
       {view === "table" && (
-        <div
-          className="overflow-hidden"
-          style={{ borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)", backgroundColor: "var(--gogo-surface)" }}
-        >
-          <DataTable
+        <Card padding={false} className="overflow-hidden">
+          <Table
             columns={columns}
             data={paginated}
             keyExtractor={(e) => e.id}
@@ -345,44 +395,46 @@ export default function EmployeesPage() {
             onPageChange={setPage}
             onPageSizeChange={setPageSize}
           />
-        </div>
+        </Card>
       )}
 
-      {/* ── Grid / Card view ── */}
-      {view === "grid" && (
+      {/* ── List view ── */}
+      {view === "list" && (
         paginated.length === 0 ? (
-          <div className="py-16 text-center text-sm" style={{ color: "var(--gogo-text-secondary)" }}>
+          <div className="py-16 text-center text-sm text-[var(--gogo-text-secondary)]">
             {search || Object.keys(activeFilters).length > 0 ? "No employees match your filters" : "No employees yet"}
           </div>
         ) : (
           <div className="space-y-4">
-            <EntityCardGrid columns={3}>
-              {paginated.map((emp) => (
-                <EntityCard
-                  key={emp.id}
-                  avatar={`${emp.firstName[0]}${emp.lastName[0]}`}
-                  avatarColor={avatarColor(`${emp.firstName}${emp.lastName}`)}
-                  name={`${emp.firstName} ${emp.lastName}`}
-                  subtitle={emp.positionTitle ?? emp.email}
-                  badge={<EmployeeBadge status={emp.status} />}
-                  fields={[
-                    { label: "Dept",   value: emp.departmentName ?? "—" },
-                    { label: "Joined", value: new Date(emp.hireDate).toLocaleDateString() },
-                    { label: "Salary", value: `${emp.baseSalary.currency} ${emp.baseSalary.amount.toLocaleString()}` },
-                  ]}
-                  actions={[
-                    { label: "View",   onClick: () => console.log("view", emp.id) },
-                    { label: "Edit",   onClick: () => console.log("edit", emp.id) },
-                    { label: "Delete", onClick: () => console.log("delete", emp.id), danger: true },
-                  ]}
-                />
-              ))}
-            </EntityCardGrid>
-            {/* Grid pagination */}
-            <div
-              className="overflow-hidden"
-              style={{ borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)", backgroundColor: "var(--gogo-surface)" }}
-            >
+            <ListView
+              columns={listColumns}
+              data={paginated}
+              keyExtractor={(employee) => employee.id}
+              title={(employee) => `${employee.firstName} ${employee.lastName}`}
+              subtitle={(employee) => employee.positionTitle ?? employee.email}
+              leading={(employee) => (
+                <div className={`flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold text-white ${avatarColorClass(`${employee.firstName}${employee.lastName}`)}`}>
+                  {employee.firstName[0]}{employee.lastName[0]}
+                </div>
+              )}
+              trailing={(employee) => (
+                <div className="flex items-center gap-1">
+                  {rowActions.map((action) => (
+                    <button
+                      key={`${employee.id}-${action.label}`}
+                      type="button"
+                      onClick={() => action.onClick(employee)}
+                      className={`rounded-lg p-1.5 transition hover:bg-[var(--gogo-grey-100)] ${action.danger ? 'text-red-500' : 'text-[var(--gogo-text-secondary)]'}`}
+                      title={action.label}
+                    >
+                      {action.icon ?? <span className="text-xs">{action.label}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+              emptyMessage={search || Object.keys(activeFilters).length > 0 ? "No employees match your filters" : "No employees yet"}
+            />
+            <Card padding={false} className="overflow-hidden">
               <Pagination
                 page={page}
                 totalPages={totalPages}
@@ -391,7 +443,7 @@ export default function EmployeesPage() {
                 onPageChange={setPage}
                 onPageSizeChange={setPageSize}
               />
-            </div>
+            </Card>
           </div>
         )
       )}
