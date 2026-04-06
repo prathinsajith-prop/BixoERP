@@ -151,7 +151,7 @@ export const authApi = {
   selectOrg: (body: { pendingToken: string; orgId: string }) => api.post('/select-org', body),
   /** Get invite preview without auth */
   getInvitePreview: (token: string) => api.get(`/invitations/preview?token=${token}`),
-  acceptInvite: (body: { token: string; userId?: string }) => api.post('/invitations/accept', body),
+  acceptInvite: (body: { token: string; userId?: string; firstName?: string; lastName?: string; password?: string }) => api.post('/invitations/accept', body),
   inviteMember: (body: { organisationId: string; email: string; roleName?: string; message?: string }) => api.post('/invitations', body),
   listPendingInvites: (orgId: string) => api.get(`/invitations/${orgId}/pending`),
   revokeInvite: (inviteId: string, organisationId: string) => api.delete(`/invitations/${inviteId}`, { data: { organisationId } }),

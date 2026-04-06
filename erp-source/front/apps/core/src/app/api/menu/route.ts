@@ -16,6 +16,7 @@ interface MenuItem {
     icon: string;
     permission?: string;
     position: number;
+    children?: Omit<MenuItem, 'children'>[];
 }
 
 const PORTAL_MENU: MenuItem[] = [
@@ -30,7 +31,26 @@ const PORTAL_MENU: MenuItem[] = [
     // Settings — visible to admins
     { label: 'Settings', href: '/settings', icon: 'Settings', permission: 'auth:roles:read', position: 6 },
     // Admin panel sections
-    { label: 'Users & Roles', href: '/admin/users', icon: 'ShieldCheck', permission: 'auth:users:read', position: 7 },
+    {
+        label: 'Users & Roles', href: '/admin/users', icon: 'ShieldCheck',
+        permission: 'auth:users:read', position: 7,
+        children: [
+            { label: 'User Management', href: '/admin/users', icon: 'Users', position: 1 },
+            { label: 'Roles & Permissions', href: '/admin/roles', icon: 'Shield', position: 2 },
+            { label: 'Invite Members', href: '/settings/members', icon: 'Key', position: 3 },
+        ],
+    },
+    {
+        label: 'Organization', href: '/admin/organizations', icon: 'Building2',
+        permission: 'auth:org-structure:read', position: 8,
+        children: [
+            { label: 'Organizations', href: '/admin/organizations', icon: 'Building2', position: 1 },
+            { label: 'Divisions', href: '/admin/divisions', icon: 'Layers', position: 2 },
+            { label: 'Departments', href: '/admin/departments', icon: 'Layers', position: 3 },
+            { label: 'Teams', href: '/admin/teams', icon: 'Users', position: 4 },
+            { label: 'Settings', href: '/organization', icon: 'Settings', position: 5 },
+        ],
+    },
 ];
 
 function decodeJwtPermissions(token: string): string[] {

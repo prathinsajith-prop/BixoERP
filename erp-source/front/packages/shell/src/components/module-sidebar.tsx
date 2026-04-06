@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
-import { usePathname } from 'next/navigation';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '../store/auth';
 import { authApi } from '../lib/api/auth';
 import { filesApi } from '../lib/api/files';
@@ -94,116 +95,24 @@ function Flyout({ open, onClose, title, children }: {
 /* ─── Admin section link ─── */
 function AdminLink({ icon, label, path, active }: { icon: ReactNode; label: string; path: string; active?: boolean }) {
   return (
-    <a href={path}
+    <Link href={path}
       className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition
         ${active ? 'bg-blue-50 font-medium text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
           : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5'}`}>
       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">{icon}</span>
       {label}
-    </a>
+    </Link>
   );
 }
 
-/* ─── Org Switcher (inline sidebar version) ─── */
-function SidebarOrgSwitcher({ onToggle, active }: { onToggle: () => void; active: boolean }) {
-  const [currentOrg, setCurrentOrg] = useState<Org | null>(null);
 
-  useEffect(() => {
-    authApi.myOrganizations().then((res: { data?: { data?: OrgRaw[] } }) => {
-      const list = (res.data?.data || []).map(normalizeOrg);
-      const storedId = typeof window !== 'undefined' ? localStorage.getItem('organizationId') : null;
-      setCurrentOrg(list.find((o) => o.id === storedId) || list[0] || null);
-    }).catch(() => { });
-  }, []);
-
-  const initial = currentOrg?.name?.charAt(0)?.toUpperCase() || 'O';
-  const idx = currentOrg ? 0 : 0;
-
-  return (
-    <button
-      onClick={onToggle}
-      title={currentOrg?.name || 'Switch Organization'}
-      className={`group relative flex h-10 w-10 items-center justify-center rounded-xl transition-all
-        ${active
-          ? 'ring-2 ring-blue-500 ring-offset-1 dark:ring-offset-gray-900'
-          : 'ring-1 ring-gray-200 hover:ring-gray-300 dark:ring-gray-700 dark:hover:ring-gray-600'
-        }`}
-    >
-      <div className={`flex h-full w-full items-center justify-center rounded-xl bg-gradient-to-br ${orgGradient(idx)} text-xs font-bold text-white`}>
-        {initial}
-      </div>
-    </button>
-  );
-}
-
-/* ─── Org Switcher ─── */
-function OrgSwitcher() {
-  const [orgs, setOrgs] = useState<Org[]>([]);
-  const [currentOrg, setCurrentOrg] = useState<Org | null>(null);
-  const [switching, setSwitching] = useState<string | null>(null);
-
-  useEffect(() => {
-    authApi.myOrganizations().then((res: { data?: { data?: OrgRaw[] } }) => {
-      const list = (res.data?.data || []).map(normalizeOrg);
-      setOrgs(list);
-      const storedId = typeof window !== 'undefined' ? localStorage.getItem('organizationId') : null;
-      setCurrentOrg(list.find((o) => o.id === storedId) || list[0] || null);
-    }).catch(() => { });
-  }, []);
-
-  const handleSwitch = async (org: Org) => {
-    if (!org.id || org.id === currentOrg?.id) return;
-    setSwitching(org.id);
-    try {
-      const res = await authApi.switchOrganization({ organizationId: org.id });
-      const data = (res as { data?: { data?: { accessToken?: string; tenantId?: string } } }).data?.data;
-      if (data?.accessToken) {
-        // Access token stored in memory only — cookie is set server-side automatically
-        useAuthStore.setState({ accessToken: data.accessToken, fullAccessToken: data.accessToken, isAuthenticated: true });
-      }
-      if (data?.tenantId) sessionStorage.setItem('tenantId', data.tenantId);
-      localStorage.setItem('organizationId', org.id);
-      window.location.reload();
-    } catch {
-      setSwitching(null);
-      // Don't reload on failure - the token hasn't changed
-    }
-  };
-
-  const roleColors: Record<string, string> = { Owner: 'bg-violet-100 text-violet-700', Admin: 'bg-blue-100 text-blue-700', Member: 'bg-gray-100 text-gray-600' };
-
-  if (orgs.length <= 1) return null;
-
-  return (
-    <div className="px-2">
-      <p className="mb-1 px-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">Switch Org</p>
-      {orgs.map((org, idx) => {
-        const isActive = org.id === currentOrg?.id;
-        const isSwitching = switching === org.id;
-        return (
-          <button key={org.id || idx} onClick={() => handleSwitch(org)} disabled={isSwitching}
-            className={`flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition ${isActive ? 'bg-blue-50/60 dark:bg-blue-900/20' : 'hover:bg-gray-50 dark:hover:bg-white/5'} ${isSwitching ? 'opacity-60' : ''}`}>
-            <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${orgGradient(idx)} text-[11px] font-bold text-white`}>
-              {org.name?.charAt(0)?.toUpperCase() || 'O'}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className={`truncate text-sm font-medium ${isActive ? 'text-blue-900 dark:text-blue-200' : 'text-gray-700 dark:text-gray-300'}`}>{org.name}</p>
-            </div>
-            {org.role && <span className={`shrink-0 rounded-full px-1.5 py-px text-[9px] font-bold uppercase tracking-wide ${roleColors[org.role] || roleColors.Member}`}>{org.role}</span>}
-            {isActive && <svg className="h-3.5 w-3.5 shrink-0 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
-            {isSwitching && <svg className="h-3.5 w-3.5 shrink-0 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 /* ═══════════════════════════════════════════════════
    Main Sidebar Component
    ═══════════════════════════════════════════════════ */
 export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
   const { logout, accessToken } = useAuthStore();
+  const router = useRouter();
   const [activePanel, setActivePanel] = useState<string | null>(null);
   const pathname = usePathname();
 
@@ -217,6 +126,9 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
   const [displayName, setDisplayName] = useState(fallbackName);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [orgName, setOrgName] = useState('');
+  const [orgs, setOrgs] = useState<Org[]>([]);
+  const [currentOrgId, setCurrentOrgId] = useState<string | null>(null);
+  const [switching, setSwitching] = useState<string | null>(null);
 
   useEffect(() => {
     authApi.getProfile()
@@ -238,11 +150,32 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
     authApi.myOrganizations()
       .then((res: { data?: { data?: OrgRaw[] } }) => {
         const list = (res.data?.data || []).map(normalizeOrg);
+        setOrgs(list);
         const storedId = localStorage.getItem('organizationId');
         const current = list.find((o) => o.id === storedId) || list[0];
-        if (current?.name) setOrgName(current.name);
+        if (current) {
+          setCurrentOrgId(current.id);
+          if (current.name) setOrgName(current.name);
+        }
       }).catch(() => { });
   }, []);
+
+  const handleOrgSwitch = async (org: Org) => {
+    if (!org.id || org.id === currentOrgId) return;
+    setSwitching(org.id);
+    try {
+      const res = await authApi.switchOrganization({ organizationId: org.id });
+      const data = (res as { data?: { data?: { accessToken?: string; tenantId?: string } } }).data?.data;
+      if (data?.accessToken) {
+        useAuthStore.setState({ accessToken: data.accessToken, fullAccessToken: data.accessToken, isAuthenticated: true });
+      }
+      if (data?.tenantId) sessionStorage.setItem('tenantId', data.tenantId);
+      localStorage.setItem('organizationId', org.id);
+      window.location.replace('/');
+    } catch {
+      setSwitching(null);
+    }
+  };
 
   useEffect(() => {
     const onAvatarUpdated = (e: CustomEvent<{ blobUrl: string }>) => setAvatarUrl(e.detail.blobUrl);
@@ -252,7 +185,7 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
 
   const toggle = (panel: string) => setActivePanel((p) => (p === panel ? null : panel));
   const closePanel = () => setActivePanel(null);
-  const goTo = (path: string) => { closePanel(); window.location.href = path; };
+  const goTo = (path: string) => { closePanel(); router.push(path); };
 
   const handleLogout = async () => {
     await logout();
@@ -278,13 +211,16 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
           /* Module-specific nav items loaded from /{moduleId}/api/menu */
           <div className="contents md:flex md:flex-col md:items-center md:gap-1">
             {menuItems.map((item) => {
-              const isActive = pathname === item.href || pathname === item.href.replace(`/${moduleId}`, '') || pathname === '/';
+              const itemHasChildren = (item.children?.length ?? 0) > 0;
+              const isActive = itemHasChildren
+                ? activePanel === item.href
+                : pathname === item.href || pathname === item.href.replace(`/${moduleId}`, '') || pathname === '/';
               return (
                 <SidebarIcon
                   key={item.href}
                   icon={getIcon(item.icon, 'h-5 w-5')}
                   label={item.label}
-                  onClick={() => goTo(item.href)}
+                  onClick={() => itemHasChildren ? toggle(item.href) : goTo(item.href)}
                   active={isActive}
                 />
               );
@@ -340,6 +276,23 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
 
       {/* ─── Flyout Panels ─── */}
       <div className="contents md:relative md:h-full">
+        {/* Flyouts for module menu items with sub-navigation (children) */}
+        {hasModuleMenu && menuItems.filter((item) => (item.children?.length ?? 0) > 0).map((item) => (
+          <Flyout key={item.href} open={activePanel === item.href} onClose={closePanel} title={item.label}>
+            <div className="space-y-0.5 px-2">
+              {item.children!.map((child) => (
+                <AdminLink
+                  key={child.href}
+                  label={child.label}
+                  path={child.href}
+                  active={pathname === child.href}
+                  icon={getIcon(child.icon, 'h-4 w-4')}
+                />
+              ))}
+            </div>
+          </Flyout>
+        ))}
+
         {/* Users & Roles */}
         {!hasModuleMenu && (
           <Flyout open={activePanel === 'users'} onClose={closePanel} title="Users & Access">
@@ -358,6 +311,8 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
         {!hasModuleMenu && (
           <Flyout open={activePanel === 'org'} onClose={closePanel} title="Organization">
             <div className="space-y-0.5 px-2">
+              <AdminLink label="Organizations" path="/admin/organizations"
+                icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" /></svg>} />
               <AdminLink label="Divisions" path="/admin/divisions"
                 icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" /></svg>} />
               <AdminLink label="Departments" path="/admin/departments"
@@ -395,6 +350,33 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
             <AdminLink label="Two-Factor Auth" path="/2fa/setup"
               icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7.864 4.243A7.5 7.5 0 0119.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 004.5 10.5a48.667 48.667 0 00-1.429 8.272M5.742 6.364c.12-.107.244-.21.37-.31m10.246 2.457a1.5 1.5 0 00-2.835.695l.244 2.114a5.995 5.995 0 01-1.708 5.05l-.052.052a6.007 6.007 0 01-5.05 1.707l-.127-.014" /></svg>} />
           </div>
+          {orgs.length > 1 && (
+            <>
+              <div className="mx-2 my-2 border-t border-gray-100 dark:border-gray-700" />
+              <div className="px-2">
+                <p className="mb-1 px-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">Switch Organization</p>
+                {orgs.map((org, idx) => {
+                  const isActive = org.id === currentOrgId;
+                  const isSwitching = switching === org.id;
+                  const roleColors: Record<string, string> = { OWNER: 'bg-violet-100 text-violet-700', ADMIN: 'bg-blue-100 text-blue-700', MEMBER: 'bg-gray-100 text-gray-600' };
+                  return (
+                    <button key={org.id || idx} onClick={() => handleOrgSwitch(org)} disabled={!!switching}
+                      className={`flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition
+                        ${isActive ? 'bg-blue-50/60 dark:bg-blue-900/20' : 'hover:bg-gray-50 dark:hover:bg-white/5'}
+                        ${isSwitching ? 'opacity-60' : ''}`}>
+                      <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${orgGradient(idx)} text-[11px] font-bold text-white`}>
+                        {org.name?.charAt(0)?.toUpperCase() || 'O'}
+                      </div>
+                      <p className={`min-w-0 flex-1 truncate text-sm font-medium ${isActive ? 'text-blue-900 dark:text-blue-200' : 'text-gray-700 dark:text-gray-300'}`}>{org.name}</p>
+                      {org.role && <span className={`shrink-0 rounded-full px-1.5 py-px text-[9px] font-bold uppercase ${roleColors[org.role.toUpperCase()] ?? roleColors.MEMBER}`}>{org.role}</span>}
+                      {isActive && <svg className="h-3.5 w-3.5 shrink-0 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
+                      {isSwitching && <svg className="h-3.5 w-3.5 shrink-0 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
           <div className="mx-2 my-2 border-t border-gray-100 dark:border-gray-700" />
           <div className="px-2 pb-1">
             <button onClick={handleLogout}

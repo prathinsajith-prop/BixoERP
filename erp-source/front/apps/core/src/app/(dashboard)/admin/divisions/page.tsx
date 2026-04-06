@@ -7,6 +7,7 @@ import { z } from 'zod';
 import PageHeader from '@/components/page-header';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
+import { useOrgContext } from '@/context/org';
 
 interface Division { id: string; name: string; code: string; description?: string; status: string }
 
@@ -17,7 +18,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function DivisionsPage() {
   const router = useRouter();
-  const [orgId, setOrgId] = useState<string | null>(null);
+  const { orgId } = useOrgContext();
   const [items, setItems] = useState<Division[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -45,11 +46,8 @@ export default function DivisionsPage() {
   useEffect(() => {
     const init = async () => {
       try {
-        const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!) : null;
-        const currentOrgId = user?.orgId || localStorage.getItem('orgId');
-        setOrgId(currentOrgId);
-        if (currentOrgId) {
-          const res = await authApi.listDivisions(currentOrgId);
+        if (orgId) {
+          const res = await authApi.listDivisions(orgId);
           setItems((res.data?.data || []));
         }
       } catch {
@@ -59,7 +57,7 @@ export default function DivisionsPage() {
       }
     };
     init();
-  }, []);
+  }, [orgId]);
 
   const onSubmit = async (data: FormData) => {
     if (!orgId) return;

@@ -2,11 +2,26 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { authApi } from '@/lib/api/auth';
 import { useAuthStore } from '@/store/auth';
 import { showToast } from '@erp/shell';
 
+const registerSchema = z.object({
+    firstName: z.string().min(1, 'First name is required'),
+    lastName: z.string().min(1, 'Last name is required'),
+    password: z.string().min(8, 'Password must be at least 8 characters'),
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+}).refine((d) => d.password === d.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+});
+type RegisterFormData = z.infer<typeof registerSchema>;
+
 interface InvitePreview {
+    email?: string;
     orgName: string;
     orgSlug: string;
     roleName: string;
@@ -28,6 +43,11 @@ function AcceptInviteContent() {
     const [done, setDone] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterFormData>({
+        resolver: zodResolver(registerSchema),
+    });
+    const watchedPassword = watch('password') ?? '';
+
     useEffect(() => {
         if (!token) return;
         setLoadingPreview(true);
@@ -45,10 +65,31 @@ function AcceptInviteContent() {
             await authApi.acceptInvite({ token });
             showToast.success('Invitation accepted', 'You have joined the organisation.');
             setDone(true);
-            // Give short delay then navigate
-            setTimeout(() => router.replace(isAuthenticated ? '/' : '/login'), 2000);
+            setTimeout(() => router.replace('/'), 2000);
         } catch (err: unknown) {
             const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to accept invitation';
+            showToast.error('Something went wrong', msg);
+        } finally {
+            setAccepting(false);
+        }
+    };
+
+    const handleRegisterAndAccept = async (formData: RegisterFormData) => {
+        if (!token) return;
+        setAccepting(true);
+        try {
+            await authApi.acceptInvite({
+                token,
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                password: formData.password,
+            });
+            showToast.success('Account created', 'Your account is ready. Please log in.');
+            setDone(true);
+            const email = preview?.email ? `?email=${encodeURIComponent(preview.email)}` : '';
+            setTimeout(() => router.replace(`/login${email}`), 2000);
+        } catch (err: unknown) {
+            const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to create account';
             showToast.error('Something went wrong', msg);
         } finally {
             setAccepting(false);
@@ -129,18 +170,91 @@ function AcceptInviteContent() {
                         </p>
                     )}
 
-                    <button
-                        onClick={handleAccept}
-                        disabled={accepting}
-                        className="w-full rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                        {accepting ? 'Accepting…' : 'Accept Invitation'}
-                    </button>
-
-                    {!isAuthenticated && (
-                        <p className="mt-3 text-center text-xs text-gray-400 dark:text-gray-500">
-                            You&rsquo;ll be asked to log in or register after accepting.
-                        </p>
+                    {isAuthenticated ? (
+                        <button
+                            onClick={handleAccept}
+                            disabled={accepting}
+                            className="w-full rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {accepting ? 'Accepting…' : 'Accept Invitation'}
+                        </button>
+                    ) : (
+                        <form onSubmit={handleSubmit(handleRegisterAndAccept)} className="space-y-4">
+                            {preview.email && (
+                                <div>
+                                    <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Email</label>
+                                    <input
+                                        readOnly
+                                        value={preview.email}
+                                        className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400"
+                                    />
+                                </div>
+                            )}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">First name</label>
+                                    <input
+                                        {...register('firstName')}
+                                        placeholder="First name"
+                                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                                    />
+                                    {errors.firstName && <p className="mt-1 text-xs text-red-600">{errors.firstName.message}</p>}
+                                </div>
+                                <div>
+                                    <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">Last name</label>
+                                    <input
+                                        {...register('lastName')}
+                                        placeholder="Last name"
+                                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                                    />
+                                    {errors.lastName && <p className="mt-1 text-xs text-red-600">{errors.lastName.message}</p>}
+                                </div>
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">Password</label>
+                                <input
+                                    {...register('password')}
+                                    type="password"
+                                    placeholder="Min 8 characters"
+                                    autoComplete="new-password"
+                                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                                />
+                                {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>}
+                                {watchedPassword.length > 0 && (
+                                    <div className="mt-1.5 flex gap-1">
+                                        {[1, 2, 3, 4, 5].map((i) => {
+                                            const met = [
+                                                watchedPassword.length >= 8,
+                                                /[A-Z]/.test(watchedPassword),
+                                                /[a-z]/.test(watchedPassword),
+                                                /\d/.test(watchedPassword),
+                                                /[!@#$%^&*(),.?":{}|<>]/.test(watchedPassword),
+                                            ].filter(Boolean).length;
+                                            const color = met <= 2 ? 'bg-red-500' : met <= 3 ? 'bg-amber-500' : met <= 4 ? 'bg-blue-500' : 'bg-emerald-500';
+                                            return <div key={i} className={`h-1.5 flex-1 rounded-full transition ${i <= met ? color : 'bg-gray-100 dark:bg-gray-700'}`} />;
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">Confirm password</label>
+                                <input
+                                    {...register('confirmPassword')}
+                                    type="password"
+                                    placeholder="Repeat password"
+                                    autoComplete="new-password"
+                                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                                />
+                                {errors.confirmPassword && <p className="mt-1 text-xs text-red-600">{errors.confirmPassword.message}</p>}
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={accepting}
+                                className="w-full rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {accepting ? 'Creating account…' : 'Create account & join'}
+                            </button>
+                        </form>
                     )}
                 </div>
             )}

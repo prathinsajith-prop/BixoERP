@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ModuleLayout, ThemeProvider } from "@erp/shell";
+import { Toaster } from 'sonner';
 import { HRModuleScope } from "./module-scope";
 import "./globals.css";
 
@@ -13,6 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body className="bg-gray-50 text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100">
         <ThemeProvider>
+          <Toaster position="top-right" richColors closeButton duration={4000} />
           <ModuleLayout moduleId="hr">
             <HRModuleScope>
               {children}

@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
-import { showToast } from '@erp/shell';
+import { showToast, filesApi } from '@erp/shell';
 import PageHeader from '@/components/page-header';
 
 /* ── Avatar helpers ─────────────────────────────────────────────── */
@@ -51,56 +51,9 @@ const Icons = {
 };
 
 /* ── Types ──────────────────────────────────────────────────────── */
-interface User { id: string; email: string; firstName?: string; lastName?: string; status?: string; isActive?: boolean; roles?: Role[]; createdAt?: string }
+interface User { id: string; email: string; firstName?: string; lastName?: string; status?: string; isActive?: boolean; roles?: Role[]; createdAt?: string; avatarUrl?: string | null; employeeId?: string | null; }
 interface Role { id: string; name: string; description?: string }
 type StatusFilter = 'all' | 'active' | 'inactive';
-
-/* ── Seed / demo data ───────────────────────────────────────────── */
-const DEMO_ROLES: Role[] = [
-  { id: 'r1', name: 'Admin', description: 'Full system access' },
-  { id: 'r2', name: 'Manager', description: 'Team and department management' },
-  { id: 'r3', name: 'Accountant', description: 'Financial operations' },
-  { id: 'r4', name: 'HR Specialist', description: 'Human resources tasks' },
-  { id: 'r5', name: 'Sales Rep', description: 'Sales and CRM' },
-  { id: 'r6', name: 'Viewer', description: 'Read-only access' },
-];
-
-const SEED_PEOPLE: [string, string][] = [
-  ['Emma', 'Johnson'], ['Liam', 'Williams'], ['Olivia', 'Brown'], ['Noah', 'Jones'], ['Ava', 'Garcia'],
-  ['Ethan', 'Miller'], ['Sophia', 'Davis'], ['Mason', 'Rodriguez'], ['Isabella', 'Martinez'], ['William', 'Hernandez'],
-  ['Mia', 'Lopez'], ['James', 'Gonzalez'], ['Charlotte', 'Wilson'], ['Benjamin', 'Anderson'], ['Amelia', 'Thomas'],
-  ['Lucas', 'Taylor'], ['Harper', 'Moore'], ['Henry', 'Jackson'], ['Evelyn', 'Martin'], ['Alexander', 'Lee'],
-  ['Abigail', 'Perez'], ['Daniel', 'Thompson'], ['Emily', 'White'], ['Sebastian', 'Harris'], ['Elizabeth', 'Sanchez'],
-  ['Jack', 'Clark'], ['Sofia', 'Ramirez'], ['Aiden', 'Lewis'], ['Ella', 'Robinson'], ['Owen', 'Walker'],
-  ['Scarlett', 'Young'], ['Matthew', 'Allen'], ['Victoria', 'King'], ['Samuel', 'Wright'], ['Aria', 'Scott'],
-  ['David', 'Torres'], ['Grace', 'Nguyen'], ['Joseph', 'Hill'], ['Chloe', 'Flores'], ['Carter', 'Green'],
-  ['Penelope', 'Adams'], ['Wyatt', 'Nelson'], ['Layla', 'Baker'], ['John', 'Hall'], ['Riley', 'Rivera'],
-  ['Luke', 'Campbell'], ['Zoey', 'Mitchell'], ['Gabriel', 'Carter'], ['Nora', 'Roberts'], ['Julian', 'Gomez'],
-  ['Lily', 'Phillips'], ['Leo', 'Evans'], ['Hannah', 'Turner'], ['Jayden', 'Diaz'], ['Lillian', 'Parker'],
-  ['Isaac', 'Cruz'], ['Addison', 'Edwards'], ['Lincoln', 'Collins'], ['Ellie', 'Reyes'], ['Theodore', 'Stewart'],
-  ['Natalie', 'Morris'], ['Jaxon', 'Morales'], ['Aubrey', 'Murphy'], ['Levi', 'Cook'], ['Savannah', 'Rogers'],
-  ['Mateo', 'Gutierrez'], ['Brooklyn', 'Ortiz'], ['Ryan', 'Morgan'], ['Stella', 'Cooper'], ['Nathan', 'Peterson'],
-  ['Hazel', 'Bailey'], ['Caleb', 'Reed'], ['Paisley', 'Kelly'], ['Christian', 'Howard'], ['Aurora', 'Ramos'],
-  ['Thomas', 'Kim'], ['Violet', 'Cox'], ['Jonathan', 'Ward'], ['Bella', 'Richardson'], ['Hunter', 'Watson'],
-  ['Claire', 'Brooks'], ['Eli', 'Chavez'], ['Skylar', 'Wood'], ['Aaron', 'James'], ['Lucy', 'Bennett'],
-  ['Landon', 'Gray'], ['Anna', 'Mendoza'], ['Adrian', 'Ruiz'], ['Caroline', 'Hughes'], ['Asher', 'Price'],
-  ['Kennedy', 'Alvarez'], ['Grayson', 'Castillo'], ['Madelyn', 'Sanders'], ['Nicholas', 'Patel'], ['Sadie', 'Myers'],
-  ['Robert', 'Long'], ['Allison', 'Ross'], ['Colton', 'Foster'], ['Naomi', 'Jimenez'], ['Dominic', 'Powell'],
-  ['Elena', 'Jenkins'], ['Connor', 'Perry'], ['Gabriella', 'Russell'], ['Jeremiah', 'Sullivan'], ['Aaliyah', 'Bell'],
-];
-
-function generateSeedUsers(): User[] {
-  return SEED_PEOPLE.map(([first, last], i) => {
-    const email = `${first.toLowerCase()}.${last.toLowerCase()}@acme.com`;
-    const id = `usr_${String(i + 1).padStart(4, '0')}`;
-    const roleCount = i % 7 === 0 ? 2 : i % 3 === 0 ? 1 : i % 5 === 0 ? 0 : 1;
-    const roles = DEMO_ROLES.slice((i * 3) % DEMO_ROLES.length, ((i * 3) % DEMO_ROLES.length) + roleCount);
-    const isActive = i % 8 !== 0; // ~12% inactive
-    const day = String((i % 28) + 1).padStart(2, '0');
-    const month = String((i % 12) + 1).padStart(2, '0');
-    return { id, email, firstName: first, lastName: last, isActive, roles, createdAt: `2025-${month}-${day}T10:00:00Z` };
-  });
-}
 
 /* ── Stat card ──────────────────────────────────────────────────── */
 function StatCard({ label, value, icon, color }: { label: string; value: number; icon: React.ReactNode; color: string }) {
@@ -176,6 +129,7 @@ export default function UserManagementPage() {
 
   /* ── Data state ─── */
   const [users, setUsers] = useState<User[]>([]);
+  const [avatarBlobUrls, setAvatarBlobUrls] = useState<Record<string, string>>({});
   const [roles, setRoles] = useState<Role[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -217,7 +171,7 @@ export default function UserManagementPage() {
       }),
     })), []);
 
-  /* ── Fetch (falls back to seed data when API is empty) ─── */
+  /* ── Fetch ─── */
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
@@ -227,17 +181,15 @@ export default function UserManagementPage() {
       ]);
       const data = usersRes.data?.data || usersRes.data;
       const rList: Role[] = rolesRes.data?.data || rolesRes.data || [];
-      const resolvedRoles = rList.length > 0 ? rList : DEMO_ROLES;
+      const resolvedRoles = rList.length > 0 ? rList : [];
       setRoles(resolvedRoles);
       const list: User[] = data.users || [];
-      if (list.length > 0) {
-        setUsers(mapUsers(list, resolvedRoles));
-        setTotal(list.length);
-      } else {
-        const seed = generateSeedUsers(); setUsers(seed); setTotal(seed.length);
-      }
+      setUsers(mapUsers(list, resolvedRoles));
+      setTotal(list.length);
     } catch {
-      const seed = generateSeedUsers(); setUsers(seed); setTotal(seed.length);
+      showToast.error('Load failed', 'Could not fetch users.');
+      setUsers([]);
+      setTotal(0);
     } finally { setLoading(false); }
   }, [mapUsers]);
 
@@ -245,8 +197,8 @@ export default function UserManagementPage() {
     try {
       const res = await authApi.listRoles();
       const list = res.data?.data || res.data || [];
-      setRoles(list.length > 0 ? list : DEMO_ROLES);
-    } catch { setRoles(DEMO_ROLES); }
+      setRoles(list.length > 0 ? list : []);
+    } catch { setRoles([]); }
   }, []);
 
   useEffect(() => {
@@ -260,21 +212,19 @@ export default function UserManagementPage() {
         if (!ignore) {
           const data = usersRes.data?.data || usersRes.data;
           const rList: Role[] = rolesRes.data?.data || rolesRes.data || [];
-          const resolvedRoles = rList.length > 0 ? rList : DEMO_ROLES;
+          const resolvedRoles = rList.length > 0 ? rList : [];
           setRoles(resolvedRoles);
           const list: User[] = data.users || [];
-          if (list.length > 0) {
-            setUsers(mapUsers(list, resolvedRoles));
-            setTotal(list.length);
-          } else {
-            const seed = generateSeedUsers(); setUsers(seed); setTotal(seed.length);
-          }
+          setUsers(mapUsers(list, resolvedRoles));
+          setTotal(list.length);
         }
       })
       .catch(() => {
         if (!ignore) {
-          const seed = generateSeedUsers(); setUsers(seed); setTotal(seed.length);
-          setRoles(DEMO_ROLES);
+          showToast.error('Load failed', 'Could not fetch users.');
+          setUsers([]);
+          setTotal(0);
+          setRoles([]);
         }
       })
       .finally(() => { if (!ignore) setLoading(false); });
@@ -304,6 +254,19 @@ export default function UserManagementPage() {
 
   // Reset to page 1 when filters change
   useEffect(() => { setPage(1); }, [search, statusFilter, roleFilter]);
+
+  /* ── Avatar blob URLs (authenticated download) ─── */
+  useEffect(() => {
+    setAvatarBlobUrls({});
+    users.forEach((u) => {
+      if (!u.avatarUrl) return;
+      const match = u.avatarUrl.match(/\/api\/v1\/files\/([^/]+)\/download/);
+      if (!match) return;
+      filesApi.download(match[1])
+        .then((blobUrl) => setAvatarBlobUrls((prev) => ({ ...prev, [u.id]: blobUrl })))
+        .catch(() => { });
+    });
+  }, [users]);
 
   /* ── Stats ─── */
   const stats = useMemo(() => ({
@@ -361,7 +324,11 @@ export default function UserManagementPage() {
     if (!addForm.email || !addForm.firstName || !addForm.lastName || !addForm.password) { setAddError('All fields are required'); return; }
     setAddLoading(true); setAddError('');
     try {
-      await authApi.register({ email: addForm.email, password: addForm.password, firstName: addForm.firstName, lastName: addForm.lastName });
+      const regRes = await authApi.register({ email: addForm.email, password: addForm.password, firstName: addForm.firstName, lastName: addForm.lastName });
+      const newUserId = regRes.data?.data?.id ?? regRes.data?.id;
+      if (addForm.roleId && newUserId) {
+        try { await authApi.assignRoleToUser(newUserId, addForm.roleId); } catch { /* non-fatal */ }
+      }
       await fetchUsers();
       setAddModalOpen(false);
       setAddForm({ firstName: '', lastName: '', email: '', password: '', roleId: '' });
@@ -574,14 +541,20 @@ export default function UserManagementPage() {
                       </td>
                       <td className="whitespace-nowrap px-4 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${avatarGradient(user.email)} text-xs font-bold text-white shadow-sm`}>
-                            {getInitials(name, user.email)}
-                          </div>
+                          {avatarBlobUrls[user.id]
+                            ? <img src={avatarBlobUrls[user.id]} alt={displayName} className="h-9 w-9 shrink-0 rounded-full object-cover shadow-sm" />
+                            : <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${avatarGradient(user.email)} text-xs font-bold text-white shadow-sm`}>
+                              {getInitials(name, user.email)}
+                            </div>
+                          }
                           <div className="min-w-0">
                             <button onClick={() => router.push(`/admin/users/${user.id}`)} className="block truncate text-sm font-semibold text-gray-900 transition hover:text-blue-600 dark:text-white dark:hover:text-blue-400">
                               {displayName}
                             </button>
-                            <p className="truncate text-xs text-gray-500 dark:text-gray-400 md:hidden">{user.email}</p>
+                            {user.employeeId
+                              ? <p className="truncate text-xs text-blue-600 dark:text-blue-400 font-mono">{user.employeeId}</p>
+                              : <p className="truncate text-xs text-gray-500 dark:text-gray-400 md:hidden">{user.email}</p>
+                            }
                           </div>
                         </div>
                       </td>

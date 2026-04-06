@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import PageHeader from '@/components/page-header';
 import { authApi } from '@/lib/api/auth';
+import { toast } from 'sonner';
 
 const ROLE_COLORS = ['bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300', 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300', 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300', 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300', 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300', 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'];
 
@@ -19,7 +20,6 @@ export default function RolesPage() {
   const [formDescription, setFormDescription] = useState('');
   const [formPermissionIds, setFormPermissionIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Role | null>(null);
   const [expandedRole, setExpandedRole] = useState<string | null>(null);
 
@@ -47,24 +47,26 @@ export default function RolesPage() {
     return () => { ignore = true; };
   }, []);
 
-  const openCreateModal = () => { setEditingRole(null); setFormName(''); setFormDescription(''); setFormPermissionIds([]); setSaveError(null); setModalOpen(true); };
-  const openEditModal = (role: Role) => { setEditingRole(role); setFormName(role.name || ''); setFormDescription(role.description || ''); setFormPermissionIds(role.permissions || []); setSaveError(null); setModalOpen(true); };
+  const openCreateModal = () => { setEditingRole(null); setFormName(''); setFormDescription(''); setFormPermissionIds([]); setModalOpen(true); };
+  const openEditModal = (role: Role) => { setEditingRole(role); setFormName(role.name || ''); setFormDescription(role.description || ''); setFormPermissionIds(role.permissions || []); setModalOpen(true); };
 
   const handleSave = async () => {
     if (!formName.trim()) return;
     setSaving(true);
-    setSaveError(null);
     try {
       const body = { name: formName.trim(), description: formDescription.trim(), permissionIds: formPermissionIds };
       if (editingRole) await authApi.updateRole(editingRole.id, body); else await authApi.createRole(body);
+      toast.success(editingRole ? 'Role updated' : 'Role created');
       await fetchRoles(); setModalOpen(false);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to save role. Please try again.';
-      setSaveError(msg);
-    } finally { setSaving(false); }
+      toast.error(msg);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDelete = async (roleId: string) => { try { await authApi.deleteRole(roleId); setConfirmDelete(null); await fetchRoles(); } catch { } };
+  const handleDelete = async (roleId: string) => { try { await authApi.deleteRole(roleId); toast.warning('Role deleted'); setConfirmDelete(null); await fetchRoles(); } catch { toast.error('Failed to delete role'); } };
 
   const togglePermission = (permId: string) => {
     setFormPermissionIds((prev) => prev.includes(permId) ? prev.filter((id) => id !== permId) : [...prev, permId]);
@@ -155,9 +157,6 @@ export default function RolesPage() {
               </button>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white">{editingRole ? 'Edit Role' : 'Create Role'}</h3>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{editingRole ? 'Update role details and permissions' : 'Define a new role with permissions'}</p>
-              {saveError && (
-                <div className="mt-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">{saveError}</div>
-              )}
 
               <div className="mt-5 space-y-4">
                 <div>

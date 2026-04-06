@@ -7,3 +7,6 @@ export { PayrollRunOrmEntity } from './payroll-run.orm-entity';
 export { PayrollLineOrmEntity } from './payroll-line.orm-entity';
 export { OutboxEventOrmEntity } from './outbox-event.orm-entity';
 export { ProcessedEventOrmEntity } from './processed-event.orm-entity';
+export { AttendanceOrmEntity } from './attendance.orm-entity';
+export { PerformanceReviewOrmEntity } from './performance-review.orm-entity';
+export { PerformanceReviewGoalOrmEntity } from './performance-review-goal.orm-entity';

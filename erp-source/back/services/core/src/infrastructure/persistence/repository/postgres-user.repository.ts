@@ -19,6 +19,11 @@ export class PostgresUserRepository implements UserRepository {
     return row ? this.toDomain(row) : null;
   }
 
+  async findByIdGlobal(id: string): Promise<User | null> {
+    const row = await this.repo.findOne({ where: { id } });
+    return row ? this.toDomain(row) : null;
+  }
+
   async findByEmail(tenantId: string, email: string): Promise<User | null> {
     const row = await this.repo.findOne({ where: { tenant_id: tenantId, email } });
     return row ? this.toDomain(row) : null;

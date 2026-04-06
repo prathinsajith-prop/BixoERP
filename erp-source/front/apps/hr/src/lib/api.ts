@@ -29,7 +29,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
 export interface EmployeeResponse {
   id: string;
-  employeeNumber: string;
+  employeeCode: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -107,6 +107,26 @@ export interface PayrollRunResponse {
   updatedAt: string;
 }
 
+export interface AttendanceRecord {
+  id: string;
+  employeeId: string;
+  date: string;
+  checkInAt: string | null;
+  checkOutAt: string | null;
+  status: string;
+  workingMinutes: number;
+  overtimeMinutes: number;
+  notes: string | null;
+}
+
+export interface AttendanceStatsResponse {
+  presentDays: number;
+  absentDays: number;
+  lateDays: number;
+  totalWorkingMinutes: number;
+  totalOvertimeMinutes: number;
+}
+
 export interface LeaveBalance {
   employeeId: string;
   tenantId: string;
@@ -125,9 +145,26 @@ export interface LeaveBalance {
 export const api = {
   employees: {
     list: () => request<EmployeeResponse[]>("GET", "/api/v1/hr/employees"),
+    listPaginated: (params: {
+      search?: string; departmentId?: string; status?: string;
+      page?: number; limit?: number; sortBy?: string; sortOrder?: string;
+    } = {}) => {
+      const q = new URLSearchParams();
+      if (params.search) q.set("search", params.search);
+      if (params.departmentId) q.set("departmentId", params.departmentId);
+      if (params.status) q.set("status", params.status);
+      if (params.page) q.set("page", String(params.page));
+      if (params.limit) q.set("limit", String(params.limit));
+      if (params.sortBy) q.set("sortBy", params.sortBy);
+      if (params.sortOrder) q.set("sortOrder", params.sortOrder);
+      const qs = q.toString();
+      return request<{ data: EmployeeResponse[]; total: number; page: number; limit: number; totalPages: number }>(
+        "GET", `/api/v1/hr/employees${qs ? `?${qs}` : ""}`
+      );
+    },
     get: (id: string) => request<EmployeeResponse>("GET", `/api/v1/hr/employees/${encodeURIComponent(id)}`),
     create: (data: Record<string, unknown>) => request<EmployeeResponse>("POST", "/api/v1/hr/employees", data),
-    update: (id: string, data: Record<string, unknown>) => request<EmployeeResponse>("PUT", `/api/v1/hr/employees/${encodeURIComponent(id)}`, data),
+    update: (id: string, data: Record<string, unknown>) => request<{ id: string; employeeCode: string; updatedAt: string }>("PATCH", `/api/v1/hr/employees/${encodeURIComponent(id)}`, data),
     terminate: (id: string, data: { reason: string; terminationDate: string }) =>
       request("POST", `/api/v1/hr/employees/${encodeURIComponent(id)}/terminate`, data),
     transfer: (id: string, data: { departmentId: string; positionId: string; managerId?: string }) =>
@@ -161,5 +198,40 @@ export const api = {
     list: () => request<PayrollRunResponse[]>("GET", "/api/v1/hr/payroll/runs"),
     get: (id: string) => request<PayrollRunResponse>("GET", `/api/v1/hr/payroll/runs/${encodeURIComponent(id)}`),
     run: (data: Record<string, unknown>) => request("POST", "/api/v1/hr/payroll/run", data),
+  },
+  attendance: {
+    list: (params: {
+      employeeId?: string; from?: string; to?: string;
+      status?: string; page?: number; limit?: number;
+    } = {}) => {
+      const q = new URLSearchParams();
+      if (params.employeeId) q.set("employeeId", params.employeeId);
+      if (params.from) q.set("from", params.from);
+      if (params.to) q.set("to", params.to);
+      if (params.status) q.set("status", params.status);
+      if (params.page) q.set("page", String(params.page));
+      if (params.limit) q.set("limit", String(params.limit));
+      const qs = q.toString();
+      return request<{ data: AttendanceRecord[]; total: number; page: number; limit: number; totalPages: number }>(
+        "GET", `/api/v1/hr/attendance${qs ? `?${qs}` : ""}`
+      );
+    },
+    today: () => request<{ data: AttendanceRecord[]; total: number; page: number; limit: number; totalPages: number }>(
+      "GET", "/api/v1/hr/attendance/today"
+    ),
+    stats: (employeeId: string, year?: number, month?: number) => {
+      const q = new URLSearchParams();
+      if (year) q.set("year", String(year));
+      if (month) q.set("month", String(month));
+      return request<AttendanceStatsResponse>(
+        "GET", `/api/v1/hr/attendance/stats/${encodeURIComponent(employeeId)}${q.toString() ? `?${q}` : ""}`
+      );
+    },
+    checkIn: (data: { employeeId?: string; notes?: string }) =>
+      request<AttendanceRecord>("POST", "/api/v1/hr/attendance/check-in", data),
+    checkOut: (data: { employeeId?: string }) =>
+      request<AttendanceRecord>("POST", "/api/v1/hr/attendance/check-out", data),
+    mark: (id: string, data: { status: string; notes?: string }) =>
+      request<AttendanceRecord>("PATCH", `/api/v1/hr/attendance/${encodeURIComponent(id)}`, data),
   },
 };

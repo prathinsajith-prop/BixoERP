@@ -120,6 +120,14 @@
         "position": 6
       },
       {
+        "label": "Performance",
+        "href": "/hr/performance",
+        "icon": "TrendingUp",
+        "permission": "hr:performance.read",
+        "visibleTo": ["hr_admin", "hr_manager", "hr_officer", "hr_viewer"],
+        "position": 7
+      },
+      {
         "label": "Reports",
         "href": "/hr/reports",
         "icon": "BarChart3",

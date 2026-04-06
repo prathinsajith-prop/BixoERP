@@ -5,6 +5,7 @@ import { authApi } from '@/lib/api/auth';
 import { useOrgContext } from '@/context/org';
 import { useAuthStore } from '@/store/auth';
 import { showToast } from '@erp/shell';
+import { toast } from 'sonner';
 import PageHeader from '@/components/page-header';
 
 interface OrgMembership {
@@ -42,13 +43,11 @@ export default function OrganisationsPage() {
 
     const [orgs, setOrgs] = useState<OrgMembership[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [switching, setSwitching] = useState<string | null>(null);
     const [leaving, setLeaving] = useState<string | null>(null);
 
     const load = useCallback(async () => {
         setLoading(true);
-        setError(null);
         try {
             const { data } = await authApi.myOrganizations();
             // Normalise whichever shape the API returns
@@ -65,7 +64,7 @@ export default function OrganisationsPage() {
                 })),
             );
         } catch {
-            setError('Failed to load organisations');
+            toast.error('Failed to load organisations');
         } finally {
             setLoading(false);
         }
@@ -109,12 +108,6 @@ export default function OrganisationsPage() {
                 title="My Organisations"
                 subtitle="All organisations you belong to. Switch context or manage your membership."
             />
-
-            {error && (
-                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
-                    {error}
-                </div>
-            )}
 
             {loading ? (
                 <div className="flex items-center justify-center py-16 text-gray-400">
