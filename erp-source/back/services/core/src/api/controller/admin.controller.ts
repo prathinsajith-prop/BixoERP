@@ -67,20 +67,26 @@ export class AdminController {
       parseInt(page, 10),
       Math.min(parseInt(limit, 10), 100),
     );
+    const profileMap = await this.profileRepo.findByUserIds(tenantId, result.users.map((u) => u.id));
     return {
       statusCode: 200,
       data: {
-        users: result.users.map((u) => ({
-          id: u.id,
-          email: u.email.value,
-          firstName: u.firstName,
-          lastName: u.lastName,
-          status: u.status,
-          isActive: u.status === 'ACTIVE',
-          roles: u.roles,
-          lastLoginAt: u.lastLoginAt,
-          createdAt: u.createdAt,
-        })),
+        users: result.users.map((u) => {
+          const prof = profileMap.get(u.id);
+          return {
+            id: u.id,
+            email: u.email.value,
+            firstName: u.firstName,
+            lastName: u.lastName,
+            status: u.status,
+            isActive: u.status === 'ACTIVE',
+            roles: u.roles,
+            lastLoginAt: u.lastLoginAt,
+            createdAt: u.createdAt,
+            avatarUrl: prof?.personal?.avatarUrl || null,
+            employeeId: prof?.work?.employeeId || null,
+          };
+        }),
         total: result.total,
       },
     };
@@ -139,6 +145,8 @@ export class AdminController {
         passwordChangedAt: user.passwordChangedAt,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
+        avatarUrl: profile?.personal?.avatarUrl || null,
+        employeeId: profile?.work?.employeeId || null,
         profile,
 
         // Security

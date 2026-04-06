@@ -128,17 +128,23 @@ export default function LeaveRequestsPage() {
   }
 
   async function onSubmit(data: SubmitFormData) {
-    await api.leave.submit({
-      employeeId: data.employeeId,
-      leaveType: data.leaveType,
-      startDate: data.startDate,
-      endDate: data.endDate,
-      totalDays: daysBetween(data.startDate, data.endDate),
-      reason: data.reason || undefined,
-    });
-    setShowSubmit(false);
-    submitForm.reset();
-    load();
+    try {
+      await api.leave.submit({
+        employeeId: data.employeeId,
+        leaveType: data.leaveType,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        totalDays: daysBetween(data.startDate, data.endDate),
+        reason: data.reason || undefined,
+      });
+      showToast.success('Leave request submitted');
+      setShowSubmit(false);
+      submitForm.reset();
+      load();
+    } catch (err: unknown) {
+      const msg = (err as { message?: string }).message ?? 'Failed to submit leave request';
+      showToast.error('Something went wrong', msg);
+    }
   }
 
   if (loading) return <LoadingSpinner />;
@@ -251,6 +257,19 @@ export default function LeaveRequestsPage() {
             <Input label="Start Date" type="date" error={submitForm.formState.errors.startDate?.message} {...submitForm.register("startDate")} />
             <Input label="End Date" type="date" error={submitForm.formState.errors.endDate?.message} {...submitForm.register("endDate")} />
           </div>
+          {(() => {
+            const start = submitForm.watch("startDate");
+            const end = submitForm.watch("endDate");
+            if (start && end && new Date(end) >= new Date(start)) {
+              const days = daysBetween(start, end);
+              return (
+                <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                  {days} working day{days !== 1 ? 's' : ''} requested
+                </p>
+              );
+            }
+            return null;
+          })()}
           <Textarea label="Reason" rows={3} placeholder="Optional reason for leave" {...submitForm.register("reason")} />
           <div className="flex justify-end gap-3 pt-4">
             <Button variant="outline" type="button" onClick={() => { setShowSubmit(false); submitForm.reset(); }}>Cancel</Button>

@@ -15,8 +15,13 @@ api.interceptors.request.use((config) => {
 });
 
 export const filesApi = {
-  download: async (fileId: string) => {
+  upload: (formData: FormData) =>
+    api.post('/files/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  getDownloadPath: (fileId: string) => `/api/v1/files/${fileId}/download`,
+  download: async (fileId: string): Promise<string> => {
     const response = await api.get(`/files/${fileId}/download`, { responseType: 'blob' });
-    return URL.createObjectURL(response.data);
+    return URL.createObjectURL(response.data as Blob);
   },
 };

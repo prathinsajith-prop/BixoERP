@@ -7,5 +7,6 @@ export interface UserOrganizationRepository {
   findByOrgId(organizationId: string): Promise<UserOrganization[]>;
   findByUserAndOrg(userId: string, organizationId: string): Promise<UserOrganization | null>;
   save(uo: UserOrganization): Promise<void>;
+  updateRole(userId: string, organizationId: string, role: string): Promise<void>;
   delete(userId: string, organizationId: string): Promise<void>;
 }

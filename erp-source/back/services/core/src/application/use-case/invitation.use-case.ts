@@ -11,6 +11,7 @@ import { USER_ORGANIZATION_REPOSITORY, UserOrganizationRepository } from '../../
 import { ORGANIZATION_REPOSITORY, OrganizationRepository } from '../../domain/repository/organization.repository';
 import { UserOrganization, OrgMemberRole } from '../../domain/entity/user-organization.entity';
 import { PostgresInviteTokenRepository } from '../../infrastructure/persistence/repository/postgres-invite-token.repository';
+import { RegisterUserUseCase } from './register-user.use-case';
 
 export interface InviteCommand {
     invitedByUserId: string;
@@ -39,6 +40,7 @@ export class InvitationUseCase {
         @Inject(USER_ORGANIZATION_REPOSITORY) private readonly userOrgRepo: UserOrganizationRepository,
         @Inject(ORGANIZATION_REPOSITORY) private readonly orgRepo: OrganizationRepository,
         private readonly inviteTokenRepo: PostgresInviteTokenRepository,
+        private readonly registerUserUseCase: RegisterUserUseCase,
     ) { }
 
     async invite(cmd: InviteCommand): Promise<{ inviteUrl: string; token: string }> {
@@ -105,9 +107,20 @@ export class InvitationUseCase {
         }
 
         if (!userId) {
-            throw new BadRequestException(
-                'User not found. Please register first then accept the invitation.',
-            );
+            // Registration flow — create user from invite details
+            if (!cmd.firstName || !cmd.lastName || !cmd.password) {
+                throw new BadRequestException(
+                    'User not found. Please provide firstName, lastName, and password to register.',
+                );
+            }
+            const { userId: newUserId } = await this.registerUserUseCase.execute({
+                tenantId: invite.organisation_id,
+                email: invite.invited_email,
+                password: cmd.password,
+                firstName: cmd.firstName,
+                lastName: cmd.lastName,
+            });
+            userId = newUserId;
         }
 
         // Check if already a member

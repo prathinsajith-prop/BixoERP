@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { List, TableProperties } from 'lucide-react';
 import { authApi } from '@/lib/api/auth';
-import { showToast } from '@erp/shell';
+import { showToast, filesApi } from '@erp/shell';
 import {
   ActionButtons,
   Button,
@@ -67,7 +67,7 @@ const Icons = {
 };
 
 /* ── Types ──────────────────────────────────────────────────────── */
-interface User { id: string; email: string; firstName?: string; lastName?: string; status?: string; isActive?: boolean; roles?: Role[]; createdAt?: string }
+interface User { id: string; email: string; firstName?: string; lastName?: string; status?: string; isActive?: boolean; roles?: Role[]; createdAt?: string; avatarUrl?: string | null; employeeId?: string | null; }
 interface Role { id: string; name: string; description?: string }
 type StatusFilter = 'all' | 'active' | 'inactive';
 type StatusOperator = 'is' | 'is_not';
@@ -181,6 +181,7 @@ export default function UserManagementPage() {
 
   /* ── Data state ─── */
   const [users, setUsers] = useState<User[]>([]);
+  const [avatarBlobUrls, setAvatarBlobUrls] = useState<Record<string, string>>({});
   const [roles, setRoles] = useState<Role[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -225,7 +226,7 @@ export default function UserManagementPage() {
       }),
     })), []);
 
-  /* ── Fetch (falls back to seed data when API is empty) ─── */
+  /* ── Fetch ─── */
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
@@ -235,17 +236,15 @@ export default function UserManagementPage() {
       ]);
       const data = usersRes.data?.data || usersRes.data;
       const rList: Role[] = rolesRes.data?.data || rolesRes.data || [];
-      const resolvedRoles = rList.length > 0 ? rList : DEMO_ROLES;
+      const resolvedRoles = rList.length > 0 ? rList : [];
       setRoles(resolvedRoles);
       const list: User[] = data.users || [];
-      if (list.length > 0) {
-        setUsers(mapUsers(list, resolvedRoles));
-        setTotal(list.length);
-      } else {
-        const seed = generateSeedUsers(); setUsers(seed); setTotal(seed.length);
-      }
+      setUsers(mapUsers(list, resolvedRoles));
+      setTotal(list.length);
     } catch {
-      const seed = generateSeedUsers(); setUsers(seed); setTotal(seed.length);
+      showToast.error('Load failed', 'Could not fetch users.');
+      setUsers([]);
+      setTotal(0);
     } finally { setLoading(false); }
   }, [mapUsers]);
 
@@ -253,8 +252,8 @@ export default function UserManagementPage() {
     try {
       const res = await authApi.listRoles();
       const list = res.data?.data || res.data || [];
-      setRoles(list.length > 0 ? list : DEMO_ROLES);
-    } catch { setRoles(DEMO_ROLES); }
+      setRoles(list.length > 0 ? list : []);
+    } catch { setRoles([]); }
   }, []);
 
   useEffect(() => {
@@ -268,21 +267,19 @@ export default function UserManagementPage() {
         if (!ignore) {
           const data = usersRes.data?.data || usersRes.data;
           const rList: Role[] = rolesRes.data?.data || rolesRes.data || [];
-          const resolvedRoles = rList.length > 0 ? rList : DEMO_ROLES;
+          const resolvedRoles = rList.length > 0 ? rList : [];
           setRoles(resolvedRoles);
           const list: User[] = data.users || [];
-          if (list.length > 0) {
-            setUsers(mapUsers(list, resolvedRoles));
-            setTotal(list.length);
-          } else {
-            const seed = generateSeedUsers(); setUsers(seed); setTotal(seed.length);
-          }
+          setUsers(mapUsers(list, resolvedRoles));
+          setTotal(list.length);
         }
       })
       .catch(() => {
         if (!ignore) {
-          const seed = generateSeedUsers(); setUsers(seed); setTotal(seed.length);
-          setRoles(DEMO_ROLES);
+          showToast.error('Load failed', 'Could not fetch users.');
+          setUsers([]);
+          setTotal(0);
+          setRoles([]);
         }
       })
       .finally(() => { if (!ignore) setLoading(false); });
@@ -321,6 +318,19 @@ export default function UserManagementPage() {
 
   // Reset to page 1 when filters change
   useEffect(() => { setPage(1); }, [search, statusFilter, statusOperator, roleFilter, roleOperator]);
+
+  /* ── Avatar blob URLs (authenticated download) ─── */
+  useEffect(() => {
+    setAvatarBlobUrls({});
+    users.forEach((u) => {
+      if (!u.avatarUrl) return;
+      const match = u.avatarUrl.match(/\/api\/v1\/files\/([^/]+)\/download/);
+      if (!match) return;
+      filesApi.download(match[1])
+        .then((blobUrl) => setAvatarBlobUrls((prev) => ({ ...prev, [u.id]: blobUrl })))
+        .catch(() => { });
+    });
+  }, [users]);
 
   /* ── Stats ─── */
   const stats = useMemo(() => ({
@@ -378,7 +388,11 @@ export default function UserManagementPage() {
     if (!addForm.email || !addForm.firstName || !addForm.lastName || !addForm.password) { setAddError('All fields are required'); return; }
     setAddLoading(true); setAddError('');
     try {
-      await authApi.register({ email: addForm.email, password: addForm.password, firstName: addForm.firstName, lastName: addForm.lastName });
+      const regRes = await authApi.register({ email: addForm.email, password: addForm.password, firstName: addForm.firstName, lastName: addForm.lastName });
+      const newUserId = regRes.data?.data?.id ?? regRes.data?.id;
+      if (addForm.roleId && newUserId) {
+        try { await authApi.assignRoleToUser(newUserId, addForm.roleId); } catch { /* non-fatal */ }
+      }
       await fetchUsers();
       setAddModalOpen(false);
       setAddForm({ firstName: '', lastName: '', email: '', password: '', roleId: '' });

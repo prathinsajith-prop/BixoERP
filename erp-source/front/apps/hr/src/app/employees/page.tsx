@@ -59,6 +59,7 @@ const employeeSchema = z.object({
   hireDate:     z.string().min(1, "Hire date is required"),
   departmentId: z.string().min(1, "Please select a department"),
   positionId:   z.string().min(1, "Please select a position"),
+  managerId: z.string().uuid().nullable().optional(),
   baseSalary:   z.coerce.number({ invalid_type_error: "Salary must be a number" }).positive("Salary must be greater than 0"),
   currency:     z.string().default("USD"),
 });
@@ -136,7 +137,7 @@ export default function EmployeesPage() {
     return employees.filter((e) => {
       if (q) {
         const name = `${e.firstName} ${e.lastName}`.toLowerCase();
-        const code = (e.employeeCode ?? e.employeeNumber ?? "").toLowerCase();
+        const code = (e.employeeCode ?? "").toLowerCase();
         const email = e.email.toLowerCase();
         if (!name.includes(q) && !code.includes(q) && !email.includes(q)) return false;
       }
@@ -235,7 +236,7 @@ export default function EmployeesPage() {
       header: "Employee ID",
       size: 140,
       cell: ({ row }) => {
-        const code = row.original.employeeCode ?? row.original.employeeNumber ?? "—";
+        const code = row.original.employeeCode ?? "—";
         return code !== "—" ? <CopyableId value={code} /> : <span className="text-gray-400 font-mono text-xs">—</span>;
       },
     }),
@@ -600,7 +601,7 @@ export default function EmployeesPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 dark:text-white">{emp.firstName} {emp.lastName}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{emp.employeeCode ?? emp.employeeNumber ?? "—"}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{emp.employeeCode ?? "—"}</p>
               </div>
               <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[emp.status] ?? "bg-gray-100 text-gray-600"}`}>
                 {emp.status.replace(/_/g, " ").toLowerCase()}
@@ -632,6 +633,16 @@ export default function EmployeesPage() {
               options={[{ value: "", label: "Select position" }, ...positions.map((p) => ({ value: p.id, label: p.title }))]}
               {...register("positionId")} />
           </div>
+          <Select
+            label="Manager (optional)"
+            options={[
+              { value: "", label: "No manager" },
+              ...employees
+                .filter((e) => e.status !== "TERMINATED")
+                .map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}` }))
+            ]}
+            {...register("managerId")}
+          />
           <div className="grid grid-cols-2 gap-4">
             <Input label="Base Salary" type="number" step="0.01" error={errors.baseSalary?.message} {...register("baseSalary")} />
             <Select label="Currency"

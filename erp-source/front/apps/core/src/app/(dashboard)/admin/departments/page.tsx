@@ -7,6 +7,7 @@ import { z } from 'zod';
 import PageHeader from '@/components/page-header';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
+import { useOrgContext } from '@/context/org';
 
 interface Department { id: string; name: string; code: string; description?: string; divisionId?: string; status: string }
 interface Division { id: string; name: string }
@@ -18,7 +19,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function DepartmentsPage() {
   const router = useRouter();
-  const [orgId, setOrgId] = useState<string | null>(null);
+  const { orgId } = useOrgContext();
   const [items, setItems] = useState<Department[]>([]);
   const [divisions, setDivisions] = useState<Division[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,8 +45,6 @@ export default function DepartmentsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const editingIdRef = useRef<string | null>(null);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => { setOrgId(localStorage.getItem('organizationId') || localStorage.getItem('tenantId')); }, []);
 
   useEffect(() => {
     if (!orgId) return;

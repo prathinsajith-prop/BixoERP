@@ -79,6 +79,39 @@ export class PostgresEmployeeRepository implements EmployeeRepository {
     return `EMP-${year}-${String(seq).padStart(5, '0')}`;
   }
 
+  async findAllPaginated(
+    tenantId: string,
+    filters: {
+      search?: string;
+      departmentId?: string;
+      status?: string;
+      page: number;
+      limit: number;
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<{ data: Employee[]; total: number; page: number; limit: number }> {
+    const { search, departmentId, status, page, limit, sortBy, sortOrder } = filters;
+    const qb = this.repo.createQueryBuilder('e').where('e.tenantId = :tenantId', { tenantId });
+    if (search) {
+      qb.andWhere(
+        '(LOWER(e.firstName) LIKE :search OR LOWER(e.lastName) LIKE :search OR LOWER(e.email) LIKE :search OR e.employeeCode LIKE :search)',
+        { search: `%${search.toLowerCase()}%` },
+      );
+    }
+    if (departmentId) qb.andWhere('e.departmentId = :departmentId', { departmentId });
+    if (status) qb.andWhere('e.status = :status', { status });
+    const allowedSortCols: Record<string, string> = {
+      lastName: 'e.lastName', firstName: 'e.firstName',
+      hireDate: 'e.hireDate', employeeCode: 'e.employeeCode',
+    };
+    const sortCol = allowedSortCols[sortBy ?? ''] ?? 'e.lastName';
+    qb.orderBy(sortCol, sortOrder === 'desc' ? 'DESC' : 'ASC');
+    qb.skip((page - 1) * limit).take(limit);
+    const [rows, total] = await qb.getManyAndCount();
+    return { data: rows.map((r) => this.toDomain(r)), total, page, limit };
+  }
+
   async findByIds(ids: string[], tenantId: string): Promise<Employee[]> {
     if (ids.length === 0) return [];
     const rows = await this.repo.find({ where: { id: In(ids), tenantId } });

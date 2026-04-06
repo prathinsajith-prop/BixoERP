@@ -28,10 +28,13 @@ export class InvitationController {
     /** Accept an invite (no auth required — new users may not have a JWT yet) */
     @Post('accept')
     @HttpCode(HttpStatus.OK)
-    async accept(@Body() body: { token: string; userId?: string }) {
+    async accept(@Body() body: { token: string; userId?: string; firstName?: string; lastName?: string; password?: string }) {
         await this.invitationUseCase.acceptInvite({
             token: body.token,
             userId: body.userId,
+            firstName: body.firstName,
+            lastName: body.lastName,
+            password: body.password,
         });
         return { statusCode: 200, message: 'Invitation accepted' };
     }

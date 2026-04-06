@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from 'next/navigation';
 import { AppSelector } from "./app-selector";
 import { AlertsDropdown } from "./alerts-dropdown";
 import { authApi } from "../lib/api/auth";
@@ -59,6 +60,7 @@ function OrgSelector() {
   const [switchError, setSwitchError] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const close = useCallback(() => setOpen(false), []);
+  const router = useRouter();
   useClickOutside(ref, close);
 
   useEffect(() => {

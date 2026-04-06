@@ -7,6 +7,7 @@ import { z } from 'zod';
 import PageHeader from '@/components/page-header';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
+import { useOrgContext } from '@/context/org';
 
 interface Team { id: string; name: string; code: string; description?: string; departmentId?: string; status: string }
 interface Department { id: string; name: string }
@@ -18,7 +19,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function TeamsPage() {
   const router = useRouter();
-  const [orgId, setOrgId] = useState<string | null>(null);
+  const { orgId } = useOrgContext();
   const [items, setItems] = useState<Team[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,13 +48,10 @@ export default function TeamsPage() {
   useEffect(() => {
     const init = async () => {
       try {
-        const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!) : null;
-        const currentOrgId = user?.orgId || localStorage.getItem('orgId');
-        setOrgId(currentOrgId);
-        if (currentOrgId) {
+        if (orgId) {
           const [teamRes, deptRes] = await Promise.all([
-            authApi.listTeams(currentOrgId),
-            authApi.listDepartments(currentOrgId),
+            authApi.listTeams(orgId),
+            authApi.listDepartments(orgId),
           ]);
           setItems(teamRes.data?.data || []);
           setDepartments(deptRes.data?.data || []);

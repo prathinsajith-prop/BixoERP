@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
-import { showToast } from '@erp/shell';
+import { showToast, filesApi } from '@erp/shell';
 import PageHeader from '@/components/page-header';
 import CanDo from '@/components/can-do';
 
@@ -60,7 +60,7 @@ function relTime(d?: string) {
   if (s < 60) return 'just now'; if (s < 3600) return `${Math.floor(s / 60)}m ago`;
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`; return `${Math.floor(s / 86400)}d ago`;
 }
-interface UserData { id: string; email: string; firstName?: string; lastName?: string; isActive?: boolean; emailVerified?: boolean; emailVerifiedAt?: string; twoFactorEnabled?: boolean; twoFactorEnabledAt?: string; createdAt?: string; updatedAt?: string; lastLoginAt?: string; lastLoginIp?: string; lastLoginUserAgent?: string; loginCount?: number; failedLoginAttempts?: number; lockedUntil?: string; passwordChangedAt?: string; phone?: string; phoneNumber?: string; roles?: Role[]; organization?: { name?: string; plan?: string }; organizationId?: string; tenantId?: string; department?: string; jobTitle?: string; metadata?: Record<string, unknown>; socialAccounts?: { provider: string; linkedAt?: string }[]; security?: { loginHistory?: LoginHistoryEntry[]; loginHistoryTotal?: number; twoFactorEnabled?: boolean; emailVerified?: boolean; failedLoginAttempts?: number; lockedUntil?: string; socialAccounts?: { provider: string; email?: string; displayName?: string; linkedAt?: string }[] } }
+interface UserData { id: string; email: string; firstName?: string; lastName?: string; isActive?: boolean; emailVerified?: boolean; emailVerifiedAt?: string; twoFactorEnabled?: boolean; twoFactorEnabledAt?: string; createdAt?: string; updatedAt?: string; lastLoginAt?: string; lastLoginIp?: string; lastLoginUserAgent?: string; loginCount?: number; failedLoginAttempts?: number; lockedUntil?: string; passwordChangedAt?: string; phone?: string; phoneNumber?: string; roles?: Role[]; organization?: { name?: string; plan?: string }; organizationId?: string; tenantId?: string; department?: string; jobTitle?: string; metadata?: Record<string, unknown>; socialAccounts?: { provider: string; linkedAt?: string }[]; security?: { loginHistory?: LoginHistoryEntry[]; loginHistoryTotal?: number; twoFactorEnabled?: boolean; emailVerified?: boolean; failedLoginAttempts?: number; lockedUntil?: string; socialAccounts?: { provider: string; email?: string; displayName?: string; linkedAt?: string }[] }; avatarUrl?: string | null; employeeId?: string | null; }
 
 export default function UserDetailsPage() {
   const { userId } = useParams<{ userId: string }>();
@@ -76,10 +76,26 @@ export default function UserDetailsPage() {
   const [editFirstName, setEditFirstName] = useState('');
   const [editLastName, setEditLastName] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+  const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null);
 
   const fetchUser = useCallback(async () => {
     setLoading(true); setError(null);
-    try { const res = await authApi.getUser(userId); setUser(res.data?.data || res.data); } catch (err: any) { setError(err.response?.status === 404 ? 'User not found' : 'Failed to load user details'); } finally { setLoading(false); }
+    try {
+      const res = await authApi.getUser(userId);
+      const raw = res.data?.data || res.data;
+      // Normalise flat flags that the backend nests under `security`
+      setUser({
+        ...raw,
+        isActive: raw.isActive !== undefined ? raw.isActive : (raw.status === 'ACTIVE'),
+        emailVerified: raw.emailVerified !== undefined ? raw.emailVerified : (raw.security?.emailVerified ?? false),
+        twoFactorEnabled: raw.twoFactorEnabled !== undefined ? raw.twoFactorEnabled : (raw.security?.twoFactorEnabled ?? false),
+        failedLoginAttempts: raw.failedLoginAttempts ?? raw.security?.failedLoginAttempts ?? 0,
+        lockedUntil: raw.lockedUntil ?? raw.security?.lockedUntil ?? null,
+      });
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      setError(status === 404 ? 'User not found' : 'Failed to load user details');
+    } finally { setLoading(false); }
   }, [userId]);
 
   const fetchRoles = useCallback(async () => {
@@ -87,6 +103,13 @@ export default function UserDetailsPage() {
   }, []);
 
   useEffect(() => { fetchUser(); fetchRoles(); }, [fetchUser, fetchRoles]);
+
+  useEffect(() => {
+    if (!user?.avatarUrl) return;
+    const match = user.avatarUrl.match(/\/api\/v1\/files\/([^/]+)\/download/);
+    if (!match) return;
+    filesApi.download(match[1]).then((url) => setAvatarBlobUrl(url)).catch(() => { });
+  }, [user?.avatarUrl]);
 
   const handleAssignRole = async (roleId: string) => {
     setAssigning(true);
@@ -162,7 +185,10 @@ export default function UserDetailsPage() {
         <div className="relative px-6 pb-6">
           <div className="flex flex-col sm:flex-row sm:items-end sm:gap-6">
             <div className="-mt-12 sm:-mt-14">
-              <div className={`flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br ${avatarGradient(user.email)} text-2xl font-bold text-white shadow-lg ring-4 ring-white sm:h-28 sm:w-28 sm:text-3xl dark:ring-gray-900`}>{getInitials(name, user.email)}</div>
+              {avatarBlobUrl
+                ? <img src={avatarBlobUrl} alt={displayName} className="h-24 w-24 rounded-2xl object-cover shadow-lg ring-4 ring-white sm:h-28 sm:w-28 dark:ring-gray-900" />
+                : <div className={`flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br ${avatarGradient(user.email)} text-2xl font-bold text-white shadow-lg ring-4 ring-white sm:h-28 sm:w-28 sm:text-3xl dark:ring-gray-900`}>{getInitials(name, user.email)}</div>
+              }
             </div>
             <div className="mt-4 flex-1 sm:mb-1 sm:mt-0">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -225,7 +251,7 @@ export default function UserDetailsPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           <div className={cardClass}>
             <div className="mb-5 flex items-center gap-3"><div className={`${sectionIcon} bg-blue-100 dark:bg-blue-900/30`}><svg className="h-4.5 w-4.5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg></div><h2 className="text-base font-bold text-gray-900 dark:text-white">Personal Information</h2></div>
-            <dl className="divide-y divide-gray-100 dark:divide-gray-800"><InfoRow label="First Name" value={user.firstName} /><InfoRow label="Last Name" value={user.lastName} /><InfoRow label="Email" value={user.email} /><InfoRow label="Phone" value={user.phone || user.phoneNumber} /><InfoRow label="User ID" value={user.id} mono /></dl>
+            <dl className="divide-y divide-gray-100 dark:divide-gray-800"><InfoRow label="First Name" value={user.firstName} /><InfoRow label="Last Name" value={user.lastName} /><InfoRow label="Email" value={user.email} /><InfoRow label="Phone" value={user.phone || user.phoneNumber} />{user.employeeId && <InfoRow label="Employee ID" value={user.employeeId} mono />}<InfoRow label="User ID" value={user.id} mono /></dl>
           </div>
           <div className={cardClass}>
             <div className="mb-5 flex items-center gap-3"><div className={`${sectionIcon} bg-purple-100 dark:bg-purple-900/30`}><svg className="h-4.5 w-4.5 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" /></svg></div><h2 className="text-base font-bold text-gray-900 dark:text-white">Account Information</h2></div>

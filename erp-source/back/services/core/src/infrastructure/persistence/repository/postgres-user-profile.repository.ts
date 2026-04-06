@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { randomUUID } from 'crypto';
 import { UserProfileOrmEntity } from '../entity/user-profile.orm-entity';
 import { DEFAULT_PROFILE, type UserProfile } from '../../../domain/entity/user-profile';
@@ -10,12 +10,22 @@ export class PostgresUserProfileRepository {
   constructor(
     @InjectRepository(UserProfileOrmEntity)
     private readonly repo: Repository<UserProfileOrmEntity>,
-  ) {}
+  ) { }
 
   async findByUserId(tenantId: string, userId: string): Promise<UserProfile> {
     const row = await this.repo.findOne({ where: { tenant_id: tenantId, user_id: userId } });
     if (!row) return { ...JSON.parse(JSON.stringify(DEFAULT_PROFILE)) };
     return this.merge(row.profile);
+  }
+
+  async findByUserIds(tenantId: string, userIds: string[]): Promise<Map<string, UserProfile>> {
+    if (userIds.length === 0) return new Map();
+    const rows = await this.repo.find({ where: { tenant_id: tenantId, user_id: In(userIds) } });
+    const map = new Map<string, UserProfile>();
+    for (const row of rows) {
+      map.set(row.user_id, this.merge(row.profile));
+    }
+    return map;
   }
 
   async upsert(tenantId: string, userId: string, partial: Record<string, unknown>): Promise<UserProfile> {

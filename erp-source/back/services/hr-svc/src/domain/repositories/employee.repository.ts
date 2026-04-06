@@ -13,6 +13,18 @@ export interface EmployeeRepository {
   generateEmployeeCode(tenantId: string): Promise<string>;
   existsByEmail(email: string, tenantId: string): Promise<boolean>;
   saveWithOutbox(employee: Employee): Promise<Employee>;
+  findAllPaginated(
+    tenantId: string,
+    filters: {
+      search?: string;
+      departmentId?: string;
+      status?: string;
+      page: number;
+      limit: number;
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<{ data: Employee[]; total: number; page: number; limit: number }>;
 }
 
 export const EMPLOYEE_REPOSITORY = Symbol('EmployeeRepository');

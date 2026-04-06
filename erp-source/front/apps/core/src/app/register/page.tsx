@@ -26,9 +26,21 @@ export default function RegisterPage() {
   const { register: authRegister, isLoading, error } = useAuthStore();
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<RegisterFormData>({
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
   });
+
+  const watchedPassword = watch('password') ?? '';
+  const passwordRequirements = [
+    { label: 'At least 8 characters', met: watchedPassword.length >= 8 },
+    { label: 'Contains uppercase letter', met: /[A-Z]/.test(watchedPassword) },
+    { label: 'Contains lowercase letter', met: /[a-z]/.test(watchedPassword) },
+    { label: 'Contains a number', met: /\d/.test(watchedPassword) },
+    { label: 'Contains special character', met: /[!@#$%^&*(),.?":{}|<>]/.test(watchedPassword) },
+  ];
+  const passwordStrength = passwordRequirements.filter((r) => r.met).length;
+  const passwordStrengthLabel = ['', 'Weak', 'Weak', 'Fair', 'Strong', 'Excellent'][passwordStrength];
+  const passwordStrengthColor = ['', 'bg-red-500', 'bg-red-500', 'bg-amber-500', 'bg-blue-500', 'bg-emerald-500'][passwordStrength];
 
   const handleSocialLogin = (provider: string) => {
     setSocialLoading(provider);
@@ -77,6 +89,19 @@ export default function RegisterPage() {
         </div>
         <Input id="email" label="Email address" type="email" placeholder="you@company.com" error={errors.email?.message} autoComplete="email" {...register('email')} />
         <Input id="password" label="Password" type="password" placeholder="Min 8 characters" error={errors.password?.message} autoComplete="new-password" {...register('password')} />
+        {watchedPassword.length > 0 && (
+          <div className="mt-2">
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-xs text-gray-400">Password strength</span>
+              <span className={`text-xs font-semibold ${passwordStrength <= 2 ? 'text-red-600' : passwordStrength <= 3 ? 'text-amber-600' : passwordStrength <= 4 ? 'text-blue-600' : 'text-emerald-600'}`}>{passwordStrengthLabel}</span>
+            </div>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className={`h-1.5 flex-1 rounded-full transition ${i <= passwordStrength ? passwordStrengthColor : 'bg-gray-100 dark:bg-gray-800'}`} />
+              ))}
+            </div>
+          </div>
+        )}
         <Button type="submit" loading={isLoading} className="w-full">Create account</Button>
       </form>
 

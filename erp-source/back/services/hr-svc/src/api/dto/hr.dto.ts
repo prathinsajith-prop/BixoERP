@@ -72,6 +72,17 @@ export const CreateDepartmentDto = z.object({
 
 export type CreateDepartmentDtoType = z.infer<typeof CreateDepartmentDto>;
 
+export const UpdateEmployeeDto = z.object({
+  firstName: z.string().min(1).max(100).optional(),
+  lastName: z.string().min(1).max(100).optional(),
+  phone: z.string().max(30).nullable().optional(),
+  managerId: z.string().uuid().nullable().optional(),
+}).refine(
+  (d) => Object.values(d).some((v) => v !== undefined),
+  { message: 'At least one field must be provided' },
+);
+export type UpdateEmployeeDtoType = z.infer<typeof UpdateEmployeeDto>;
+
 export const CreatePositionDto = z.object({
   code: z.string().min(1).max(20),
   title: z.string().min(1).max(255),
@@ -83,3 +94,52 @@ export const CreatePositionDto = z.object({
 });
 
 export type CreatePositionDtoType = z.infer<typeof CreatePositionDto>;
+
+export const CheckInDto = z.object({
+  employeeId: z.string().uuid().optional(),
+  notes: z.string().max(500).optional(),
+});
+export type CheckInDtoType = z.infer<typeof CheckInDto>;
+
+export const CheckOutDto = z.object({
+  employeeId: z.string().uuid().optional(),
+});
+export type CheckOutDtoType = z.infer<typeof CheckOutDto>;
+
+export const MarkAttendanceDto = z.object({
+  status: z.enum(['PRESENT', 'ABSENT', 'LATE', 'HALF_DAY', 'ON_LEAVE', 'HOLIDAY', 'WEEKEND']),
+  notes: z.string().max(500).optional(),
+});
+export type MarkAttendanceDtoType = z.infer<typeof MarkAttendanceDto>;
+
+// ─── Performance Review DTOs ─────────────────────────────────────────────────
+
+export const CreatePerformanceReviewDto = z.object({
+  employeeId: z.string().uuid(),
+  reviewerId: z.string().uuid(),
+  cycle: z.enum(['MONTHLY', 'QUARTERLY', 'SEMI_ANNUAL', 'ANNUAL']),
+  periodStart: z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
+  periodEnd: z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
+  dueDate: z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
+});
+export type CreatePerformanceReviewDtoType = z.infer<typeof CreatePerformanceReviewDto>;
+
+export const AddGoalDto = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().min(1).max(2000),
+  targetDate: z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
+  weightPercent: z.number().int().min(1).max(100),
+});
+export type AddGoalDtoType = z.infer<typeof AddGoalDto>;
+
+export const SubmitSelfReviewDto = z.object({
+  goalScores: z.record(z.string().uuid(), z.number().min(1).max(5)),
+  comments: z.string().min(1).max(5000),
+});
+export type SubmitSelfReviewDtoType = z.infer<typeof SubmitSelfReviewDto>;
+
+export const SubmitManagerReviewDto = z.object({
+  goalScores: z.record(z.string().uuid(), z.number().min(1).max(5)),
+  comments: z.string().min(1).max(5000),
+});
+export type SubmitManagerReviewDtoType = z.infer<typeof SubmitManagerReviewDto>;
