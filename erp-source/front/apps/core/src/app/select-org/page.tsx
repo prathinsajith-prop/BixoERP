@@ -59,7 +59,7 @@ export default function SelectOrgPage() {
         )}
 
         <div className="space-y-3">
-          {pendingOrganisations.map((org) => (
+          {pendingOrganisations.map((org: any) => (
             <button
               key={org.orgId}
               onClick={() => handleSelect(org.orgId)}

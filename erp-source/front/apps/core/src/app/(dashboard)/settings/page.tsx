@@ -100,7 +100,7 @@ export default function SettingsPage() {
   const [quietEnd, setQuietEnd] = useState('08:00');
 
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  useEffect(() => { authApi.twoFactorStatus().then(({ data }) => setTwoFactorEnabled(data.data.enabled)).catch(() => { }); }, []);
+  useEffect(() => { authApi.twoFactorStatus().then(({ data }: { data: any }) => setTwoFactorEnabled(data.data.enabled)).catch(() => { }); }, []);
   const [sessionTimeout, setSessionTimeout] = useState(30);
   const [loginAlerts, setLoginAlerts] = useState(true);
   const [ipWhitelisting, setIpWhitelisting] = useState(false);
@@ -235,7 +235,7 @@ export default function SettingsPage() {
   }
 
   useEffect(() => {
-    authApi.getSettings().then(({ data }) => { if (data.data) applySettings(data.data); }).catch(() => { }).finally(() => { loadedRef.current = true; });
+    authApi.getSettings().then(({ data }: { data: any }) => { if (data.data) applySettings(data.data); }).catch(() => { }).finally(() => { loadedRef.current = true; });
   }, []);
 
   useEffect(() => { if (loadedRef.current) setDirty(true); }, [

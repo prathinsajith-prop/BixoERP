@@ -1,15 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { LoadingSpinner, EmptyState } from "@erp/ui";
+import { DataTable, LoadingSpinner, EmptyState, PageHeader, StatusBadge, type TableColumn } from "@erp/ui";
 import { api, type ApprovalRequest } from "../../lib/api";
-
-const statusColors: Record<string, string> = {
-  pending: "bg-yellow-100 text-yellow-800",
-  approved: "bg-green-100 text-green-800",
-  rejected: "bg-red-100 text-red-800",
-  cancelled: "bg-gray-100 text-gray-700",
-};
 
 export default function MyRequestsPage() {
   const [requests, setRequests] = useState<ApprovalRequest[]>([]);
@@ -33,48 +26,24 @@ export default function MyRequestsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">My Requests</h1>
-        <p className="text-sm text-gray-500 mt-1">{requests.length} requests</p>
-      </div>
+      <PageHeader title="My Requests" description={`${requests.length} requests`} />
 
       {loading && <LoadingSpinner />}
       {error && <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</div>}
 
-      {!loading && !error && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          {requests.length === 0 ? (
-            <EmptyState title="No requests" description="No approval requests found." />
-          ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Workflow</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entity</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Requester</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Current Approver</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Steps</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {requests.map((r) => (
-                  <tr key={r.id} className="hover:bg-gray-50 cursor-pointer">
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{r.workflowName}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{r.entityType} #{r.entityId}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{r.requesterName}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{r.currentApproverName ?? "—"}</td>
-                    <td className="px-4 py-3 text-sm text-center text-gray-700">{r.steps.length}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium capitalize ${statusColors[r.status] ?? "bg-gray-100 text-gray-700"}`}>{r.status}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
+      {!loading && !error && (() => {
+        const requestColumns: TableColumn<ApprovalRequest>[] = [
+          { key: 'workflowName', header: 'Workflow', render: (r) => <span className="text-sm font-medium text-gray-900">{r.workflowName}</span> },
+          { key: 'entityType', header: 'Entity', render: (r) => <span className="text-sm text-gray-500">{r.entityType} #{r.entityId}</span> },
+          { key: 'requesterName', header: 'Requester', render: (r) => <span className="text-sm text-gray-700">{r.requesterName}</span> },
+          { key: 'currentApproverName', header: 'Current Approver', render: (r) => <span className="text-sm text-gray-500">{r.currentApproverName ?? '—'}</span> },
+          { key: 'steps', header: 'Steps', align: 'center' as const, render: (r) => <span className="text-sm text-gray-700">{r.steps.length}</span> },
+          { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
+        ];
+        return requests.length === 0
+          ? <EmptyState title="No requests" description="No approval requests found." />
+          : <DataTable<ApprovalRequest> columns={requestColumns} data={requests} keyExtractor={(r) => r.id} />;
+      })()}
     </div>
   );
 }

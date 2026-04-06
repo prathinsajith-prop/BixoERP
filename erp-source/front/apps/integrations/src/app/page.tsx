@@ -1,4 +1,5 @@
 import { Plug, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { PageHeader, StatusBadge } from "@erp/ui";
 
 const integrations = [
   { name: "Stripe", desc: "Payment processing & billing", category: "Payments", status: "connected", lastSync: "2024-03-15 10:00", icon: "💳" },
@@ -15,10 +16,7 @@ export default function IntegrationsPage() {
   const connected = integrations.filter((i) => i.status === "connected").length;
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Integrations</h1>
-        <p className="text-sm text-gray-500 mt-1">{connected} of {integrations.length} integrations active</p>
-      </div>
+      <PageHeader title="Integrations" description={`${connected} of ${integrations.length} integrations active`} />
 
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center gap-3">
@@ -46,11 +44,7 @@ export default function IntegrationsPage() {
                   <p className="text-xs text-gray-500">{i.desc}</p>
                 </div>
               </div>
-              <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                i.status === "connected" ? "bg-green-100 text-green-800" :
-                i.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                "bg-red-100 text-red-800"
-              }`}>{i.status}</span>
+              <StatusBadge status={i.status} />
             </div>
             <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
               <span>{i.category}</span>

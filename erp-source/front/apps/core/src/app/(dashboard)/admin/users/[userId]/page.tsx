@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
 import { showToast, filesApi } from '@erp/shell';
+import { StatusBadge } from '@erp/ui';
 import PageHeader from '@/components/page-header';
 import CanDo from '@/components/can-do';
 
@@ -197,10 +198,7 @@ export default function UserDetailsPage() {
                   <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${user.isActive !== false ? badgeActive : badgeInactive}`}>
-                    <span className={`h-2 w-2 rounded-full ${user.isActive !== false ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                    {user.isActive !== false ? 'Active' : 'Inactive'}
-                  </span>
+                  <StatusBadge status={user.isActive !== false ? 'active' : 'inactive'} />
                   {user.emailVerified && <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 ring-1 ring-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:ring-blue-800">
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.745 3.745 0 011.043 3.296A3.745 3.745 0 0121 12z" /></svg>
                     Verified
@@ -256,8 +254,8 @@ export default function UserDetailsPage() {
           <div className={cardClass}>
             <div className="mb-5 flex items-center gap-3"><div className={`${sectionIcon} bg-purple-100 dark:bg-purple-900/30`}><svg className="h-4.5 w-4.5 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" /></svg></div><h2 className="text-base font-bold text-gray-900 dark:text-white">Account Information</h2></div>
             <dl className="divide-y divide-gray-100 dark:divide-gray-800">
-              <div className="flex items-center justify-between py-3"><dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Status</dt><dd><span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${user.isActive !== false ? badgeActive : badgeInactive}`}><span className={`h-1.5 w-1.5 rounded-full ${user.isActive !== false ? 'bg-emerald-500' : 'bg-red-500'}`} />{user.isActive !== false ? 'Active' : 'Inactive'}</span></dd></div>
-              <div className="flex items-center justify-between py-3"><dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Email Verified</dt><dd><span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${user.emailVerified ? badgeActive : 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'}`}>{user.emailVerified ? 'Verified' : 'Unverified'}</span></dd></div>
+              <div className="flex items-center justify-between py-3"><dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Status</dt><dd><StatusBadge status={user.isActive !== false ? 'active' : 'inactive'} /></dd></div>
+              <div className="flex items-center justify-between py-3"><dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Email Verified</dt><dd><StatusBadge status={user.emailVerified ? 'active' : 'pending'} label={user.emailVerified ? 'Verified' : 'Unverified'} /></dd></div>
               <InfoRow label="Created" value={formatDateTime(user.createdAt || '')} />
               <InfoRow label="Last Updated" value={formatDateTime(user.updatedAt || '')} />
               <InfoRow label="Last Login" value={user.lastLoginAt ? formatDateTime(user.lastLoginAt) : 'Never'} />
@@ -291,8 +289,8 @@ export default function UserDetailsPage() {
           <div className={cardClass}>
             <div className="mb-5 flex items-center gap-3"><div className={`${sectionIcon} bg-rose-100 dark:bg-rose-900/30`}><svg className="h-4.5 w-4.5 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg></div><h2 className="text-base font-bold text-gray-900 dark:text-white">Authentication</h2></div>
             <dl className="divide-y divide-gray-100 dark:divide-gray-800">
-              <div className="flex items-center justify-between py-3"><dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Two-Factor Auth</dt><dd><span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${user.twoFactorEnabled ? badgeActive : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>{user.twoFactorEnabled ? 'Enabled' : 'Disabled'}</span></dd></div>
-              <div className="flex items-center justify-between py-3"><dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Email Verified</dt><dd><span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${user.emailVerified ? badgeActive : 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'}`}>{user.emailVerified ? 'Yes' : 'No'}</span></dd></div>
+              <div className="flex items-center justify-between py-3"><dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Two-Factor Auth</dt><dd><StatusBadge status={user.twoFactorEnabled ? 'active' : 'inactive'} label={user.twoFactorEnabled ? 'Enabled' : 'Disabled'} /></dd></div>
+              <div className="flex items-center justify-between py-3"><dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Email Verified</dt><dd><StatusBadge status={user.emailVerified ? 'active' : 'pending'} label={user.emailVerified ? 'Yes' : 'No'} /></dd></div>
               {user.passwordChangedAt && <InfoRow label="Password Changed" value={formatDateTime(user.passwordChangedAt)} />}
               {user.failedLoginAttempts != null && <div className="flex items-center justify-between py-3"><dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Failed Login Attempts</dt><dd><span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${user.failedLoginAttempts > 0 ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>{user.failedLoginAttempts}</span></dd></div>}
               {user.lockedUntil && <InfoRow label="Locked Until" value={formatDateTime(user.lockedUntil)} />}

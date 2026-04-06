@@ -7,7 +7,7 @@ import {
     Mail, Phone, Calendar, Building2, Briefcase, Users,
     DollarSign, Clock, FileText, ChevronRight,
 } from "lucide-react";
-import { Button, LoadingSpinner } from "@erp/ui";
+import { Button, LoadingSpinner, DataTable, Tabs, type TableColumn } from "@erp/ui";
 import { showToast } from "@erp/shell";
 import {
     api,
@@ -273,40 +273,21 @@ function LeaveHistoryTab({ requests }: { requests: LeaveRequestResponse[] }) {
         );
     }
 
+    const leaveColumns: TableColumn<LeaveRequestResponse>[] = [
+        { key: 'leaveType', header: 'Type', render: (r) => <span className="font-medium text-gray-900 dark:text-gray-100">{r.leaveType.replace(/_/g, ' ')}</span> },
+        { key: 'startDate', header: 'Period', render: (r) => <span className="text-gray-600 dark:text-gray-300">{fmt(r.startDate)} – {fmt(r.endDate)}</span> },
+        { key: 'totalDays', header: 'Days', render: (r) => <span className="text-gray-600 dark:text-gray-300">{r.totalDays}</span> },
+        { key: 'status', header: 'Status', render: (r) => <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${LEAVE_STATUS_STYLES[r.status] ?? 'bg-gray-100 text-gray-600'}`}>{r.status}</span> },
+        { key: 'createdAt', header: 'Requested On', render: (r) => <span className="text-gray-500 dark:text-gray-400">{fmt(r.createdAt)}</span> },
+        { key: 'approvedBy', header: 'Approved By', render: (r) => <span className="text-gray-500 dark:text-gray-400">{r.approvedBy ?? '—'}</span> },
+    ];
+
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <table className="min-w-full text-sm">
-                <thead>
-                    <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
-                        {["Type", "Period", "Days", "Status", "Requested On", "Approved By"].map((h) => (
-                            <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                                {h}
-                            </th>
-                        ))}
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                    {requests.map((r) => (
-                        <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                            <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
-                                {r.leaveType.replace(/_/g, " ")}
-                            </td>
-                            <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
-                                {fmt(r.startDate)} – {fmt(r.endDate)}
-                            </td>
-                            <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{r.totalDays}</td>
-                            <td className="px-4 py-3">
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${LEAVE_STATUS_STYLES[r.status] ?? "bg-gray-100 text-gray-600"}`}>
-                                    {r.status}
-                                </span>
-                            </td>
-                            <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{fmt(r.createdAt)}</td>
-                            <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{r.approvedBy ?? "—"}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
+        <DataTable<LeaveRequestResponse>
+            columns={leaveColumns}
+            data={requests}
+            keyExtractor={(r) => r.id}
+        />
     );
 }
 
@@ -453,22 +434,12 @@ export default function EmployeeDetailPage() {
             </div>
 
             {/* Tabs */}
-            <div className="border-b border-gray-200 dark:border-gray-700">
-                <nav className="flex gap-1 -mb-px overflow-x-auto">
-                    {TABS.map((t) => (
-                        <button
-                            key={t.key}
-                            onClick={() => setActiveTab(t.key)}
-                            className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${activeTab === t.key
-                                ? "border-primary-500 text-primary-600 dark:text-primary-400"
-                                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                                }`}
-                        >
-                            {t.label}
-                        </button>
-                    ))}
-                </nav>
-            </div>
+            <Tabs
+                tabs={TABS}
+                activeKey={activeTab}
+                onChange={(key) => setActiveTab(key as Tab)}
+                variant="line"
+            />
 
             {/* Tab content */}
             <div>

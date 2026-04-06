@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
 import { showToast } from '@erp/shell';
 import PageHeader from '@/components/page-header';
+import { DataTable, Pagination, type TableColumn } from '@erp/ui';
 
 /* ── Icons ──────────────────────────────────────────────────────── */
 const Icons = {
@@ -109,6 +110,66 @@ export default function AdminOrganizationsPage() {
 
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
+    const orgColumns: TableColumn<Organization>[] = [
+        {
+            key: 'name',
+            header: 'Organization',
+            render: (org) => (
+                <div className="flex items-center gap-3">
+                    <OrgAvatar name={org.name} />
+                    <div className="min-w-0">
+                        <p className="truncate font-medium text-gray-900 dark:text-white">{org.name}</p>
+                        {org.description && (
+                            <p className="truncate max-w-xs text-xs text-gray-400 dark:text-gray-500">{org.description}</p>
+                        )}
+                    </div>
+                </div>
+            ),
+        },
+        {
+            key: 'slug',
+            header: 'Slug',
+            render: (org) => <span className="font-mono text-xs text-gray-500 dark:text-gray-400">{org.slug || '—'}</span>,
+        },
+        {
+            key: 'status',
+            header: 'Status',
+            render: (org) => <StatusBadge status={org.status} />,
+        },
+        {
+            key: 'createdAt',
+            header: 'Created',
+            render: (org) => (
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {org.createdAt ? new Date(org.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
+                </span>
+            ),
+        },
+        {
+            key: 'actions',
+            header: '',
+            align: 'right' as const,
+            render: (org) => (
+                <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                    <button
+                        title="View organization"
+                        onClick={() => router.push(`/admin/organizations/${org.id}`)}
+                        className="flex items-center justify-center rounded-md p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                    >
+                        {Icons.eye}
+                    </button>
+                    <button
+                        title="Edit organization"
+                        onClick={() => router.push(`/admin/organizations/${org.id}?tab=settings`)}
+                        className="flex items-center justify-center rounded-md p-1.5 text-gray-400 transition hover:bg-blue-50 hover:text-blue-600 dark:text-gray-500 dark:hover:bg-blue-900/30 dark:hover:text-blue-400"
+                    >
+                        {Icons.pencil}
+                    </button>
+                </div>
+            ),
+        },
+    ];
+
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
             <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -171,7 +232,7 @@ export default function AdminOrganizationsPage() {
                 </div>
 
                 {/* Table */}
-                <div className="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                <div className="mt-4">
                     {loading ? (
                         <div className="flex items-center justify-center py-24">{Icons.spinner}</div>
                     ) : filtered.length === 0 ? (
@@ -180,93 +241,23 @@ export default function AdminOrganizationsPage() {
                             <p className="text-sm">{search || statusFilter !== 'all' ? 'No organizations match the filters.' : 'No organizations found.'}</p>
                         </div>
                     ) : (
-                        <table className="w-full min-w-[600px] text-sm">
-                            <thead>
-                                <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
-                                    <th className="py-3 pl-5 pr-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Organization</th>
-                                    <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Slug</th>
-                                    <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
-                                    <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Created</th>
-                                    <th className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 pr-5">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                                {filtered.map((org) => (
-                                    <tr
-                                        key={org.id}
-                                        className="group cursor-pointer transition hover:bg-blue-50/40 dark:hover:bg-gray-800/40"
-                                        onClick={() => router.push(`/admin/organizations/${org.id}`)}
-                                    >
-                                        <td className="py-3.5 pl-5 pr-3">
-                                            <div className="flex items-center gap-3">
-                                                <OrgAvatar name={org.name} />
-                                                <div className="min-w-0">
-                                                    <p className="truncate font-medium text-gray-900 dark:text-white">{org.name}</p>
-                                                    {org.description && (
-                                                        <p className="truncate max-w-xs text-xs text-gray-400 dark:text-gray-500">{org.description}</p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-3 py-3.5">
-                                            <span className="font-mono text-xs text-gray-500 dark:text-gray-400">{org.slug || '—'}</span>
-                                        </td>
-                                        <td className="px-3 py-3.5">
-                                            <StatusBadge status={org.status} />
-                                        </td>
-                                        <td className="px-3 py-3.5 text-xs text-gray-500 dark:text-gray-400">
-                                            {org.createdAt ? new Date(org.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
-                                        </td>
-                                        <td className="py-3.5 pl-3 pr-5 text-right" onClick={(e) => e.stopPropagation()}>
-                                            <div className="flex items-center justify-end gap-1">
-                                                <button
-                                                    title="View organization"
-                                                    onClick={() => router.push(`/admin/organizations/${org.id}`)}
-                                                    className="flex items-center justify-center rounded-md p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                                >
-                                                    {Icons.eye}
-                                                </button>
-                                                <button
-                                                    title="Edit organization"
-                                                    onClick={() => router.push(`/admin/organizations/${org.id}?tab=settings`)}
-                                                    className="flex items-center justify-center rounded-md p-1.5 text-gray-400 transition hover:bg-blue-50 hover:text-blue-600 dark:text-gray-500 dark:hover:bg-blue-900/30 dark:hover:text-blue-400"
-                                                >
-                                                    {Icons.pencil}
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-
-                    {/* Pagination footer */}
-                    {!loading && filtered.length > 0 && (
-                        <div className="flex items-center justify-between border-t border-gray-100 px-5 py-3 dark:border-gray-700">
-                            <p className="text-xs text-gray-400">
-                                {filtered.length < total
-                                    ? `Showing ${filtered.length} of ${total} (filtered)`
-                                    : `${total} organization${total !== 1 ? 's' : ''} total`}
-                            </p>
-                            <div className="flex items-center gap-1">
-                                <button
-                                    disabled={page <= 1}
-                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                    className="rounded-md p-1.5 text-gray-400 transition hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-gray-700"
-                                >
-                                    {Icons.chevronLeft}
-                                </button>
-                                <span className="px-2 text-xs text-gray-500 dark:text-gray-400">Page {page} / {totalPages}</span>
-                                <button
-                                    disabled={page >= totalPages}
-                                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                                    className="rounded-md p-1.5 text-gray-400 transition hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-gray-700"
-                                >
-                                    {Icons.chevronRight}
-                                </button>
-                            </div>
-                        </div>
+                        <>
+                            <DataTable<Organization>
+                                columns={orgColumns}
+                                data={filtered}
+                                keyExtractor={(org) => org.id}
+                                onRowClick={(org) => router.push(`/admin/organizations/${org.id}`)}
+                            />
+                            <Pagination
+                                page={page}
+                                totalPages={totalPages}
+                                totalItems={total}
+                                pageSize={pageSize}
+                                pageSizeOptions={PAGE_SIZES}
+                                onPageChange={setPage}
+                                onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+                            />
+                        </>
                     )}
                 </div>
             </div>

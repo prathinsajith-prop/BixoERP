@@ -1,6 +1,19 @@
-import { Plus, Key } from "lucide-react";
+"use client";
 
-const apiKeys = [
+import { Plus, Key } from "lucide-react";
+import { DataTable, PageHeader, StatusBadge, ActionButtons, type ActionButtonItem, type TableColumn } from "@erp/ui";
+
+type ApiKey = { id: number; name: string; prefix: string; created: string; lastUsed: string; status: string; calls: string };
+
+const apiKeyColumns: TableColumn<ApiKey>[] = [
+  { key: 'name', header: 'Name', render: (k) => <span className="text-sm font-medium text-gray-900">{k.name}</span> },
+  { key: 'prefix', header: 'Key Prefix', render: (k) => <span className="text-sm font-mono text-gray-500">{k.prefix}••••••••</span> },
+  { key: 'created', header: 'Created', render: (k) => <span className="text-sm text-gray-500">{k.created}</span> },
+  { key: 'calls', header: 'API Calls', align: 'right' as const, render: (k) => <span className="text-sm text-gray-700">{k.calls}</span> },
+  { key: 'status', header: 'Status', render: (k) => <StatusBadge status={k.status} /> },
+];
+
+const apiKeys: ApiKey[] = [
   { id: 1, name: "Production API Key", prefix: "bixo_live_", created: "2024-01-15", lastUsed: "2024-03-15 10:32", status: "active", calls: "12,450" },
   { id: 2, name: "Staging API Key", prefix: "bixo_test_", created: "2024-02-01", lastUsed: "2024-03-14 16:00", status: "active", calls: "3,280" },
   { id: 3, name: "Webhook Signing Key", prefix: "whk_", created: "2024-01-20", lastUsed: "2024-03-15 10:00", status: "active", calls: "8,900" },
@@ -14,46 +27,25 @@ const webhooks = [
   { id: 3, url: "https://hooks.example.com/bixo/inventory", events: ["stock.low", "stock.adjusted"], status: "active", success: 97.8 },
 ];
 
+const pageActions: ActionButtonItem[] = [
+  { key: "create", label: "New API Key", icon: <Plus className="h-3.5 w-3.5" />, variant: "primary", size: "sm", onClick: () => { } },
+];
+
 export default function APIKeysPage() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">API Keys & Webhooks</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage API access & webhook endpoints</p>
-        </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
-          <Plus className="w-4 h-4" /> New API Key
-        </button>
-      </div>
+      <PageHeader
+        title="API Keys & Webhooks"
+        description="Manage API access & webhook endpoints"
+        actions={<ActionButtons actions={pageActions} />}
+      />
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
           <Key className="w-5 h-5 text-gray-400" />
           <h2 className="text-lg font-semibold text-gray-900">API Keys</h2>
         </div>
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Key Prefix</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">API Calls</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {apiKeys.map((k) => (
-              <tr key={k.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">{k.name}</td>
-                <td className="px-4 py-3 text-sm font-mono text-gray-500">{k.prefix}••••••••</td>
-                <td className="px-4 py-3 text-sm text-gray-500">{k.created}</td>
-                <td className="px-4 py-3 text-sm text-right text-gray-700">{k.calls}</td>
-                <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${k.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>{k.status}</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable<ApiKey> columns={apiKeyColumns} data={apiKeys} keyExtractor={(k) => String(k.id)} />
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
@@ -69,7 +61,7 @@ export default function APIKeysPage() {
               </div>
               <div className="flex items-center gap-4">
                 <span className="text-sm text-gray-700">{w.success}% success</span>
-                <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">{w.status}</span>
+                <StatusBadge status={w.status} />
               </div>
             </div>
           ))}

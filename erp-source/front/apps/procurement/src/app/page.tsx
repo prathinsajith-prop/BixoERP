@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { LoadingSpinner } from "@erp/ui";
+import { LoadingSpinner, PageHeader, KPICard } from "@erp/ui";
 import { api } from "../lib/api";
 
 export default function ProcurementDashboardPage() {
@@ -41,16 +41,10 @@ export default function ProcurementDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Procurement Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">Purchase orders and vendor overview</p>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <PageHeader title="Procurement Dashboard" description="Purchase orders and vendor overview" />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {kpis.map((k) => (
-          <div key={k.title} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-            <p className="text-sm font-medium text-gray-500">{k.title}</p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">{k.value}</p>
-          </div>
+          <KPICard key={k.title} title={k.title} value={String(k.value)} />
         ))}
       </div>
     </div>

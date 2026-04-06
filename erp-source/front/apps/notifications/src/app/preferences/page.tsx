@@ -1,11 +1,25 @@
-const channels = [
+"use client";
+
+import { DataTable, PageHeader, type TableColumn } from "@erp/ui";
+
+type Channel = { name: string; desc: string; enabled: boolean };
+type Category = { name: string; desc: string; email: boolean; inApp: boolean; push: boolean };
+
+const categoryColumns: TableColumn<Category>[] = [
+  { key: 'name', header: 'Category', render: (c) => <div><p className="text-sm font-medium text-gray-900">{c.name}</p><p className="text-xs text-gray-500">{c.desc}</p></div> },
+  { key: 'email', header: 'Email', align: 'center' as const, render: (c) => c.email ? <span className="text-green-600">✓</span> : <span className="text-gray-300">—</span> },
+  { key: 'inApp', header: 'In-App', align: 'center' as const, render: (c) => c.inApp ? <span className="text-green-600">✓</span> : <span className="text-gray-300">—</span> },
+  { key: 'push', header: 'Push', align: 'center' as const, render: (c) => c.push ? <span className="text-green-600">✓</span> : <span className="text-gray-300">—</span> },
+];
+
+const channels: Channel[] = [
   { name: "Email", desc: "Receive notifications via email", enabled: true },
   { name: "In-App", desc: "Show notifications in the Bixo sidebar", enabled: true },
   { name: "Browser Push", desc: "Desktop push notifications", enabled: false },
   { name: "SMS", desc: "Text message alerts for critical items", enabled: false },
 ];
 
-const categories = [
+const categories: Category[] = [
   { name: "Approvals", desc: "Pending approvals and workflow items", email: true, inApp: true, push: true },
   { name: "Financial", desc: "Invoice, payment & budget alerts", email: true, inApp: true, push: false },
   { name: "Inventory", desc: "Stock levels & reorder alerts", email: false, inApp: true, push: false },
@@ -17,10 +31,7 @@ const categories = [
 export default function PreferencesPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Notification Preferences</h1>
-        <p className="text-sm text-gray-500 mt-1">Configure how you receive notifications</p>
-      </div>
+      <PageHeader title="Notification Preferences" description="Configure how you receive notifications" />
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <div className="px-6 py-4 border-b border-gray-200">
@@ -45,29 +56,7 @@ export default function PreferencesPage() {
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Category Preferences</h2>
         </div>
-        <table className="min-w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Email</th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">In-App</th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Push</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {categories.map((c) => (
-              <tr key={c.name} className="hover:bg-gray-50">
-                <td className="px-4 py-3">
-                  <p className="text-sm font-medium text-gray-900">{c.name}</p>
-                  <p className="text-xs text-gray-500">{c.desc}</p>
-                </td>
-                <td className="px-4 py-3 text-center">{c.email ? <span className="text-green-600">✓</span> : <span className="text-gray-300">—</span>}</td>
-                <td className="px-4 py-3 text-center">{c.inApp ? <span className="text-green-600">✓</span> : <span className="text-gray-300">—</span>}</td>
-                <td className="px-4 py-3 text-center">{c.push ? <span className="text-green-600">✓</span> : <span className="text-gray-300">—</span>}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable<Category> columns={categoryColumns} data={categories} keyExtractor={(c) => c.name} />
       </div>
     </div>
   );

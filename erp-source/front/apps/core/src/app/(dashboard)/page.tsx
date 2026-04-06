@@ -154,7 +154,7 @@ export default function DashboardPage() {
     if (!orgId) return;
     setAuditLoading(true);
     authApi.getAuditLog(orgId, { limit: 10 })
-      .then(({ data }) => {
+      .then(({ data }: { data: any }) => {
         const entries: AuditEntry[] = data?.data?.entries ?? data?.data ?? [];
         setAuditLog(Array.isArray(entries) ? entries : []);
       })

@@ -117,8 +117,8 @@ function BrandingSection({ orgId }: { orgId: string }) {
   useEffect(() => {
     if (!orgId) return;
     authApi.getOrganizationBranding(orgId)
-      .then((res) => res.data?.data && setBranding((prev) => ({ ...prev, ...res.data.data })))
-      .catch(() => {});
+      .then((res: any) => res.data?.data && setBranding((prev) => ({ ...prev, ...res.data.data })))
+      .catch(() => { });
   }, [orgId]);
 
   useEffect(() => {
@@ -126,7 +126,7 @@ function BrandingSection({ orgId }: { orgId: string }) {
     const match = branding.logoUrl.match(/\/files\/([0-9a-f-]+)\/download/);
     if (!match) { setLogoBlobUrl(branding.logoUrl); return; }
     let revoked = false;
-    filesApi.download(match[1]).then((url) => { if (!revoked) setLogoBlobUrl(url); }).catch(() => setLogoBlobUrl(null));
+    filesApi.download(match[1]).then((url: string | null) => { if (!revoked) setLogoBlobUrl(url); }).catch(() => setLogoBlobUrl(null));
     return () => { revoked = true; };
   }, [branding.logoUrl]);
 
@@ -281,7 +281,7 @@ function AuditSection({ orgId }: { orgId: string }) {
     if (!orgId) return;
     setLoading(true);
     authApi.getAuditLog(orgId, { page: 1, limit: 50 })
-      .then((res) => { setEntries(res.data?.data?.entries || []); setTotal(res.data?.data?.total || 0); })
+      .then((res: any) => { setEntries(res.data?.data?.entries || []); setTotal(res.data?.data?.total || 0); })
       .catch(() => { setEntries([]); setTotal(0); })
       .finally(() => setLoading(false));
   }, [orgId]);
@@ -461,68 +461,68 @@ export default function OrganizationSettingsPage() {
     <div className="space-y-6">
       <PageHeader title="Organization Settings" subtitle="Manage your organization details" />
 
-        <div className="flex flex-col lg:flex-row lg:gap-0">
-      <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 overflow-y-auto py-6 pr-4 lg:block">
-        <nav className="space-y-1">
-          {SECTIONS.map((section) => (
-            <button key={section.key} onClick={() => setActiveSection(section.key)} className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition ${activeSection === section.key ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white'}`}>
-              <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={section.icon} /></svg>
-              {section.label}
-              {section.key === 'danger' && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-red-500" />}
-            </button>
-          ))}
-        </nav>
-      </aside>
-
-      <div className="relative mb-4 w-full lg:hidden">
-        {(() => {
-          const active = SECTIONS.find((i) => i.key === activeSection);
-          return (
-            <>
-              <button
-                onClick={() => setMobileSectionOpen((o) => !o)}
-                className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-gray-600"
-              >
-                <span className="flex items-center gap-2.5">
-                  <svg className="h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={active?.icon} /></svg>
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">{active?.label}</span>
-                </span>
-                <svg className={`h-4 w-4 text-gray-400 transition-transform ${mobileSectionOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+      <div className="flex flex-col lg:flex-row lg:gap-0">
+        <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 overflow-y-auto py-6 pr-4 lg:block">
+          <nav className="space-y-1">
+            {SECTIONS.map((section) => (
+              <button key={section.key} onClick={() => setActiveSection(section.key)} className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition ${activeSection === section.key ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white'}`}>
+                <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={section.icon} /></svg>
+                {section.label}
+                {section.key === 'danger' && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-red-500" />}
               </button>
-              {mobileSectionOpen && (
-                <>
-                  <div className="fixed inset-0 z-30" onClick={() => setMobileSectionOpen(false)} />
-                  <div className="absolute left-0 right-0 top-full z-40 mt-1 max-h-80 overflow-y-auto rounded-xl border border-gray-200 bg-white py-1 shadow-xl dark:border-gray-700 dark:bg-gray-900">
-                    {SECTIONS.map((item) => (
-                      <button
-                        key={item.key}
-                        onClick={() => { setActiveSection(item.key); setMobileSectionOpen(false); }}
-                        className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition ${activeSection === item.key ? 'bg-blue-50 font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800'}`}
-                      >
-                        <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={item.icon} /></svg>
-                        {item.label}
-                        {item.key === 'danger' && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-red-500" />}
-                        {activeSection === item.key && <svg className="ml-auto h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </>
-          );
-        })()}
-      </div>
+            ))}
+          </nav>
+        </aside>
 
-          <div className="min-w-0 flex-1">
-        <div className="space-y-6">
+        <div className="relative mb-4 w-full lg:hidden">
+          {(() => {
+            const active = SECTIONS.find((i) => i.key === activeSection);
+            return (
+              <>
+                <button
+                  onClick={() => setMobileSectionOpen((o) => !o)}
+                  className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-gray-600"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <svg className="h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={active?.icon} /></svg>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{active?.label}</span>
+                  </span>
+                  <svg className={`h-4 w-4 text-gray-400 transition-transform ${mobileSectionOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                </button>
+                {mobileSectionOpen && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setMobileSectionOpen(false)} />
+                    <div className="absolute left-0 right-0 top-full z-40 mt-1 max-h-80 overflow-y-auto rounded-xl border border-gray-200 bg-white py-1 shadow-xl dark:border-gray-700 dark:bg-gray-900">
+                      {SECTIONS.map((item) => (
+                        <button
+                          key={item.key}
+                          onClick={() => { setActiveSection(item.key); setMobileSectionOpen(false); }}
+                          className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition ${activeSection === item.key ? 'bg-blue-50 font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+                        >
+                          <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={item.icon} /></svg>
+                          {item.label}
+                          {item.key === 'danger' && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-red-500" />}
+                          {activeSection === item.key && <svg className="ml-auto h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
+            );
+          })()}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="space-y-6">
             {activeSection === 'general' && <GeneralSection org={org} setOrg={setOrg} settings={settings} setSettings={setSettings} saving={saving} onSave={handleSave} />}
             {activeSection === 'branding' && orgId && <BrandingSection orgId={orgId} />}
             {activeSection === 'security' && <SecuritySection settings={settings} setSettings={setSettings} saving={saving} onSave={handleSave} />}
             {activeSection === 'audit' && orgId && <AuditSection orgId={orgId} />}
             {activeSection === 'danger' && orgId && <DangerSection orgId={orgId} orgName={org.name} />}
-        </div>
           </div>
         </div>
       </div>
+    </div>
   );
 }

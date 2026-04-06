@@ -86,7 +86,7 @@ function decodeJwtPayload(token: string): JwtOrgPayload {
 }
 
 export function OrgProvider({ children }: { children: ReactNode }) {
-    const accessToken = useAuthStore((s) => s.accessToken);
+    const accessToken = useAuthStore((s: any) => s.accessToken);
 
     const value = useMemo<OrgContextValue>(() => {
         if (!accessToken) {

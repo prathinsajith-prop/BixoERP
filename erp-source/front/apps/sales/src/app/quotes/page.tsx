@@ -1,4 +1,21 @@
+"use client";
+
 import { Plus } from "lucide-react";
+import { DataTable, PageHeader, StatusBadge, ActionButtons, type ActionButtonItem, type TableColumn } from "@erp/ui";
+
+type Quote = { id: string; date: string; customer: string; validUntil: string; items: number; total: string; status: string };
+
+const quoteColumns: TableColumn<Quote>[] = [
+  { key: 'id', header: 'Quote #', render: (q) => <span className="text-sm font-medium text-blue-600">{q.id}</span> },
+  { key: 'customer', header: 'Customer', render: (q) => <span className="text-sm text-gray-900">{q.customer}</span> },
+  { key: 'date', header: 'Date', render: (q) => <span className="text-sm text-gray-500">{q.date}</span> },
+  { key: 'validUntil', header: 'Valid Until', render: (q) => <span className="text-sm text-gray-500">{q.validUntil}</span> },
+  { key: 'items', header: 'Items', align: 'right' as const, render: (q) => <span className="text-sm text-gray-700">{q.items}</span> },
+  { key: 'total', header: 'Total', align: 'right' as const, render: (q) => <span className="text-sm font-medium text-gray-900">{q.total}</span> },
+  {
+    key: 'status', header: 'Status', render: (q) => <StatusBadge status={q.status} />,
+  },
+];
 
 const quotes = [
   { id: "SQ-2024-0102", date: "2024-03-15", customer: "Acme Corp", validUntil: "2024-04-14", items: 5, total: "$24,800", status: "sent" },
@@ -9,56 +26,20 @@ const quotes = [
   { id: "SQ-2024-0097", date: "2024-03-05", customer: "Vertex Group", validUntil: "2024-04-04", items: 4, total: "$18,400", status: "rejected" },
 ];
 
+const pageActions: ActionButtonItem[] = [
+  { key: "create", label: "New Quote", icon: <Plus className="h-3.5 w-3.5" />, variant: "primary", size: "sm", onClick: () => { } },
+];
+
 export default function QuotesPage() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Sales Quotes</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage proposals and quotations</p>
-        </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
-          <Plus className="w-4 h-4" />
-          New Quote
-        </button>
-      </div>
+      <PageHeader
+        title="Sales Quotes"
+        description="Manage proposals and quotations"
+        actions={<ActionButtons actions={pageActions} />}
+      />
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quote #</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valid Until</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Items</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {quotes.map((q) => (
-              <tr key={q.id} className="hover:bg-gray-50 cursor-pointer">
-                <td className="px-4 py-3 text-sm font-medium text-blue-600">{q.id}</td>
-                <td className="px-4 py-3 text-sm text-gray-900">{q.customer}</td>
-                <td className="px-4 py-3 text-sm text-gray-500">{q.date}</td>
-                <td className="px-4 py-3 text-sm text-gray-500">{q.validUntil}</td>
-                <td className="px-4 py-3 text-sm text-right text-gray-700">{q.items}</td>
-                <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">{q.total}</td>
-                <td className="px-4 py-3">
-                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                    q.status === "accepted" ? "bg-green-100 text-green-800" :
-                    q.status === "rejected" ? "bg-red-100 text-red-800" :
-                    q.status === "expired" ? "bg-gray-100 text-gray-800" :
-                    q.status === "sent" ? "bg-blue-100 text-blue-800" :
-                    "bg-yellow-100 text-yellow-800"
-                  }`}>{q.status}</span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable<Quote> columns={quoteColumns} data={quotes} keyExtractor={(q) => q.id} />
     </div>
   );
 }

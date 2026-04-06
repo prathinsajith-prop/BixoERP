@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
 import { showToast } from '@erp/shell';
 import PageHeader from '@/components/page-header';
+import { DataTable, StatusBadge, Tabs, type TableColumn } from '@erp/ui';
 
 /* ── Icons ──────────────────────────────────────────────────────── */
 const Icons = {
@@ -61,14 +62,7 @@ function RoleBadge({ role }: { role: string }) {
     return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${ROLE_COLOURS[key] ?? ROLE_COLOURS['MEMBER']}`}>{role}</span>;
 }
 
-/* ── Status Badge ───────────────────────────────────────────────── */
-function StatusBadge({ status }: { status?: string }) {
-    const s = (status || 'ACTIVE').toUpperCase();
-    const cls = s === 'ACTIVE'
-        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-        : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400';
-    return <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${cls}`}>{s.charAt(0) + s.slice(1).toLowerCase()}</span>;
-}
+
 
 /* ── Avatar ─────────────────────────────────────────────────────── */
 const ORG_COLORS = [
@@ -377,7 +371,7 @@ export default function OrganizationDetailPage() {
                         <div>
                             <div className="flex items-center gap-2">
                                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{org.name}</h1>
-                                <StatusBadge status={org.status} />
+                                <StatusBadge status={org.status ?? 'active'} />
                             </div>
                             {org.slug && (
                                 <p className="mt-0.5 font-mono text-xs text-gray-400 dark:text-gray-500">/{org.slug}</p>
@@ -401,22 +395,13 @@ export default function OrganizationDetailPage() {
                 </div>
 
                 {/* Tabs */}
-                <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
-                    <nav className="-mb-px flex gap-6">
-                        {TABS.map((tab) => (
-                            <button
-                                key={tab.key}
-                                onClick={() => setActiveTab(tab.key)}
-                                className={`pb-3 text-sm font-medium transition ${activeTab === tab.key
-                                    ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
-                                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                                    }`}
-                            >
-                                {tab.label}
-                            </button>
-                        ))}
-                    </nav>
-                </div>
+                <Tabs
+                    tabs={TABS}
+                    activeKey={activeTab}
+                    onChange={(key) => setActiveTab(key as TabKey)}
+                    variant="line"
+                    className="mb-6"
+                />
 
                 {/* ── Overview ──────────────────────────────────────────── */}
                 {activeTab === 'overview' && (
@@ -456,7 +441,7 @@ export default function OrganizationDetailPage() {
                                 <dl className="space-y-4 text-sm">
                                     <div>
                                         <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400">Status</dt>
-                                        <dd className="mt-1"><StatusBadge status={org.status} /></dd>
+                                        <dd className="mt-1"><StatusBadge status={org.status ?? 'active'} /></dd>
                                     </div>
                                     <div>
                                         <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400">Organization ID</dt>
@@ -506,8 +491,8 @@ export default function OrganizationDetailPage() {
                                         onClick={handleToggleOrgStatus}
                                         disabled={togglingStatus}
                                         className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition disabled:opacity-50 ${(org.status || 'ACTIVE').toUpperCase() === 'ACTIVE'
-                                                ? 'text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20'
-                                                : 'text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-900/20'
+                                            ? 'text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20'
+                                            : 'text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-900/20'
                                             }`}
                                     >
                                         {togglingStatus
@@ -548,68 +533,63 @@ export default function OrganizationDetailPage() {
                                 </button>
                             </div>
                         ) : (
-                            <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 dark:bg-gray-900 dark:ring-gray-800">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
-                                            <th className="py-3 pl-5 pr-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Member</th>
-                                            <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Employee ID</th>
-                                            <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Role</th>
-                                            <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Joined</th>
-                                            <th className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 pr-5">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                                        {members.map((m) => {
+                            (() => {
+                                const memberColumns: TableColumn<Member>[] = [
+                                    {
+                                        key: 'email', header: 'Member', render: (m) => {
                                             const fullName = [m.firstName, m.lastName].filter(Boolean).join(' ');
                                             return (
-                                                <tr key={m.userId} className="group hover:bg-gray-50/50 dark:hover:bg-gray-800/40">
-                                                    <td className="py-3.5 pl-5 pr-3">
-                                                        <div className="flex items-center gap-3">
-                                                            <MemberAvatar name={fullName} email={m.email} />
-                                                            <div className="min-w-0">
-                                                                {fullName && <p className="truncate font-medium text-gray-900 dark:text-white">{fullName}</p>}
-                                                                <p className="truncate text-xs text-gray-400">{m.email}</p>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-3 py-3.5">
-                                                        {m.employeeId
-                                                            ? <code className="rounded bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-600 dark:bg-gray-700 dark:text-gray-300">{m.employeeId}</code>
-                                                            : <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
-                                                        }
-                                                    </td>
-                                                    <td className="px-3 py-3.5">
-                                                        <select
-                                                            value={m.role}
-                                                            onChange={(e) => handleRoleChange(m.userId, e.target.value)}
-                                                            className="rounded border border-gray-200 bg-transparent py-0.5 pl-2 pr-6 text-xs font-medium text-gray-700 outline-none focus:border-blue-500 dark:border-gray-600 dark:text-gray-300"
-                                                        >
-                                                            <option value="MEMBER">Member</option>
-                                                            <option value="MANAGER">Manager</option>
-                                                            <option value="ADMIN">Admin</option>
-                                                            <option value="OWNER">Owner</option>
-                                                        </select>
-                                                    </td>
-                                                    <td className="px-3 py-3.5 text-xs text-gray-400">
-                                                        {m.joinedAt ? new Date(m.joinedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
-                                                    </td>
-                                                    <td className="py-3.5 pl-3 pr-5 text-right">
-                                                        <button
-                                                            onClick={() => handleRemoveMember(m.userId, m.email)}
-                                                            disabled={removingId === m.userId || m.role === 'OWNER'}
-                                                            title={m.role === 'OWNER' ? 'Cannot remove org owner' : 'Remove member'}
-                                                            className="rounded-md p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-                                                        >
-                                                            {removingId === m.userId ? Icons.spinnerSm : Icons.trash}
-                                                        </button>
-                                                    </td>
-                                                </tr>
+                                                <div className="flex items-center gap-3">
+                                                    <MemberAvatar name={fullName} email={m.email} />
+                                                    <div className="min-w-0">
+                                                        {fullName && <p className="truncate font-medium text-gray-900 dark:text-white">{fullName}</p>}
+                                                        <p className="truncate text-xs text-gray-400">{m.email}</p>
+                                                    </div>
+                                                </div>
                                             );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
+                                        }
+                                    },
+                                    {
+                                        key: 'employeeId', header: 'Employee ID', render: (m) => m.employeeId
+                                            ? <code className="rounded bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-600 dark:bg-gray-700 dark:text-gray-300">{m.employeeId}</code>
+                                            : <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
+                                    },
+                                    {
+                                        key: 'role', header: 'Role', render: (m) => (
+                                            <select
+                                                value={m.role}
+                                                onChange={(e) => handleRoleChange(m.userId, e.target.value)}
+                                                className="rounded border border-gray-200 bg-transparent py-0.5 pl-2 pr-6 text-xs font-medium text-gray-700 outline-none focus:border-blue-500 dark:border-gray-600 dark:text-gray-300"
+                                            >
+                                                <option value="MEMBER">Member</option>
+                                                <option value="MANAGER">Manager</option>
+                                                <option value="ADMIN">Admin</option>
+                                                <option value="OWNER">Owner</option>
+                                            </select>
+                                        )
+                                    },
+                                    {
+                                        key: 'joinedAt', header: 'Joined', render: (m) => (
+                                            <span className="text-xs text-gray-400">
+                                                {m.joinedAt ? new Date(m.joinedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
+                                            </span>
+                                        )
+                                    },
+                                    {
+                                        key: 'actions', header: 'Actions', align: 'right' as const, render: (m) => (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleRemoveMember(m.userId, m.email); }}
+                                                disabled={removingId === m.userId || m.role === 'OWNER'}
+                                                title={m.role === 'OWNER' ? 'Cannot remove org owner' : 'Remove member'}
+                                                className="rounded-md p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                                            >
+                                                {removingId === m.userId ? Icons.spinnerSm : Icons.trash}
+                                            </button>
+                                        )
+                                    },
+                                ];
+                                return <DataTable<Member> columns={memberColumns} data={members} keyExtractor={(m) => m.userId} />;
+                            })()
                         )}
                     </div>
                 )}
@@ -638,7 +618,7 @@ function SettingsTab({
     useEffect(() => {
         let ignore = false;
         authApi.getOrganizationSettings(orgId)
-            .then((res) => { if (!ignore) setSettings(res.data?.data ?? res.data ?? {}); })
+            .then((res: any) => { if (!ignore) setSettings(res.data?.data ?? res.data ?? {}); })
             .catch(() => { if (!ignore) setSettings({}); })
             .finally(() => { if (!ignore) setLoadingSettings(false); });
         return () => { ignore = true; };

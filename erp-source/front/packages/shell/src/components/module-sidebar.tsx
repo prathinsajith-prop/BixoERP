@@ -103,7 +103,7 @@ function AdminLink({ icon, label, path, active }: { icon: ReactNode; label: stri
       style={active ? { backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 8%, transparent)', color: 'var(--gogo-primary)' } : undefined}>
       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">{icon}</span>
       {label}
-    </a>
+    </Link>
   );
 }
 

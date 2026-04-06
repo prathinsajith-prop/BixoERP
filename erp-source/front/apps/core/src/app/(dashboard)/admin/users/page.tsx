@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { List, TableProperties } from 'lucide-react';
 import { authApi } from '@/lib/api/auth';
@@ -212,6 +213,11 @@ export default function UserManagementPage() {
   const [addForm, setAddForm] = useState({ firstName: '', lastName: '', email: '', password: '', roleId: '' });
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState('');
+
+  /* ── Portal toast ─── */
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   /* ── Helpers ─── */
   const mapUsers = useCallback((rawList: User[], roleList: Role[]): User[] =>
@@ -716,8 +722,8 @@ export default function UserManagementPage() {
       {/* ── Toast (portal to body so fixed positioning isn't broken by parent transforms) ─── */}
       {mounted && toast && createPortal(
         <div role="status" aria-live="polite" className={`fixed right-5 top-5 z-[9999] flex items-center gap-3 rounded-xl px-4 py-3 shadow-xl ring-1 ${toast.type === 'success'
-            ? 'bg-white ring-emerald-200 dark:bg-gray-900 dark:ring-emerald-800'
-            : 'bg-white ring-red-200 dark:bg-gray-900 dark:ring-red-800'
+          ? 'bg-white ring-emerald-200 dark:bg-gray-900 dark:ring-emerald-800'
+          : 'bg-white ring-red-200 dark:bg-gray-900 dark:ring-red-800'
           }`}>
           {toast.type === 'success'
             ? <svg className="h-5 w-5 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>

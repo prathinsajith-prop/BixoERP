@@ -25,3 +25,14 @@ export { ActionButtons } from "./navigation/action-buttons";
 export type { ActionButtonItem } from "./navigation/action-buttons";
 export { ViewSwitcher } from "./navigation/view-switcher";
 export type { ViewMode, ViewOption } from "./navigation/view-switcher";
+
+// Dropdown
+export { Dropdown } from "./feedback/dropdown";
+export type { DropdownItem } from "./feedback/dropdown";
+
+// Alert
+export { Alert } from "./feedback/alert";
+
+// Tabs
+export { Tabs } from "./navigation/tabs";
+export type { TabItem } from "./navigation/tabs";

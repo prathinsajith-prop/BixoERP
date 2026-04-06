@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Plus, Search } from "lucide-react";
-import { LoadingSpinner, EmptyState } from "@erp/ui";
+import { DataTable, LoadingSpinner, EmptyState, PageHeader, StatusBadge, ActionButtons, type ActionButtonItem, type TableColumn } from "@erp/ui";
 import { api, type Vendor } from "../../lib/api";
 
 export default function VendorsPage() {
@@ -30,18 +30,17 @@ export default function VendorsPage() {
     !search || v.name.toLowerCase().includes(search.toLowerCase()) || v.code.includes(search)
   );
 
+  const pageActions: ActionButtonItem[] = [
+    { key: "create", label: "New Vendor", icon: <Plus className="h-3.5 w-3.5" />, variant: "primary", size: "sm", onClick: () => { } },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Vendors</h1>
-          <p className="text-sm text-gray-500 mt-1">{vendors.length} vendors</p>
-        </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2 bg-accent-600 text-white text-sm font-medium rounded-lg hover:bg-accent-700">
-          <Plus className="w-4 h-4" />
-          New Vendor
-        </button>
-      </div>
+      <PageHeader
+        title="Vendors"
+        description={`${vendors.length} vendors`}
+        actions={<ActionButtons actions={pageActions} />}
+      />
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -57,42 +56,21 @@ export default function VendorsPage() {
       {loading && <LoadingSpinner />}
       {error && <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</div>}
 
-      {!loading && !error && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          {filtered.length === 0 ? (
-            <EmptyState title="No vendors found" description="Try adjusting your search." />
-          ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment Terms</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filtered.map((v) => (
-                  <tr key={v.id} className="hover:bg-gray-50 cursor-pointer">
-                    <td className="px-4 py-3 text-sm font-mono text-gray-700">{v.code}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{v.name}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{v.email}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{v.phone}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{v.paymentTerms}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${v.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-500"}`}>
-                        {v.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
+      {!loading && !error && (() => {
+        const vendorColumns: TableColumn<Vendor>[] = [
+          { key: 'code', header: 'Code', render: (v) => <span className="text-sm font-mono text-gray-700">{v.code}</span> },
+          { key: 'name', header: 'Name', render: (v) => <span className="text-sm font-medium text-gray-900">{v.name}</span> },
+          { key: 'email', header: 'Email', render: (v) => <span className="text-sm text-gray-500">{v.email}</span> },
+          { key: 'phone', header: 'Phone', render: (v) => <span className="text-sm text-gray-500">{v.phone}</span> },
+          { key: 'paymentTerms', header: 'Payment Terms', render: (v) => <span className="text-sm text-gray-500">{v.paymentTerms}</span> },
+          {
+            key: 'isActive', header: 'Status', render: (v) => <StatusBadge status={v.isActive ? 'Active' : 'Inactive'} />,
+          },
+        ];
+        return filtered.length === 0
+          ? <EmptyState title="No vendors found" description="Try adjusting your search." />
+          : <DataTable<Vendor> columns={vendorColumns} data={filtered} keyExtractor={(v) => v.id} />;
+      })()}
     </div>
   );
 }
