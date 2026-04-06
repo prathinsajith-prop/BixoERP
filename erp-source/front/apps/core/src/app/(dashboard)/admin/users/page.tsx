@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { List, TableProperties } from 'lucide-react';
 import { authApi } from '@/lib/api/auth';
+import { showToast } from '@erp/shell';
 import {
   ActionButtons,
   Button,
@@ -207,16 +207,6 @@ export default function UserManagementPage() {
   const [toggling, setToggling] = useState(false);
   const [assigning, setAssigning] = useState(false);
 
-  /* ── Toast ─── */
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
-
-  const showToast = useCallback((type: 'success' | 'error', text: string) => {
-    setToast({ type, text });
-    setTimeout(() => setToast(null), 4000);
-  }, []);
-
   /* ── Add user form ─── */
   const [addForm, setAddForm] = useState({ firstName: '', lastName: '', email: '', password: '', roleId: '' });
   const [addLoading, setAddLoading] = useState(false);
@@ -365,10 +355,10 @@ export default function UserManagementPage() {
       await fetchUsers();
       setRoleModalOpen(false);
       setSelectedUser(null);
-      showToast('success', 'Role assigned successfully.');
+      showToast.success('Role assigned successfully.');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to assign role.';
-      showToast('error', msg);
+      showToast.error('Something went wrong', msg);
     } finally { setAssigning(false); }
   };
 
@@ -376,10 +366,10 @@ export default function UserManagementPage() {
     try {
       await authApi.removeRoleFromUser(userId, roleId);
       await fetchUsers();
-      showToast('success', 'Role removed successfully.');
+      showToast.success('Role removed successfully.');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to remove role.';
-      showToast('error', msg);
+      showToast.error('Something went wrong', msg);
     }
   };
 
@@ -392,7 +382,7 @@ export default function UserManagementPage() {
       await fetchUsers();
       setAddModalOpen(false);
       setAddForm({ firstName: '', lastName: '', email: '', password: '', roleId: '' });
-      showToast('success', `User ${addForm.email} created successfully.`);
+      showToast.success(`User ${addForm.email} created successfully.`);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
       const text = Array.isArray(msg) ? msg.join(', ') : (msg as string) || 'Failed to create user.';
@@ -411,10 +401,10 @@ export default function UserManagementPage() {
       setUsers((prev) => prev.filter((u) => u.id !== selectedUser.id));
       setDeleteModalOpen(false);
       setSelectedUser(null);
-      showToast('success', `User ${email} deleted successfully.`);
+      showToast.success(`User ${email} deleted successfully.`);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to delete user.';
-      showToast('error', msg);
+      showToast.error('Something went wrong', msg);
       setDeleteModalOpen(false);
       setSelectedUser(null);
     } finally { setDeleting(false); }
@@ -444,11 +434,11 @@ export default function UserManagementPage() {
       setToggleModalOpen(false);
       setSelectedUser(null);
       const action = isCurrentlyActive ? 'deactivated' : 'activated';
-      showToast('success', `User ${selectedUser.email} ${action} successfully.`);
+      showToast.success(`User ${selectedUser.email} ${action} successfully.`);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
         ?? (isCurrentlyActive ? 'Failed to deactivate user.' : 'Failed to activate user.');
-      showToast('error', msg);
+      showToast.error('Something went wrong', msg);
       setToggleModalOpen(false);
       setSelectedUser(null);
     } finally { setToggling(false); }

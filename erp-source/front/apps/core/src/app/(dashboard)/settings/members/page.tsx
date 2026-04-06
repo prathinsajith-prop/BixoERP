@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { authApi } from '@/lib/api/auth';
 import { useOrgContext } from '@/context/org';
+import { showToast } from '@erp/shell';
 import CanDo from '@/components/can-do';
 import PageHeader from '@/components/page-header';
 import Button from '@/components/ui/button';
@@ -49,19 +50,18 @@ function InviteModal({ orgId, onClose, onInvited }: InviteModalProps) {
     const [roleName, setRoleName] = useState('MEMBER');
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!email) return;
         setLoading(true);
-        setError(null);
         try {
             await authApi.inviteMember({ organisationId: orgId, email, roleName, message: message || undefined });
+            showToast.success('Invitation sent', `An invite has been sent to ${email}.`);
             onInvited();
             onClose();
         } catch (err: unknown) {
-            setError((err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to send invitation');
+            showToast.error('Something went wrong', (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to send invitation');
         } finally {
             setLoading(false);
         }
@@ -78,10 +78,6 @@ function InviteModal({ orgId, onClose, onInvited }: InviteModalProps) {
                         </svg>
                     </button>
                 </div>
-
-                {error && (
-                    <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">{error}</div>
-                )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
@@ -141,13 +137,11 @@ export default function MembersPage() {
     const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
     const [loading, setLoading] = useState(true);
     const [showInviteModal, setShowInviteModal] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [tab, setTab] = useState<'members' | 'invites'>('members');
 
     const load = useCallback(async () => {
         if (!orgId) return;
         setLoading(true);
-        setError(null);
         try {
             const [membersRes, invitesRes] = await Promise.allSettled([
                 authApi.listOrganizationMembers(orgId),
@@ -156,7 +150,7 @@ export default function MembersPage() {
             if (membersRes.status === 'fulfilled') setMembers(membersRes.value.data.data ?? []);
             if (invitesRes.status === 'fulfilled') setPendingInvites((invitesRes.value as { data: { data: PendingInvite[] } }).data.data ?? []);
         } catch {
-            setError('Failed to load members');
+            showToast.error('Something went wrong', 'Failed to load members');
         } finally {
             setLoading(false);
         }
@@ -168,9 +162,10 @@ export default function MembersPage() {
         if (!orgId) return;
         try {
             await authApi.revokeInvite(inviteId, orgId);
+            showToast.warning('Invitation revoked');
             setPendingInvites((p) => p.filter((i) => i.id !== inviteId));
         } catch {
-            setError('Failed to revoke invitation');
+            showToast.error('Something went wrong', 'Failed to revoke invitation');
         }
     };
 
@@ -179,9 +174,10 @@ export default function MembersPage() {
         if (!confirm('Remove this member from the organisation?')) return;
         try {
             await authApi.removeMemberFromOrganization(orgId, userId);
+            showToast.warning('Member removed');
             setMembers((m) => m.filter((x) => x.userId !== userId));
         } catch {
-            setError('Failed to remove member');
+            showToast.error('Something went wrong', 'Failed to remove member');
         }
     };
 
@@ -202,12 +198,6 @@ export default function MembersPage() {
                 }
             />
 
-            {error && (
-                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
-                    {error}
-                </div>
-            )}
-
             {/* Tab bar */}
             <div className="mb-6 flex gap-1 border-b border-gray-200 dark:border-gray-700">
                 {(['members', 'invites'] as const).map((t) => (
@@ -215,8 +205,8 @@ export default function MembersPage() {
                         key={t}
                         onClick={() => setTab(t)}
                         className={`px-4 py-2 text-sm font-medium capitalize transition ${tab === t
-                                ? 'border-b-2 border-indigo-600 text-indigo-700 dark:border-indigo-400 dark:text-indigo-400'
-                                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                            ? 'border-b-2 border-indigo-600 text-indigo-700 dark:border-indigo-400 dark:text-indigo-400'
+                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                             }`}
                     >
                         {t}

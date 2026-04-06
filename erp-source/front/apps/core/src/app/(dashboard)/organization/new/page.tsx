@@ -8,6 +8,7 @@ import PageHeader from '@/components/page-header';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
 import { useAuthStore } from '@/store/auth';
+import { showToast } from '@erp/shell';
 
 const orgSchema = z.object({
   name: z.string().min(1, 'Organization name is required'),
@@ -21,7 +22,6 @@ const generateSlug = (name: string) =>
 
 export default function CreateOrganizationPage() {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const {
@@ -46,7 +46,6 @@ export default function CreateOrganizationPage() {
   };
 
   const onSubmit = async (data: OrgFormData) => {
-    setError(null);
     setSaving(true);
     try {
       const res = await authApi.createOrganization({
@@ -67,7 +66,7 @@ export default function CreateOrganizationPage() {
       router.push('/organization');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
-      setError(Array.isArray(msg) ? msg.join(', ') : (msg as string) || 'Failed to create organization.');
+      showToast.error('Something went wrong', Array.isArray(msg) ? msg.join(', ') : (msg as string) || 'Failed to create organization.');
     } finally {
       setSaving(false);
     }
@@ -83,10 +82,6 @@ export default function CreateOrganizationPage() {
 
       <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700">
 
-
-        {error && (
-          <div className="mb-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200/60 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-800">{error}</div>
-        )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div>

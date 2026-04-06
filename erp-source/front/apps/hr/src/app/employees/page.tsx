@@ -1,9 +1,28 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Plus, Search, Download, Upload, ChevronUp, ChevronDown,
+  ChevronsUpDown, Copy, Check, MoreHorizontal, Users,
+  UserCheck, Clock, AlertCircle, ChevronRight, X,
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  flexRender,
+  createColumnHelper,
+  type SortingState,
+  type RowSelectionState,
+} from "@tanstack/react-table";
+import { Modal, Button, Input, Select } from "@erp/ui";
+import { showToast } from "@erp/shell";
 import {
   ActionButtons,
   Button,
@@ -26,42 +45,11 @@ import {
   type ViewMode,
 } from "@erp/ui";
 import { api, type EmployeeResponse, type DepartmentResponse, type PositionResponse } from "../../lib/api";
-import { Building2, Eye, List, Pencil, Plus, RefreshCw, TableProperties, Trash2, UserCheck, UserMinus, Users } from "lucide-react";
 
-/* ─── Single source of mock data ─── */
-const MOCK_EMPLOYEES: EmployeeResponse[] = [
-  { id: "m1", employeeNumber: "EMP-001", firstName: "Alice",  lastName: "Chen",      email: "alice.chen@erp.com",    phone: null, dateOfBirth: "1990-03-15", hireDate: "2021-01-10", terminationDate: null, departmentId: "d1", departmentName: "Finance",     positionId: "p1", positionTitle: "Sr. Accountant",     managerId: null, status: "ACTIVE",     baseSalary: { amount: 85000, currency: "USD" }, currency: "USD", createdAt: "", updatedAt: "" },
-  { id: "m2", employeeNumber: "EMP-002", firstName: "Bob",    lastName: "Ramírez",   email: "bob.ramirez@erp.com",   phone: null, dateOfBirth: "1988-07-22", hireDate: "2020-06-01", terminationDate: null, departmentId: "d2", departmentName: "HR",          positionId: "p2", positionTitle: "HR Manager",          managerId: null, status: "ACTIVE",     baseSalary: { amount: 72000, currency: "USD" }, currency: "USD", createdAt: "", updatedAt: "" },
-  { id: "m3", employeeNumber: "EMP-003", firstName: "Carol",  lastName: "Santos",    email: "carol.santos@erp.com",  phone: null, dateOfBirth: "1993-11-08", hireDate: "2022-03-14", terminationDate: null, departmentId: "d3", departmentName: "Sales",       positionId: "p3", positionTitle: "Sales Executive",     managerId: null, status: "ACTIVE",     baseSalary: { amount: 65000, currency: "USD" }, currency: "USD", createdAt: "", updatedAt: "" },
-  { id: "m4", employeeNumber: "EMP-004", firstName: "David",  lastName: "Kim",       email: "david.kim@erp.com",     phone: null, dateOfBirth: "1985-02-19", hireDate: "2019-09-23", terminationDate: null, departmentId: "d4", departmentName: "Engineering", positionId: "p4", positionTitle: "Software Engineer",   managerId: null, status: "PROBATION",  baseSalary: { amount: 95000, currency: "USD" }, currency: "USD", createdAt: "", updatedAt: "" },
-  { id: "m5", employeeNumber: "EMP-005", firstName: "Eva",    lastName: "Müller",    email: "eva.muller@erp.com",    phone: null, dateOfBirth: "1991-05-30", hireDate: "2021-11-09", terminationDate: null, departmentId: "d5", departmentName: "Operations",  positionId: "p5", positionTitle: "Ops Analyst",         managerId: null, status: "ON_LEAVE",   baseSalary: { amount: 70000, currency: "USD" }, currency: "USD", createdAt: "", updatedAt: "" },
-  { id: "m6", employeeNumber: "EMP-006", firstName: "Frank",  lastName: "Okafor",    email: "frank.okafor@erp.com",  phone: null, dateOfBirth: "1987-09-14", hireDate: "2023-01-03", terminationDate: null, departmentId: "d6", departmentName: "Marketing",  positionId: "p6", positionTitle: "Marketing Specialist", managerId: null, status: "ACTIVE",     baseSalary: { amount: 68000, currency: "USD" }, currency: "USD", createdAt: "", updatedAt: "" },
-  { id: "m7", employeeNumber: "EMP-007", firstName: "Grace",  lastName: "Patel",     email: "grace.patel@erp.com",   phone: null, dateOfBirth: "1995-08-03", hireDate: "2023-07-17", terminationDate: null, departmentId: "d4", departmentName: "Engineering", positionId: "p7", positionTitle: "Frontend Developer",  managerId: null, status: "ACTIVE",     baseSalary: { amount: 88000, currency: "USD" }, currency: "USD", createdAt: "", updatedAt: "" },
-  { id: "m8", employeeNumber: "EMP-008", firstName: "Henry",  lastName: "Johansson", email: "henry.j@erp.com",       phone: null, dateOfBirth: "1982-12-25", hireDate: "2018-04-02", terminationDate: null, departmentId: "d1", departmentName: "Finance",     positionId: "p8", positionTitle: "CFO",                 managerId: null, status: "ACTIVE",     baseSalary: { amount: 140000, currency: "USD" }, currency: "USD", createdAt: "", updatedAt: "" },
-];
+// Extended employee type (backend returns these extra fields)
+type Employee = EmployeeResponse & { employmentType?: string; employeeCode?: string };
 
-const AVATAR_COLOR_CLASSES = [
-  "bg-[var(--gogo-primary)]",
-  "bg-[var(--gogo-primary-dark)]",
-  "bg-[var(--gogo-primary-light)]",
-  "bg-sky-500",
-  "bg-violet-600",
-  "bg-emerald-500",
-  "bg-amber-500",
-  "bg-pink-500",
-];
-
-function avatarColorClass(seed: string) {
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) h = seed.charCodeAt(i) + ((h << 5) - h);
-  return AVATAR_COLOR_CLASSES[Math.abs(h) % AVATAR_COLOR_CLASSES.length];
-}
-
-function EmployeeBadge({ status }: { status: string }) {
-  return <StatusBadge status={status.toLowerCase().replace(/_/g, "-")} />;
-}
-
-/* ─── Form schema ─── */
+// ─── Form Schema ───────────────────────────────────────────────
 const employeeSchema = z.object({
   firstName:    z.string().min(1, "First name is required"),
   lastName:     z.string().min(1, "Last name is required"),
@@ -80,38 +68,43 @@ type EmployeeFormData = z.infer<typeof employeeSchema>;
    Page component
    ═══════════════════════════════════════════════════════════ */
 export default function EmployeesPage() {
-  /* ─── Data ─── */
-  const [employees, setEmployees]   = useState<EmployeeResponse[]>(MOCK_EMPLOYEES);
-  const [departments, setDepartments] = useState<DepartmentResponse[]>([]);
-  const [positions, setPositions]   = useState<PositionResponse[]>([]);
-  const [apiLoaded, setApiLoaded]   = useState(false);
-  const [apiError, setApiError]     = useState<string | null>(null);
-  const [serverError, setServerError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const router = useRouter();
 
-  /* ─── UI state ─── */
-  const [search, setSearch]               = useState("");
-  const [activeFilters, setActiveFilters] = useState<ActiveFilters>({});
-  const [view, setView]                   = useState<ViewMode>("table");
-  const [showCreate, setShowCreate]       = useState(false);
-  const [page, setPage]                   = useState(1);
-  const [pageSize, setPageSize]           = useState(10);
+  // Data
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [departments, setDepartments] = useState<DepartmentResponse[]>([]);
+  const [positions, setPositions] = useState<PositionResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Filters
+  const [search, setSearch] = useState("");
+  const [filterDept, setFilterDept] = useState("");
+  const [filterType, setFilterType] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterJoinFrom, setFilterJoinFrom] = useState("");
+  const [filterJoinTo, setFilterJoinTo] = useState("");
+
+  // Table state
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [pageSize, setPageSize] = useState(25);
+  const [pageIndex, setPageIndex] = useState(0);
+
+  // Modal
+  const [showCreate, setShowCreate] = useState(false);
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<EmployeeFormData>({
     resolver: zodResolver(employeeSchema),
     defaultValues: { currency: "USD" },
   });
 
-  /* ─── Load API data in background ─── */
-  const load = useCallback(async (showSpinner = false) => {
-    if (showSpinner) setRefreshing(true);
+  // ─── Load ──────────────────────────────────────────────────────
+  const load = useCallback(async () => {
     try {
-      const [emps, depts, pos] = await Promise.all([
-        api.employees.list(),
-        api.departments.list(),
-        api.positions.list(),
-      ]);
-      setEmployees(emps);
+      setLoading(true);
+      const [emps, depts, pos] = await Promise.all([api.employees.list(), api.departments.list(), api.positions.list()]);
+      setEmployees(emps as Employee[]);
       setDepartments(depts);
       setPositions(pos);
       setApiError(null);
@@ -123,337 +116,504 @@ export default function EmployeesPage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let ignore = false;
+    setLoading(true);
+    Promise.all([api.employees.list(), api.departments.list(), api.positions.list()])
+      .then(([emps, depts, pos]) => {
+        if (!ignore) { setEmployees(emps as Employee[]); setDepartments(depts); setPositions(pos); setError(null); }
+      })
+      .catch((err: unknown) => {
+        if (!ignore) setError((err as { message?: string }).message ?? "Failed to load employees");
+      })
+      .finally(() => { if (!ignore) setLoading(false); });
+    return () => { ignore = true; };
+  }, []);
 
-  /* ─── KPI stats computed from data source ─── */
-  const stats = useMemo(() => {
-    const total  = employees.length;
-    const active = employees.filter((e) => e.status === "ACTIVE").length;
-    const onLeave = employees.filter((e) => e.status === "ON_LEAVE").length;
-    const depts  = new Set(employees.map((e) => e.departmentId)).size;
-    return { total, active, onLeave, depts };
-  }, [employees]);
-
-  /* ─── Filter config (dept options from API or mock fallback) ─── */
-  const filterConfigs: FilterConfig[] = useMemo(() => {
-    const deptOptions = departments.length > 0
-      ? departments.map((d) => ({ value: d.id, label: d.name }))
-      : [...new Set(MOCK_EMPLOYEES.map((e) => e.departmentName ?? ""))].map((d) => ({ value: d, label: d }));
-    return [
-      {
-        key: "status", label: "Status", type: "multiselect" as const,
-        options: [
-          { value: "ACTIVE", label: "Active" }, { value: "ON_LEAVE", label: "On Leave" },
-          { value: "PROBATION", label: "Probation" }, { value: "TERMINATED", label: "Terminated" },
-        ],
-        quickOptions: [{ value: "ACTIVE", label: "Active only" }, { value: "ON_LEAVE", label: "On Leave" }],
-      },
-      { key: "department", label: "Department", type: "multiselect" as const, options: deptOptions },
-    ];
-  }, [departments]);
-
-  /* ─── Derived: filtered + paginated ─── */
+  // ─── Filtered data ─────────────────────────────────────────────
   const filtered = useMemo(() => {
-    const q            = search.toLowerCase();
-    const statusFilter = (activeFilters.status ?? []) as string[];
-    const deptFilter   = (activeFilters.department ?? []) as string[];
+    const q = search.toLowerCase();
     return employees.filter((e) => {
       if (q) {
         const name = `${e.firstName} ${e.lastName}`.toLowerCase();
-        if (!name.includes(q) && !e.email.toLowerCase().includes(q) && !(e.departmentName ?? "").toLowerCase().includes(q))
-          return false;
+        const code = (e.employeeCode ?? e.employeeNumber ?? "").toLowerCase();
+        const email = e.email.toLowerCase();
+        if (!name.includes(q) && !code.includes(q) && !email.includes(q)) return false;
       }
-      if (statusFilter.length > 0 && !statusFilter.includes(e.status)) return false;
-      if (deptFilter.length > 0 && !deptFilter.includes(e.departmentId) && !deptFilter.includes(e.departmentName ?? ""))
-        return false;
+      if (filterDept && e.departmentId !== filterDept) return false;
+      if (filterType && (e.employmentType ?? "").toLowerCase() !== filterType.toLowerCase()) return false;
+      if (filterStatus && e.status.toLowerCase() !== filterStatus.toLowerCase()) return false;
+      if (filterJoinFrom && e.hireDate < filterJoinFrom) return false;
+      if (filterJoinTo && e.hireDate > filterJoinTo) return false;
       return true;
     });
-  }, [employees, search, activeFilters]);
+  }, [employees, search, filterDept, filterType, filterStatus, filterJoinFrom, filterJoinTo]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const paginated  = filtered.slice((page - 1) * pageSize, page * pageSize);
-  useEffect(() => { setPage(1); }, [search, activeFilters, pageSize]);
+  const hasFilters = !!(search || filterDept || filterType || filterStatus || filterJoinFrom || filterJoinTo);
 
-  /* ─── Handlers ─── */
-  const handleFilterChange  = (key: string, value: string | string[]) =>
-    setActiveFilters((prev) => ({ ...prev, [key]: value }));
-  const handleFilterClear   = (key: string) =>
-    setActiveFilters((prev) => { const n = { ...prev }; delete n[key]; return n; });
-  const handleFilterClearAll = () => setActiveFilters({});
+  const clearFilters = () => {
+    setSearch(""); setFilterDept(""); setFilterType(""); setFilterStatus(""); setFilterJoinFrom(""); setFilterJoinTo("");
+    setPageIndex(0);
+  };
 
-  function closeModal() { setShowCreate(false); setServerError(null); reset(); }
+  // ─── Stats ─────────────────────────────────────────────────────
+  const stats = useMemo(() => {
+    const total = employees.length;
+    const active = employees.filter((e) => e.status === "ACTIVE").length;
+    const probation = employees.filter((e) => ["PROBATION", "probation"].includes(e.status)).length;
+    const notice = employees.filter((e) => ["NOTICE_PERIOD", "notice_period"].includes(e.status)).length;
+    return { total, active, probation, notice };
+  }, [employees]);
+
+  const deptCount = useMemo(() => new Set(employees.map((e) => e.departmentId).filter(Boolean)).size, [employees]);
+
+  // ─── Deactivate ────────────────────────────────────────────────
+  const handleDeactivate = useCallback(async (emp: Employee) => {
+    if (!confirm(`Deactivate ${emp.firstName} ${emp.lastName}? They will lose system access.`)) return;
+    try {
+      await api.employees.update(emp.id, { status: "TERMINATED" });
+      const name = `${emp.firstName} ${emp.lastName}`;
+      showToast.warning("Employee deactivated", `${name} no longer has system access.`);
+      load();
+    } catch (err: unknown) {
+      showToast.error("Something went wrong", (err as { message?: string }).message ?? "Failed to deactivate employee");
+    }
+  }, [load]);
+
+  // ─── Create modal ──────────────────────────────────────────────
+  function closeModal() { setShowCreate(false); reset(); }
+
   async function onSubmit(data: EmployeeFormData) {
-    setServerError(null);
-    try { await api.employees.create(data); closeModal(); load(); }
-    catch (err: unknown) { setServerError((err as { message?: string }).message ?? "Failed to create employee"); }
+    try {
+      const emp = await api.employees.create(data);
+      const name = `${data.firstName} ${data.lastName}`;
+      const code = (emp as Employee).employeeCode ?? "";
+      showToast.success("Employee added", code ? `${name} (${code}) has been added.` : `${name} has been added.`);
+      closeModal();
+      load();
+    } catch (err: unknown) {
+      showToast.error("Something went wrong", (err as { message?: string }).message ?? "Failed to create employee");
+    }
   }
 
-  /* ─── Table columns ─── */
-  const columns: TableColumn<EmployeeResponse>[] = [
-    {
-      key: "name", header: "Employee", sortable: true,
-      render: (emp: EmployeeResponse) => (
-        <div className="flex items-center gap-3">
-          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white ${avatarColorClass(`${emp.firstName}${emp.lastName}`)}`}>
-            {emp.firstName[0]}{emp.lastName[0]}
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-[var(--gogo-text-primary)]">{emp.firstName} {emp.lastName}</p>
-            <p className="text-xs text-[var(--gogo-text-secondary)]">{emp.email}</p>
-          </div>
-        </div>
+  // ─── Columns ───────────────────────────────────────────────────
+  const columns = useMemo(() => [
+    colHelper.display({
+      id: "select",
+      size: 40,
+      header: ({ table }) => (
+        <input
+          type="checkbox"
+          checked={table.getIsAllPageRowsSelected()}
+          ref={(el) => { if (el) el.indeterminate = table.getIsSomePageRowsSelected(); }}
+          onChange={table.getToggleAllPageRowsSelectedHandler()}
+          className="h-4 w-4 rounded border-gray-300 text-blue-600 cursor-pointer"
+        />
       ),
-    },
-    {
-      key: "departmentName", header: "Department", sortable: true,
-      render: (e: EmployeeResponse) => <span className="text-sm">{e.departmentName ?? "—"}</span>,
-    },
-    {
-      key: "positionTitle", header: "Position",
-      render: (e: EmployeeResponse) => <span className="text-sm">{e.positionTitle ?? "—"}</span>,
-    },
-    {
-      key: "hireDate", header: "Joined", sortable: true,
-      render: (e: EmployeeResponse) => (
-        <span className="text-sm">{new Date(e.hireDate).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}</span>
+      cell: ({ row }) => (
+        <input
+          type="checkbox"
+          checked={row.getIsSelected()}
+          onChange={row.getToggleSelectedHandler()}
+          onClick={(e) => e.stopPropagation()}
+          className="h-4 w-4 rounded border-gray-300 text-blue-600 cursor-pointer"
+        />
       ),
-    },
-    {
-      key: "status", header: "Status", sortable: true,
-      render: (e: EmployeeResponse) => <EmployeeBadge status={e.status} />,
-    },
-  ];
-
-  const rowActions: RowAction<EmployeeResponse>[] = [
-    {
-      label: "View",
-      icon: <Eye className="h-4 w-4" />,
-      onClick: (emp) => console.log("view", emp.id),
-    },
-    {
-      label: "Edit",
-      icon: <Pencil className="h-4 w-4" />,
-      onClick: (emp) => console.log("edit", emp.id),
-    },
-    {
-      label: "Delete",
-      icon: <Trash2 className="h-4 w-4" />,
-      onClick: (emp) => console.log("delete", emp.id),
-      danger: true,
-    },
-  ];
-
-  const listColumns: TableColumn<EmployeeResponse>[] = [
-    {
-      key: "departmentName",
+    }),
+    colHelper.display({
+      id: "rowNum",
+      size: 40,
+      header: "#",
+      cell: ({ row, table }) => (
+        <span className="text-gray-400 tabular-nums text-xs">
+          {table.getSortedRowModel().rows.indexOf(row) + 1 + pageIndex * pageSize}
+        </span>
+      ),
+    }),
+    colHelper.accessor("employeeCode", {
+      id: "employeeCode",
+      header: "Employee ID",
+      size: 140,
+      cell: ({ row }) => {
+        const code = row.original.employeeCode ?? row.original.employeeNumber ?? "—";
+        return code !== "—" ? <CopyableId value={code} /> : <span className="text-gray-400 font-mono text-xs">—</span>;
+      },
+    }),
+    colHelper.accessor("firstName", {
+      id: "name",
+      header: "Name",
+      size: 220,
+      cell: ({ row }) => {
+        const emp = row.original;
+        const initials = getInitials(emp.firstName, emp.lastName);
+        const grad = avatarColor(emp.id);
+        return (
+          <div className="flex items-center gap-2.5 min-w-[200px]">
+            <div className={`h-8 w-8 shrink-0 rounded-full bg-gradient-to-br ${grad} flex items-center justify-center text-xs font-bold text-white`}>
+              {initials}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{emp.firstName} {emp.lastName}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{emp.email}</p>
+            </div>
+          </div>
+        );
+      },
+      sortingFn: (a, b) => {
+        const na = `${a.original.firstName} ${a.original.lastName}`;
+        const nb = `${b.original.firstName} ${b.original.lastName}`;
+        return na.localeCompare(nb);
+      },
+    }),
+    colHelper.accessor("departmentName", {
       header: "Department",
-      render: (employee: EmployeeResponse) => employee.departmentName ?? "—",
-    },
-    {
-      key: "positionTitle",
-      header: "Position",
-      render: (employee: EmployeeResponse) => employee.positionTitle ?? "—",
-    },
-    {
-      key: "hireDate",
-      header: "Joined",
-      render: (employee: EmployeeResponse) => new Date(employee.hireDate).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }),
-    },
-    {
-      key: "status",
+      size: 130,
+      cell: (info) => <span className="text-sm text-gray-700 dark:text-gray-300">{info.getValue() ?? "—"}</span>,
+    }),
+    colHelper.accessor("positionTitle", {
+      header: "Job Title",
+      size: 130,
+      cell: (info) => <span className="text-sm text-gray-700 dark:text-gray-300">{info.getValue() ?? "—"}</span>,
+    }),
+    colHelper.accessor("employmentType", {
+      header: "Type",
+      size: 100,
+      enableSorting: false,
+      cell: ({ getValue }) => {
+        const t = getValue() ?? "";
+        if (!t) return <span className="text-gray-400 text-xs">—</span>;
+        return (
+          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium capitalize ${TYPE_STYLES[t] ?? "bg-gray-100 text-gray-600"}`}>
+            {t.replace(/_/g, " ").toLowerCase()}
+          </span>
+        );
+      },
+    }),
+    colHelper.accessor("status", {
       header: "Status",
-      render: (employee: EmployeeResponse) => <EmployeeBadge status={employee.status} />,
+      size: 110,
+      enableSorting: false,
+      cell: ({ getValue }) => {
+        const s = getValue();
+        return (
+          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[s] ?? "bg-gray-100 text-gray-600"}`}>
+            {s.replace(/_/g, " ").toLowerCase()}
+          </span>
+        );
+      },
+    }),
+    colHelper.accessor("hireDate", {
+      header: "Join Date",
+      size: 110,
+      cell: (info) => <span className="text-sm text-gray-500 dark:text-gray-400 tabular-nums">{formatJoinDate(info.getValue())}</span>,
+    }),
+    colHelper.display({
+      id: "actions",
+      size: 48,
+      header: "",
+      cell: ({ row }) => <ActionsMenu emp={row.original} onDeactivate={handleDeactivate} />,
+    }),
+  ], [pageIndex, pageSize, handleDeactivate]);
+
+  // ─── Table ─────────────────────────────────────────────────────
+  const table = useReactTable({
+    data: filtered,
+    columns,
+    state: { sorting, rowSelection, pagination: { pageIndex, pageSize } },
+    onSortingChange: setSorting,
+    onRowSelectionChange: setRowSelection,
+    onPaginationChange: (updater) => {
+      if (typeof updater === "function") {
+        const next = updater({ pageIndex, pageSize });
+        setPageIndex(next.pageIndex);
+        setPageSize(next.pageSize);
+      }
     },
-  ];
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    manualPagination: false,
+    enableRowSelection: true,
+  });
 
-  const viewOptions = useMemo(
-    () => [
-      { value: "table" as ViewMode, label: "Table view", icon: <TableProperties className="h-4 w-4" /> },
-      { value: "list" as ViewMode, label: "List view", icon: <List className="h-4 w-4" /> },
-    ],
-    []
-  );
+  const selectedRows = table.getSelectedRowModel().rows;
+  const { rows: pageRows } = table.getPaginationRowModel();
+  const totalFiltered = filtered.length;
+  const start = pageIndex * pageSize + 1;
+  const end = Math.min(start + pageSize - 1, totalFiltered);
 
-  /* ─── Toolbar action buttons ─── */
-  const toolbarActions = (
-    <div className="flex items-center gap-2">
-      <ViewSwitcher view={view} onViewChange={setView} options={viewOptions} />
-      <ActionButtons
-        actions={[
-          {
-            key: "refresh-employees",
-            label: "Refresh",
-            icon: <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />,
-            variant: "outline",
-            loading: refreshing,
-            onClick: () => load(true),
-          },
-          {
-            key: "create-employee",
-            label: "Create",
-            icon: <Plus className="h-3.5 w-3.5" />,
-            onClick: () => setShowCreate(true),
-          },
-        ]}
-      />
-    </div>
-  );
+  // ─── Sort Icon ─────────────────────────────────────────────────
+  function SortIcon({ isSorted }: { isSorted: false | "asc" | "desc" }) {
+    if (isSorted === "asc") return <ChevronUp className="w-3.5 h-3.5 ml-1 text-blue-500" />;
+    if (isSorted === "desc") return <ChevronDown className="w-3.5 h-3.5 ml-1 text-blue-500" />;
+    return <ChevronsUpDown className="w-3.5 h-3.5 ml-1 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />;
+  }
 
-  /* ─── Render ─── */
+  // ─── Render ────────────────────────────────────────────────────
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 space-y-3">
+        <AlertCircle className="w-10 h-10 text-red-400" />
+        <p className="text-gray-600 dark:text-gray-400">{error}</p>
+        <Button onClick={load}>Retry</Button>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-
-      {/* ── Page header with breadcrumb ── */}
-      <PageHeader
-        title="Employee List"
-        breadcrumbs={[
-          { label: "Dashboard", href: "/" },
-          { label: "Human Resource", href: "/hr" },
-          { label: "Employee List" },
-        ]}
-      />
-
-      {/* ── KPI summary cards ── */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <KPICard
-          title="Total Employees"
-          value={String(stats.total)}
-          trend="flat"
-          change={0}
-          subtitle="all time"
-          icon={<Users className="h-5 w-5" />}
-        />
-        <KPICard
-          title="Active"
-          value={String(stats.active)}
-          trend="up"
-          change={+(((stats.active / Math.max(stats.total, 1)) * 100).toFixed(1))}
-          subtitle="of total"
-          icon={<UserCheck className="h-5 w-5" />}
-        />
-        <KPICard
-          title="On Leave"
-          value={String(stats.onLeave)}
-          trend={stats.onLeave > 0 ? "down" : "flat"}
-          change={0}
-          subtitle="currently"
-          icon={<UserMinus className="h-5 w-5" />}
-        />
-        <KPICard
-          title="Departments"
-          value={String(stats.depts)}
-          trend="flat"
-          subtitle="active"
-          icon={<Building2 className="h-5 w-5" />}
-        />
+    <div className="space-y-5">
+      {/* ─── Page Header ─── */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Employees</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+            {loading
+              ? "Loading…"
+              : `${employees.length} employee${employees.length !== 1 ? "s" : ""} across ${deptCount} department${deptCount !== 1 ? "s" : ""}`}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => showToast.success("Coming soon", "CSV import is not yet available.")}>
+            <Upload className="w-3.5 h-3.5 mr-1.5" /> Import CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => showToast.success("Coming soon", "Export is not yet available.")}>
+            <Download className="w-3.5 h-3.5 mr-1.5" /> Export
+          </Button>
+          <Button size="sm" onClick={() => setShowCreate(true)}>
+            <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Employee
+          </Button>
+        </div>
       </div>
 
-      {/* ── API error banner ── */}
-      {apiError && (
-        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
-          <span>Showing preview data — {apiError}.</span>
-          <button onClick={() => load()} className="ml-auto font-medium underline">Retry</button>
+      {/* ─── Stats Bar ─── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Total headcount", value: stats.total, icon: <Users className="w-5 h-5" />, color: "text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400" },
+          { label: "Active", value: stats.active, icon: <UserCheck className="w-5 h-5" />, color: "text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400" },
+          { label: "On probation", value: stats.probation, icon: <Clock className="w-5 h-5" />, color: "text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400" },
+          { label: "On notice period", value: stats.notice, icon: <AlertCircle className="w-5 h-5" />, color: "text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400" },
+        ].map(({ label, value, icon, color }) => (
+          <div key={label} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm px-4 py-3 flex items-center gap-3">
+            <div className={`flex-shrink-0 p-2 rounded-lg ${color}`}>{icon}</div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white tabular-nums">
+                {loading ? <span className="inline-block w-8 h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" /> : value}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{label}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ─── Filter Row ─── */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative" style={{ width: 280 }}>
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPageIndex(0); }}
+            placeholder="Search by name, ID, email…"
+            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-100 dark:focus:border-blue-500 dark:focus:ring-blue-900 outline-none"
+          />
+        </div>
+
+        <select
+          value={filterDept}
+          onChange={(e) => { setFilterDept(e.target.value); setPageIndex(0); }}
+          className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg py-2 pl-3 pr-8 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:border-blue-300 focus:ring-2 focus:ring-blue-100 outline-none"
+        >
+          <option value="">All departments</option>
+          {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+        </select>
+
+        <select
+          value={filterType}
+          onChange={(e) => { setFilterType(e.target.value); setPageIndex(0); }}
+          className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg py-2 pl-3 pr-8 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:border-blue-300 focus:ring-2 focus:ring-blue-100 outline-none"
+        >
+          <option value="">All types</option>
+          <option value="full_time">Full time</option>
+          <option value="part_time">Part time</option>
+          <option value="contract">Contract</option>
+          <option value="intern">Intern</option>
+        </select>
+
+        <select
+          value={filterStatus}
+          onChange={(e) => { setFilterStatus(e.target.value); setPageIndex(0); }}
+          className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg py-2 pl-3 pr-8 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:border-blue-300 focus:ring-2 focus:ring-blue-100 outline-none"
+        >
+          <option value="">All statuses</option>
+          <option value="ACTIVE">Active</option>
+          <option value="PROBATION">Probation</option>
+          <option value="NOTICE_PERIOD">Notice period</option>
+          <option value="TERMINATED">Terminated</option>
+        </select>
+
+        <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+          <span className="hidden sm:inline">Joined:</span>
+          <input type="date" value={filterJoinFrom} onChange={(e) => { setFilterJoinFrom(e.target.value); setPageIndex(0); }} className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg py-2 px-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:border-blue-300 focus:ring-2 focus:ring-blue-100 outline-none" />
+          <span>–</span>
+          <input type="date" value={filterJoinTo} onChange={(e) => { setFilterJoinTo(e.target.value); setPageIndex(0); }} className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg py-2 px-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:border-blue-300 focus:ring-2 focus:ring-blue-100 outline-none" />
+        </div>
+
+        {hasFilters && (
+          <button onClick={clearFilters} className="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline ml-1">
+            <X className="w-3.5 h-3.5" /> Clear filters
+          </button>
+        )}
+      </div>
+
+      {/* ─── Bulk Action Bar ─── */}
+      {selectedRows.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl shadow-2xl px-5 py-3 text-sm font-medium">
+          <span>{selectedRows.length} employee{selectedRows.length !== 1 ? "s" : ""} selected</span>
+          <Button variant="outline" size="sm" onClick={() => showToast.success("Coming soon", "Bulk export is not yet available.")} className="border-gray-600 dark:border-gray-300 text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100">
+            Export selected
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => showToast.success("Coming soon", "Bulk department change is not yet available.")} className="border-gray-600 dark:border-gray-300 text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100">
+            Change department
+          </Button>
+          <Button size="sm" onClick={() => showToast.success("Coming soon", "Bulk deactivation is not yet available.")} className="bg-red-600 hover:bg-red-700 text-white border-0">
+            Deactivate selected
+          </Button>
+          <button onClick={() => setRowSelection({})} className="ml-1 text-gray-400 dark:text-gray-500 hover:text-gray-200 dark:hover:text-gray-700">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
-      {/* ── Search + Filters + Actions toolbar ── */}
-      <SearchFilter
-        searchPlaceholder="Search employees…"
-        searchValue={search}
-        onSearchChange={setSearch}
-        filters={filterConfigs}
-        activeFilters={activeFilters}
-        onFilterChange={handleFilterChange}
-        onFilterClear={handleFilterClear}
-        onFilterClearAll={handleFilterClearAll}
-        actions={toolbarActions}
-      />
-
-      {/* ── Result count ── */}
-      {(search || Object.keys(activeFilters).length > 0) && (
-        <p className="text-xs text-[var(--gogo-text-secondary)]">
-          Showing <strong>{filtered.length}</strong> result{filtered.length !== 1 ? "s" : ""}
-          {!apiLoaded && <span className="ml-2 opacity-60">(preview data)</span>}
-        </p>
-      )}
-
-      {/* ── Table view ── */}
-      {view === "table" && (
-        <Card padding={false} className="overflow-hidden">
-          <Table
-            columns={columns}
-            data={paginated}
-            keyExtractor={(e) => e.id}
-            rowActions={rowActions}
-            emptyMessage={search || Object.keys(activeFilters).length > 0 ? "No employees match your filters" : "No employees yet"}
-          />
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            totalItems={filtered.length}
-            pageSize={pageSize}
-            onPageChange={setPage}
-            onPageSizeChange={setPageSize}
-          />
-        </Card>
-      )}
-
-      {/* ── List view ── */}
-      {view === "list" && (
-        paginated.length === 0 ? (
-          <div className="py-16 text-center text-sm text-[var(--gogo-text-secondary)]">
-            {search || Object.keys(activeFilters).length > 0 ? "No employees match your filters" : "No employees yet"}
+      {/* ─── Desktop Table ─── */}
+      <div className="hidden md:block">
+        {loading ? (
+          <TableSkeleton />
+        ) : totalFiltered === 0 ? (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm ring-1 ring-gray-100 dark:ring-gray-700 flex flex-col items-center justify-center py-20 space-y-3">
+            <Users className="w-10 h-10 text-gray-300 dark:text-gray-600" />
+            <p className="text-gray-500 dark:text-gray-400 font-medium">No employees found</p>
+            {hasFilters && (
+              <button onClick={clearFilters} className="text-sm text-blue-600 dark:text-blue-400 hover:underline">Clear filters</button>
+            )}
           </div>
         ) : (
-          <div className="space-y-4">
-            <ListView
-              columns={listColumns}
-              data={paginated}
-              keyExtractor={(employee) => employee.id}
-              title={(employee) => `${employee.firstName} ${employee.lastName}`}
-              subtitle={(employee) => employee.positionTitle ?? employee.email}
-              leading={(employee) => (
-                <div className={`flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold text-white ${avatarColorClass(`${employee.firstName}${employee.lastName}`)}`}>
-                  {employee.firstName[0]}{employee.lastName[0]}
-                </div>
-              )}
-              trailing={(employee) => (
-                <div className="flex items-center gap-1">
-                  {rowActions.map((action) => (
-                    <button
-                      key={`${employee.id}-${action.label}`}
-                      type="button"
-                      onClick={() => action.onClick(employee)}
-                      className={`rounded-lg p-1.5 transition hover:bg-[var(--gogo-grey-100)] ${action.danger ? 'text-red-500' : 'text-[var(--gogo-text-secondary)]'}`}
-                      title={action.label}
-                    >
-                      {action.icon ?? <span className="text-xs">{action.label}</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
-              emptyMessage={search || Object.keys(activeFilters).length > 0 ? "No employees match your filters" : "No employees yet"}
-            />
-            <Card padding={false} className="overflow-hidden">
-              <Pagination
-                page={page}
-                totalPages={totalPages}
-                totalItems={filtered.length}
-                pageSize={pageSize}
-                onPageChange={setPage}
-                onPageSizeChange={setPageSize}
-              />
-            </Card>
-          </div>
-        )
-      )}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm ring-1 ring-gray-100 dark:ring-gray-700 overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-800/80">
+                {table.getHeaderGroups().map((hg) => (
+                  <tr key={hg.id}>
+                    {hg.headers.map((header) => (
+                      <th
+                        key={header.id}
+                        style={{ width: header.getSize() }}
+                        className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        {header.isPlaceholder ? null : (
+                          <div
+                            className={`flex items-center group ${header.column.getCanSort() ? "cursor-pointer select-none" : ""}`}
+                            onClick={header.column.getToggleSortingHandler()}
+                          >
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                            {header.column.getCanSort() && <SortIcon isSorted={header.column.getIsSorted()} />}
+                          </div>
+                        )}
+                      </th>
+                    ))}
+                  </tr>
+                ))}
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                {pageRows.map((row) => (
+                  <tr
+                    key={row.id}
+                    onClick={() => router.push(`/employees/${row.original.id}`)}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700/40 cursor-pointer transition-colors"
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <td key={cell.id} style={{ width: cell.column.getSize() }} className="px-3 py-3">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
-      {/* ── Add Employee Modal ── */}
+            {/* Pagination */}
+            <div className="px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-gray-100 dark:border-gray-700">
+              <p className="text-sm text-gray-500 dark:text-gray-400 order-2 sm:order-1">
+                Showing {start}–{end} of {totalFiltered} employee{totalFiltered !== 1 ? "s" : ""}
+              </p>
+              <div className="flex items-center gap-2 order-1 sm:order-2">
+                <select
+                  value={pageSize}
+                  onChange={(e) => { setPageSize(Number(e.target.value)); setPageIndex(0); }}
+                  className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg py-1.5 pl-2 pr-6 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none"
+                >
+                  {[25, 50, 100].map((s) => <option key={s} value={s}>{s} per page</option>)}
+                </select>
+                <button onClick={() => setPageIndex((p) => Math.max(0, p - 1))} disabled={pageIndex === 0} className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed">
+                  Previous
+                </button>
+                <span className="text-sm text-gray-600 dark:text-gray-400 tabular-nums">
+                  {pageIndex + 1} / {table.getPageCount() || 1}
+                </span>
+                <button onClick={() => setPageIndex((p) => Math.min(p + 1, table.getPageCount() - 1))} disabled={pageIndex >= table.getPageCount() - 1} className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed">
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ─── Mobile Card List ─── */}
+      <div className="md:hidden space-y-2">
+        {loading ? (
+          <div className="space-y-2">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 animate-pulse flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3" />
+                  <div className="h-3 bg-gray-100 dark:bg-gray-700/50 rounded w-1/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : totalFiltered === 0 ? (
+          <div className="text-center py-16 text-gray-400">
+            <Users className="w-8 h-8 mx-auto mb-2" />
+            <p className="text-sm">No employees found</p>
+            {hasFilters && <button onClick={clearFilters} className="text-sm text-blue-600 dark:text-blue-400 mt-1 hover:underline">Clear filters</button>}
+          </div>
+        ) : (
+          filtered.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize).map((emp) => (
+            <div
+              key={emp.id}
+              onClick={() => router.push(`/employees/${emp.id}`)}
+              className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 flex items-center gap-3 cursor-pointer hover:border-gray-200 dark:hover:border-gray-600 transition-colors"
+            >
+              <div className={`h-10 w-10 rounded-full bg-gradient-to-br ${avatarColor(emp.id)} flex items-center justify-center text-sm font-bold text-white shrink-0`}>
+                {getInitials(emp.firstName, emp.lastName)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{emp.firstName} {emp.lastName}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{emp.employeeCode ?? emp.employeeNumber ?? "—"}</p>
+              </div>
+              <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[emp.status] ?? "bg-gray-100 text-gray-600"}`}>
+                {emp.status.replace(/_/g, " ").toLowerCase()}
+              </span>
+              <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 shrink-0" />
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* ─── Add Employee Modal ─── */}
       <Modal open={showCreate} onClose={closeModal} title="Add New Employee" size="lg">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {serverError && (
-            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{serverError}</p>
-          )}
           <div className="grid grid-cols-2 gap-4">
             <Input label="First Name" error={errors.firstName?.message} {...register("firstName")} />
             <Input label="Last Name"  error={errors.lastName?.message}  {...register("lastName")} />

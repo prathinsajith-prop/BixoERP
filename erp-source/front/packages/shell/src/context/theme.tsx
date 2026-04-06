@@ -8,6 +8,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+import { Toaster } from "sonner";
 
 interface ThemeContextType {
   theme: string;
@@ -30,13 +31,13 @@ const ThemeContext = createContext<ThemeContextType>({
   accentColor: "gogo",
   setAccentColor: () => {},
   compactMode: false,
-  setCompactMode: () => {},
+  setCompactMode: () => { },
   fontSize: 14,
-  setFontSize: () => {},
+  setFontSize: () => { },
   animationsEnabled: true,
-  setAnimationsEnabled: () => {},
+  setAnimationsEnabled: () => { },
   reducedMotion: false,
-  setReducedMotion: () => {},
+  setReducedMotion: () => { },
 });
 
 export function useTheme() {
@@ -221,6 +222,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
+      <Toaster
+        position="top-right"
+        richColors
+        closeButton
+        duration={4000}
+        toastOptions={{ style: { fontFamily: 'var(--font-sans)' } }}
+      />
     </ThemeContext.Provider>
   );
 }

@@ -9,9 +9,9 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { authApi } from '@/lib/api/auth';
 import { filesApi } from '@/lib/api/files';
+import { showToast } from '@erp/shell';
 import Input from '@/components/ui/input';
 import Button from '@/components/ui/button';
-import Alert from '@/components/ui/alert';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -143,7 +143,6 @@ export default function ProfilePage() {
   const user = accessToken ? decodeToken(accessToken) : null;
 
   const [activeTab, setActiveTab] = useState('personal');
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -272,7 +271,6 @@ export default function ProfilePage() {
     reader.readAsDataURL(file);
 
     setAvatarUploading(true);
-    setMessage(null);
     try {
       const fd = new FormData();
       fd.append('file', file);
@@ -283,17 +281,16 @@ export default function ProfilePage() {
         const blobUrl = await filesApi.download(fileId);
         setAvatarPreview(blobUrl);
         window.dispatchEvent(new CustomEvent('avatar-updated', { detail: { blobUrl } }));
-        setMessage({ type: 'success', text: 'Photo uploaded successfully.' });
+        showToast.success('Photo updated');
       }
     } catch {
-      setMessage({ type: 'error', text: 'Failed to upload photo.' });
+      showToast.error('Something went wrong', 'Failed to upload photo.');
     } finally {
       setAvatarUploading(false);
     }
   };
 
   const onSubmit = async (data: ProfileFormData) => {
-    setMessage(null);
     try {
       await authApi.updateProfile({
         firstName: data.firstName,
@@ -303,10 +300,10 @@ export default function ProfilePage() {
         address: { street: data.street, city: data.city, state: data.state, zipCode: data.zipCode, country: data.country },
         social: { linkedin: data.linkedin, github: data.github, twitter: data.twitter, website: data.website, slack: data.slack },
       });
-      setMessage({ type: 'success', text: 'Profile updated successfully.' });
+      showToast.success('Profile updated', 'Your changes have been saved.');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to update profile.';
-      setMessage({ type: 'error', text: msg });
+      showToast.error('Something went wrong', msg);
     }
   };
 
@@ -323,11 +320,6 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Profile" subtitle="Manage your personal information" />
-      {message && (
-        <div className="mb-6">
-          <Alert type={message.type}>{message.text}</Alert>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left sidebar */}
@@ -420,7 +412,7 @@ export default function ProfilePage() {
                             await useAuthStore.getState().switchOrg(org.id!);
                             window.location.reload();
                           } catch {
-                            setMessage({ type: 'error', text: 'Failed to switch organization.' });
+                            showToast.error('Something went wrong', 'Failed to switch organization.');
                           }
                         }}
                         className="ml-2 shrink-0 rounded-full border border-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 dark:border-gray-700 dark:text-gray-400 dark:hover:border-blue-700 dark:hover:bg-blue-900/20 dark:hover:text-blue-300"

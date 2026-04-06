@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { authApi } from '@/lib/api/auth';
 import { useOrgContext } from '@/context/org';
+import { showToast } from '@erp/shell';
 import CanDo from '@/components/can-do';
 import PageHeader from '@/components/page-header';
 import Button from '@/components/ui/button';
@@ -38,19 +39,18 @@ function DeptModal({ orgId, parentId, onClose, onSaved }: DeptModalProps) {
     const [name, setName] = useState('');
     const [type, setType] = useState('DEPARTMENT');
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!name.trim()) return;
         setLoading(true);
-        setError(null);
         try {
             await authApi.createDepartment(orgId, { name, type, parentId: parentId ?? null });
+            showToast.success('Department created');
             onSaved();
             onClose();
         } catch (err: unknown) {
-            setError((err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to create department');
+            showToast.error('Something went wrong', (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to create department');
         } finally {
             setLoading(false);
         }
@@ -69,10 +69,6 @@ function DeptModal({ orgId, parentId, onClose, onSaved }: DeptModalProps) {
                         </svg>
                     </button>
                 </div>
-
-                {error && (
-                    <div className="mb-3 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">{error}</div>
-                )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
@@ -195,13 +191,11 @@ export default function DepartmentsPage() {
     const { orgId } = useOrgContext();
     const [tree, setTree] = useState<DeptNode[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [modal, setModal] = useState<{ parentId?: string } | null>(null);
 
     const load = useCallback(async () => {
         if (!orgId) return;
         setLoading(true);
-        setError(null);
         try {
             const { data } = await authApi.getDepartmentTree(orgId);
             setTree(data.data ?? []);
@@ -211,7 +205,7 @@ export default function DepartmentsPage() {
                 const { data } = await authApi.listDepartments(orgId);
                 setTree(data.data ?? []);
             } catch {
-                setError('Failed to load departments');
+                showToast.error('Something went wrong', 'Failed to load departments');
             }
         } finally {
             setLoading(false);
@@ -229,9 +223,10 @@ export default function DepartmentsPage() {
         if (!confirm('Delete this department?')) return;
         try {
             await authApi.deleteDepartment(orgId, deptId);
+            showToast.warning('Department deleted');
             load();
         } catch {
-            setError('Failed to delete department');
+            showToast.error('Something went wrong', 'Failed to delete department');
         }
     };
 
@@ -251,12 +246,6 @@ export default function DepartmentsPage() {
                     </CanDo>
                 }
             />
-
-            {error && (
-                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
-                    {error}
-                </div>
-            )}
 
             {loading ? (
                 <div className="flex items-center justify-center py-16 text-gray-400">

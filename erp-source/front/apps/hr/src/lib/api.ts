@@ -127,6 +127,7 @@ export const api = {
     list: () => request<EmployeeResponse[]>("GET", "/api/v1/hr/employees"),
     get: (id: string) => request<EmployeeResponse>("GET", `/api/v1/hr/employees/${encodeURIComponent(id)}`),
     create: (data: Record<string, unknown>) => request<EmployeeResponse>("POST", "/api/v1/hr/employees", data),
+    update: (id: string, data: Record<string, unknown>) => request<EmployeeResponse>("PUT", `/api/v1/hr/employees/${encodeURIComponent(id)}`, data),
     terminate: (id: string, data: { reason: string; terminationDate: string }) =>
       request("POST", `/api/v1/hr/employees/${encodeURIComponent(id)}/terminate`, data),
     transfer: (id: string, data: { departmentId: string; positionId: string; managerId?: string }) =>
