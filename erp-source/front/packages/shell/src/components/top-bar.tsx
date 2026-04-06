@@ -63,7 +63,7 @@ function OrgSelector() {
       }
       if (data?.tenantId) sessionStorage.setItem('tenantId', data.tenantId);
       localStorage.setItem('organizationId', org.id);
-      router.refresh();
+      window.location.replace('/');
     } catch {
       setSwitching(null);
       setSwitchError('Failed to switch organization. Please try again.');

@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
-import { showToast } from '@erp/shell';
+import { showToast, filesApi } from '@erp/shell';
 import PageHeader from '@/components/page-header';
 
 /* ── Avatar helpers ─────────────────────────────────────────────── */
@@ -129,6 +129,7 @@ export default function UserManagementPage() {
 
   /* ── Data state ─── */
   const [users, setUsers] = useState<User[]>([]);
+  const [avatarBlobUrls, setAvatarBlobUrls] = useState<Record<string, string>>({});
   const [roles, setRoles] = useState<Role[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -253,6 +254,19 @@ export default function UserManagementPage() {
 
   // Reset to page 1 when filters change
   useEffect(() => { setPage(1); }, [search, statusFilter, roleFilter]);
+
+  /* ── Avatar blob URLs (authenticated download) ─── */
+  useEffect(() => {
+    setAvatarBlobUrls({});
+    users.forEach((u) => {
+      if (!u.avatarUrl) return;
+      const match = u.avatarUrl.match(/\/api\/v1\/files\/([^/]+)\/download/);
+      if (!match) return;
+      filesApi.download(match[1])
+        .then((blobUrl) => setAvatarBlobUrls((prev) => ({ ...prev, [u.id]: blobUrl })))
+        .catch(() => { });
+    });
+  }, [users]);
 
   /* ── Stats ─── */
   const stats = useMemo(() => ({
@@ -527,8 +541,8 @@ export default function UserManagementPage() {
                       </td>
                       <td className="whitespace-nowrap px-4 py-3.5">
                         <div className="flex items-center gap-3">
-                          {user.avatarUrl
-                            ? <img src={user.avatarUrl} alt={displayName} className="h-9 w-9 shrink-0 rounded-full object-cover shadow-sm" />
+                          {avatarBlobUrls[user.id]
+                            ? <img src={avatarBlobUrls[user.id]} alt={displayName} className="h-9 w-9 shrink-0 rounded-full object-cover shadow-sm" />
                             : <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${avatarGradient(user.email)} text-xs font-bold text-white shadow-sm`}>
                               {getInitials(name, user.email)}
                             </div>

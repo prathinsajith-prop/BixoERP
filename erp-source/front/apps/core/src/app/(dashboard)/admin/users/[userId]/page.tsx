@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
-import { showToast } from '@erp/shell';
+import { showToast, filesApi } from '@erp/shell';
 import PageHeader from '@/components/page-header';
 import CanDo from '@/components/can-do';
 
@@ -76,6 +76,7 @@ export default function UserDetailsPage() {
   const [editFirstName, setEditFirstName] = useState('');
   const [editLastName, setEditLastName] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+  const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null);
 
   const fetchUser = useCallback(async () => {
     setLoading(true); setError(null);
@@ -102,6 +103,13 @@ export default function UserDetailsPage() {
   }, []);
 
   useEffect(() => { fetchUser(); fetchRoles(); }, [fetchUser, fetchRoles]);
+
+  useEffect(() => {
+    if (!user?.avatarUrl) return;
+    const match = user.avatarUrl.match(/\/api\/v1\/files\/([^/]+)\/download/);
+    if (!match) return;
+    filesApi.download(match[1]).then((url) => setAvatarBlobUrl(url)).catch(() => { });
+  }, [user?.avatarUrl]);
 
   const handleAssignRole = async (roleId: string) => {
     setAssigning(true);
@@ -177,8 +185,8 @@ export default function UserDetailsPage() {
         <div className="relative px-6 pb-6">
           <div className="flex flex-col sm:flex-row sm:items-end sm:gap-6">
             <div className="-mt-12 sm:-mt-14">
-              {user.avatarUrl
-                ? <img src={user.avatarUrl} alt={displayName} className="h-24 w-24 rounded-2xl object-cover shadow-lg ring-4 ring-white sm:h-28 sm:w-28 dark:ring-gray-900" />
+              {avatarBlobUrl
+                ? <img src={avatarBlobUrl} alt={displayName} className="h-24 w-24 rounded-2xl object-cover shadow-lg ring-4 ring-white sm:h-28 sm:w-28 dark:ring-gray-900" />
                 : <div className={`flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br ${avatarGradient(user.email)} text-2xl font-bold text-white shadow-lg ring-4 ring-white sm:h-28 sm:w-28 sm:text-3xl dark:ring-gray-900`}>{getInitials(name, user.email)}</div>
               }
             </div>
