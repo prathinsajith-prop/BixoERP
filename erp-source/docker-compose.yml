@@ -48,6 +48,7 @@ services:
       LOCK_DURATION_MINUTES: "30"
       PASSWORD_RESET_TTL_MINUTES: "60"
       CORS_ORIGIN: "*"
+      COOKIE_SECURE: "false"
 
   finance-svc:
     <<: *svc-defaults
