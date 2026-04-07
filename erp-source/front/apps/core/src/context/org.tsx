@@ -6,7 +6,7 @@ import {
     useMemo,
     type ReactNode,
 } from 'react';
-import { useAuthStore } from '@/store/auth';
+import { useAuthStore } from '@erp/shell';
 
 /**
  * Decoded JWT payload fields that relate to org membership.

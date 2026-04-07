@@ -14,16 +14,19 @@ interface Division { id: string; name: string; code: string; description?: strin
 
 export default function DivisionsPage() {
   const router = useRouter();
-  const { orgId } = useOrgContext();
+  const { orgId, isReady } = useOrgContext();
   const [items, setItems] = useState<Division[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const editingIdRef = useRef<string | null>(null);
 
+  const CODE_REGEX = /^[A-Z0-9][A-Z0-9_-]{0,48}[A-Z0-9]$|^[A-Z0-9]$/;
   const formSchema = z.object({
     name: z.string().min(1, 'Name is required'),
-    code: z.string().min(1, 'Code is required').max(50, 'Max 50 chars').transform((v) => v.toUpperCase()),
+    code: z.string().min(1, 'Code is required').max(50, 'Max 50 chars')
+      .transform((v) => v.trim().toUpperCase())
+      .refine((v) => CODE_REGEX.test(v), 'Only uppercase letters, digits, hyphens and underscores — no spaces'),
     description: z.string().optional(),
   });
   type FormData = z.infer<typeof formSchema>;
@@ -100,6 +103,7 @@ export default function DivisionsPage() {
     setShowForm(true);
   };
 
+  if (!isReady) return (<div className="flex min-h-[60vh] items-center justify-center"><div className="h-7 w-7 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" /></div>);
   if (!orgId) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">

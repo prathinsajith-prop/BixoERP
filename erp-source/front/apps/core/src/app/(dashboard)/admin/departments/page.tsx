@@ -15,14 +15,17 @@ interface Division { id: string; name: string }
 
 export default function DepartmentsPage() {
   const router = useRouter();
-  const { orgId } = useOrgContext();
+  const { orgId, isReady } = useOrgContext();
   const [items, setItems] = useState<Department[]>([]);
   const [divisions, setDivisions] = useState<Division[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const CODE_REGEX = /^[A-Z0-9][A-Z0-9_-]{0,48}[A-Z0-9]$|^[A-Z0-9]$/;
   const formSchema = z.object({
     name: z.string().min(1, 'Name is required'),
-    code: z.string().min(1, 'Code is required').max(50, 'Max 50 chars').transform((v) => v.toUpperCase()),
+    code: z.string().min(1, 'Code is required').max(50, 'Max 50 chars')
+      .transform((v) => v.trim().toUpperCase())
+      .refine((v) => CODE_REGEX.test(v), 'Only uppercase letters, digits, hyphens and underscores — no spaces'),
     description: z.string().optional(),
     divisionId: z.string().optional(),
   });
@@ -96,6 +99,7 @@ export default function DepartmentsPage() {
     setShowForm(true);
   };
 
+  if (!isReady) return (<div className="flex min-h-[60vh] items-center justify-center"><div className="h-7 w-7 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" /></div>);
   if (!orgId) return (<div className="flex min-h-[60vh] items-center justify-center"><p className="text-sm text-gray-500 dark:text-gray-400">No organization selected. Go to Organization Settings first.</p></div>);
 
   const deptColumns: TableColumn<Department>[] = [

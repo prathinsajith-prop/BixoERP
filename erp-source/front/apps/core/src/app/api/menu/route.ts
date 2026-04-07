@@ -48,7 +48,8 @@ const PORTAL_MENU: MenuItem[] = [
             { label: 'Divisions', href: '/admin/divisions', icon: 'Layers', position: 2 },
             { label: 'Departments', href: '/admin/departments', icon: 'Layers', position: 3 },
             { label: 'Teams', href: '/admin/teams', icon: 'Users', position: 4 },
-            { label: 'Settings', href: '/organization', icon: 'Settings', position: 5 },
+            { label: 'Roles & Permissions', href: '/admin/roles', icon: 'Shield', permission: 'auth:roles:read', position: 5 },
+            { label: 'Settings', href: '/organization', icon: 'Settings', position: 6 },
         ],
     },
 ];
