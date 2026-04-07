@@ -12,6 +12,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
   ActionButtons,
+  Avatar,
   Button,
   DataTable,
   Dropdown,
@@ -57,20 +58,6 @@ const employeeSchema = z.object({
 type EmployeeFormData = z.infer<typeof employeeSchema>;
 
 // ─── Helpers ──────────────────────────────────────────────────
-const AVATAR_GRADIENTS = [
-  "from-violet-500 to-purple-600", "from-blue-500 to-cyan-500",
-  "from-emerald-500 to-teal-500", "from-rose-500 to-pink-500",
-  "from-amber-500 to-orange-500", "from-indigo-500 to-blue-600",
-  "from-fuchsia-500 to-purple-500", "from-sky-500 to-blue-500",
-];
-function avatarColor(id: string): string {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
-  return AVATAR_GRADIENTS[Math.abs(hash) % AVATAR_GRADIENTS.length];
-}
-function getInitials(first: string, last: string): string {
-  return ((first?.[0] ?? "") + (last?.[0] ?? "")).toUpperCase() || "?";
-}
 function formatJoinDate(d?: string): string {
   if (!d) return "—";
   const dt = new Date(d);
@@ -234,10 +221,10 @@ export default function EmployeesPage() {
   const sortedFiltered = useMemo(() => {
     return [...filtered].sort((a, b) => {
       let aVal = "", bVal = "";
-      if (sortKey === "name")                { aVal = `${a.firstName} ${a.lastName}`; bVal = `${b.firstName} ${b.lastName}`; }
-      else if (sortKey === "employeeCode")   { aVal = a.employeeCode ?? ""; bVal = b.employeeCode ?? ""; }
+      if (sortKey === "name") { aVal = `${a.firstName} ${a.lastName}`; bVal = `${b.firstName} ${b.lastName}`; }
+      else if (sortKey === "employeeCode") { aVal = a.employeeCode ?? ""; bVal = b.employeeCode ?? ""; }
       else if (sortKey === "departmentName") { aVal = a.departmentName ?? ""; bVal = b.departmentName ?? ""; }
-      else if (sortKey === "hireDate")       { aVal = a.hireDate ?? ""; bVal = b.hireDate ?? ""; }
+      else if (sortKey === "hireDate") { aVal = a.hireDate ?? ""; bVal = b.hireDate ?? ""; }
       const cmp = aVal.localeCompare(bVal);
       return sortDirection === "asc" ? cmp : -cmp;
     });
@@ -265,10 +252,7 @@ export default function EmployeesPage() {
     notice: employees.filter((e) => ["NOTICE_PERIOD", "notice_period"].includes(e.status)).length,
   }), [employees]);
 
-  const deptCount = useMemo(
-    () => new Set(employees.map((e) => e.departmentId).filter(Boolean)).size,
-    [employees],
-  );
+  const deptCount = new Set(employees.map((e) => e.departmentId).filter(Boolean)).size;
 
   // Deactivate
   const handleDeactivate = useCallback(async (emp: Employee) => {
@@ -299,9 +283,9 @@ export default function EmployeesPage() {
 
   // Page actions
   const pageActions: ActionButtonItem[] = [
-    { key: "import", label: "Import CSV",   icon: <Upload className="h-3.5 w-3.5" />,   variant: "outline", size: "sm", onClick: () => showToast.success("Coming soon", "CSV import is not yet available.") },
-    { key: "export", label: "Export",       icon: <Download className="h-3.5 w-3.5" />, variant: "outline", size: "sm", onClick: () => showToast.success("Coming soon", "Export is not yet available.") },
-    { key: "create", label: "Add Employee", icon: <Plus className="h-3.5 w-3.5" />,     variant: "primary",  size: "sm", onClick: () => setShowCreate(true) },
+    { key: "import", label: "Import CSV", icon: <Upload className="h-3.5 w-3.5" />, variant: "outline", size: "sm", onClick: () => showToast.success("Coming soon", "CSV import is not yet available.") },
+    { key: "export", label: "Export", icon: <Download className="h-3.5 w-3.5" />, variant: "outline", size: "sm", onClick: () => showToast.success("Coming soon", "Export is not yet available.") },
+    { key: "create", label: "Add Employee", icon: <Plus className="h-3.5 w-3.5" />, variant: "primary", size: "sm", onClick: () => setShowCreate(true) },
   ];
 
   // Filter configs
@@ -314,8 +298,8 @@ export default function EmployeesPage() {
     {
       key: "status", label: "Status", type: "select",
       options: [
-        { value: "ACTIVE", label: "Active" },               { value: "PROBATION",    label: "Probation" },
-        { value: "NOTICE_PERIOD", label: "Notice period" }, { value: "TERMINATED",   label: "Terminated" },
+        { value: "ACTIVE", label: "Active" }, { value: "PROBATION", label: "Probation" },
+        { value: "NOTICE_PERIOD", label: "Notice period" }, { value: "TERMINATED", label: "Terminated" },
       ],
       placeholder: "All statuses",
     },
@@ -323,12 +307,12 @@ export default function EmployeesPage() {
       key: "employmentType", label: "Type", type: "select",
       options: [
         { value: "full_time", label: "Full time" }, { value: "part_time", label: "Part time" },
-        { value: "contract",  label: "Contract" },  { value: "intern",    label: "Intern" },
+        { value: "contract", label: "Contract" }, { value: "intern", label: "Intern" },
       ],
       placeholder: "All types",
     },
     { key: "joinFrom", label: "Joined from", type: "date", placeholder: "Start date" },
-    { key: "joinTo",   label: "Joined to",   type: "date", placeholder: "End date" },
+    { key: "joinTo", label: "Joined to", type: "date", placeholder: "End date" },
   ];
 
   // Table columns
@@ -347,9 +331,7 @@ export default function EmployeesPage() {
       sortable: true,
       render: (emp) => (
         <div className="flex items-center gap-2.5">
-          <div className={`h-8 w-8 shrink-0 rounded-full bg-gradient-to-br ${avatarColor(emp.id)} flex items-center justify-center text-xs font-bold text-white`}>
-            {getInitials(emp.firstName, emp.lastName)}
-          </div>
+          <Avatar name={`${emp.firstName} ${emp.lastName}`} size="sm" />
           <div className="min-w-0">
             <p className="text-sm font-medium truncate" style={{ color: "var(--gogo-text-primary)" }}>{emp.firstName} {emp.lastName}</p>
             <p className="text-xs truncate" style={{ color: "var(--gogo-text-secondary)" }}>{emp.email}</p>
@@ -422,10 +404,10 @@ export default function EmployeesPage() {
       />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <KPICard title="Total headcount"  value={loading ? "—" : String(stats.total)}     icon={<Users className="h-5 w-5" />} />
-        <KPICard title="Active"            value={loading ? "—" : String(stats.active)}    icon={<UserCheck className="h-5 w-5" />} />
-        <KPICard title="On probation"      value={loading ? "—" : String(stats.probation)} icon={<Clock className="h-5 w-5" />} />
-        <KPICard title="On notice period"  value={loading ? "—" : String(stats.notice)}    icon={<AlertCircle className="h-5 w-5" />} />
+        <KPICard title="Total headcount" value={loading ? "—" : String(stats.total)} icon={<Users className="h-5 w-5" />} />
+        <KPICard title="Active" value={loading ? "—" : String(stats.active)} icon={<UserCheck className="h-5 w-5" />} />
+        <KPICard title="On probation" value={loading ? "—" : String(stats.probation)} icon={<Clock className="h-5 w-5" />} />
+        <KPICard title="On notice period" value={loading ? "—" : String(stats.notice)} icon={<AlertCircle className="h-5 w-5" />} />
       </div>
 
       <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
@@ -500,7 +482,7 @@ export default function EmployeesPage() {
               totalItems={totalFiltered}
               pageSize={pageSize}
               pageSizeOptions={[25, 50, 100]}
-              onPageChange={(p) => setPageIndex(p - 1)}
+              onPageChange={(p) => setPageIndex(() => p - 1)}
               onPageSizeChange={(size) => { setPageSize(size); setPageIndex(0); }}
             />
           </>
@@ -509,18 +491,16 @@ export default function EmployeesPage() {
             <ListView<Employee>
               columns={[
                 { key: "departmentName", header: "Department", render: (e) => e.departmentName ?? "—" },
-                { key: "positionTitle",  header: "Position",   render: (e) => e.positionTitle ?? "—" },
-                { key: "hireDate",       header: "Join Date",  render: (e) => formatJoinDate(e.hireDate) },
-                { key: "status",         header: "Status",     render: (e) => <StatusBadge status={e.status} label={e.status.replace(/_/g, " ").toLowerCase()} /> },
+                { key: "positionTitle", header: "Position", render: (e) => e.positionTitle ?? "—" },
+                { key: "hireDate", header: "Join Date", render: (e) => formatJoinDate(e.hireDate) },
+                { key: "status", header: "Status", render: (e) => <StatusBadge status={e.status} label={e.status.replace(/_/g, " ").toLowerCase()} /> },
               ]}
               data={paginatedData}
               keyExtractor={(e) => e.id}
               title={(e) => `${e.firstName} ${e.lastName}`}
               subtitle={(e) => e.employeeCode ? `${e.employeeCode} · ${e.email}` : e.email}
               leading={(e) => (
-                <div className={`h-10 w-10 rounded-full bg-gradient-to-br ${avatarColor(e.id)} flex items-center justify-center text-sm font-bold text-white`}>
-                  {getInitials(e.firstName, e.lastName)}
-                </div>
+                <Avatar name={`${e.firstName} ${e.lastName}`} size="md" />
               )}
               trailing={(e) => <ActionsMenu emp={e} onDeactivate={handleDeactivate} />}
               onRowClick={(e) => router.push(`/employees/${e.id}`)}
@@ -536,7 +516,7 @@ export default function EmployeesPage() {
                 totalItems={totalFiltered}
                 pageSize={pageSize}
                 pageSizeOptions={[25, 50, 100]}
-                onPageChange={(p) => setPageIndex(p - 1)}
+                onPageChange={(p) => setPageIndex(() => p - 1)}
                 onPageSizeChange={(size) => { setPageSize(size); setPageIndex(0); }}
               />
             </div>
@@ -571,13 +551,14 @@ export default function EmployeesPage() {
           paginatedData.map((emp) => (
             <div
               key={emp.id}
+              role="button"
+              tabIndex={0}
               onClick={() => router.push(`/employees/${emp.id}`)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') router.push(`/employees/${emp.id}`); }}
               className="rounded-xl p-4 flex items-center gap-3 cursor-pointer transition-opacity active:opacity-70"
               style={{ backgroundColor: "var(--gogo-surface)", border: "1px solid var(--gogo-divider)" }}
             >
-              <div className={`h-10 w-10 rounded-full bg-gradient-to-br ${avatarColor(emp.id)} flex items-center justify-center text-sm font-bold text-white shrink-0`}>
-                {getInitials(emp.firstName, emp.lastName)}
-              </div>
+              <Avatar name={`${emp.firstName} ${emp.lastName}`} size="md" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate" style={{ color: "var(--gogo-text-primary)" }}>{emp.firstName} {emp.lastName}</p>
                 <p className="text-xs font-mono truncate" style={{ color: "var(--gogo-text-secondary)" }}>{emp.employeeCode ?? "—"}</p>
@@ -593,13 +574,13 @@ export default function EmployeesPage() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <Input label="First Name" error={errors.firstName?.message} {...register("firstName")} />
-            <Input label="Last Name"  error={errors.lastName?.message}  {...register("lastName")} />
+            <Input label="Last Name" error={errors.lastName?.message}  {...register("lastName")} />
           </div>
           <Input label="Email" type="email" error={errors.email?.message} {...register("email")} />
           <Input label="Phone" {...register("phone")} />
           <div className="grid grid-cols-2 gap-4">
             <Input label="Date of Birth" type="date" error={errors.dateOfBirth?.message} {...register("dateOfBirth")} />
-            <Input label="Hire Date"     type="date" error={errors.hireDate?.message}     {...register("hireDate")} />
+            <Input label="Hire Date" type="date" error={errors.hireDate?.message}     {...register("hireDate")} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Select label="Department" error={errors.departmentId?.message}

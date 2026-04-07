@@ -34,10 +34,10 @@ function useClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () =
 }
 
 /* ─── Org type ─── */
-interface OrgRaw { organizationId?: string; id?: string; name: string; slug?: string; role?: string; }
-interface Org { id: string; name: string; slug?: string; role?: string; }
+interface OrgRaw { organizationId?: string; id?: string; name: string; slug?: string; role?: string; logoUrl?: string; }
+interface Org { id: string; name: string; slug?: string; role?: string; logoUrl?: string; }
 function normalizeOrg(o: OrgRaw): Org {
-  return { id: o.organizationId || o.id || '', name: o.name, slug: o.slug, role: o.role };
+  return { id: o.organizationId || o.id || '', name: o.name, slug: o.slug, role: o.role, logoUrl: o.logoUrl };
 }
 
 /* ─── Small icon-only sidebar item ─── */
@@ -108,19 +108,10 @@ function AdminLink({ icon, label, path, active }: { icon: ReactNode; label: stri
 }
 
 /* ─── Org Switcher (inline sidebar version) ─── */
-function SidebarOrgSwitcher({ onToggle, active }: { onToggle: () => void; active: boolean }) {
-  const [currentOrg, setCurrentOrg] = useState<Org | null>(null);
-
-  useEffect(() => {
-    authApi.myOrganizations().then((res: { data?: { data?: OrgRaw[] } }) => {
-      const list = (res.data?.data || []).map(normalizeOrg);
-      const storedId = typeof window !== 'undefined' ? localStorage.getItem('organizationId') : null;
-      setCurrentOrg(list.find((o) => o.id === storedId) || list[0] || null);
-    }).catch(() => { });
-  }, []);
-
+function SidebarOrgSwitcher({ onToggle, active, currentOrg, gradientIdx, logoBlobUrl }: {
+  onToggle: () => void; active: boolean; currentOrg: Org | null; gradientIdx: number; logoBlobUrl?: string | null;
+}) {
   const initial = currentOrg?.name?.charAt(0)?.toUpperCase() || 'O';
-  const idx = currentOrg ? 0 : 0;
 
   return (
     <button
@@ -133,9 +124,13 @@ function SidebarOrgSwitcher({ onToggle, active }: { onToggle: () => void; active
         }`}
       style={active ? { '--tw-ring-color': 'var(--gogo-primary)' } as React.CSSProperties : undefined}
     >
-      <div className={`flex h-full w-full items-center justify-center rounded-xl bg-gradient-to-br ${orgGradient(idx)} text-xs font-bold text-white`}>
-        {initial}
-      </div>
+      {logoBlobUrl ? (
+        <img src={logoBlobUrl} alt={currentOrg?.name} className="h-full w-full rounded-xl object-cover" />
+      ) : (
+        <div className={`flex h-full w-full items-center justify-center rounded-xl bg-gradient-to-br ${orgGradient(gradientIdx)} text-xs font-bold text-white`}>
+          {initial}
+        </div>
+      )}
     </button>
   );
 }
@@ -163,6 +158,7 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
   const [orgName, setOrgName] = useState('');
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [currentOrgId, setCurrentOrgId] = useState<string | null>(null);
+  const [orgLogoBlobUrls, setOrgLogoBlobUrls] = useState<Record<string, string>>({});
   const [switching, setSwitching] = useState<string | null>(null);
 
   useEffect(() => {
@@ -194,6 +190,17 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
         }
       }).catch(() => { });
   }, []);
+
+  useEffect(() => {
+    orgs.forEach((org) => {
+      if (!org.logoUrl) return;
+      const match = org.logoUrl.match(/\/files\/([0-9a-f-]+)\/download/);
+      if (!match) return;
+      filesApi.download(match[1])
+        .then((url: string | null) => { if (url) setOrgLogoBlobUrls((prev) => ({ ...prev, [org.id]: url })); })
+        .catch(() => { });
+    });
+  }, [orgs]);
 
   const handleOrgSwitch = async (org: Org) => {
     if (!org.id || org.id === currentOrgId) return;
@@ -285,8 +292,19 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
         {/* Spacer */}
         <div className="hidden md:block md:flex-1" />
 
+        {/* Org Switcher — above settings */}
+        <div className="mb-1">
+          <SidebarOrgSwitcher
+            onToggle={() => toggle('orgs')}
+            active={activePanel === 'orgs'}
+            currentOrg={orgs.find((o) => o.id === currentOrgId) ?? null}
+            gradientIdx={orgs.findIndex((o) => o.id === currentOrgId)}
+            logoBlobUrl={currentOrgId ? (orgLogoBlobUrls[currentOrgId] ?? null) : null}
+          />
+        </div>
+
         {/* Settings */}
-        <div className={hasModuleMenu ? 'hidden md:block' : ''}>
+        <div className="">
           <SidebarIcon
             icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>}
             label="Settings"
@@ -295,7 +313,7 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
         </div>
 
         {/* Profile avatar */}
-        <button onClick={() => toggle('profile')} title="Profile" className={`md:mt-2 md:mb-1 ${hasModuleMenu ? 'hidden md:block' : ''}`}>
+        <button onClick={() => toggle('profile')} title="Profile" className="md:mt-2 md:mb-1">
           {avatarUrl ? (
             <img src={avatarUrl} alt={displayName} className={`h-9 w-9 rounded-full object-cover ring-2 transition ${activePanel === 'profile' ? '' : 'ring-transparent hover:ring-gray-300 dark:hover:ring-gray-600'}`}
               style={activePanel === 'profile' ? { '--tw-ring-color': 'var(--gogo-primary)' } as React.CSSProperties : undefined} />
@@ -329,6 +347,70 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
             </div>
           </Flyout>
         ))}
+
+        {/* Org Switcher flyout — always available */}
+        <Flyout open={activePanel === 'orgs'} onClose={closePanel} title="Switch Organization">
+          <div className="px-2 py-1">
+            {switching && (
+              <p className="mb-2 text-[10px] text-gray-400 px-1">Switching...</p>
+            )}
+            {orgs.length === 0 && (
+              <p className="px-3 py-2 text-sm text-gray-400">No organizations</p>
+            )}
+            {orgs.map((org, idx) => {
+              const isActive = org.id === currentOrgId;
+              const isSwitching = switching === org.id;
+              const roleColors: Record<string, string> = { OWNER: 'bg-violet-100 text-violet-700', ADMIN: 'bg-blue-100 text-blue-700', MEMBER: 'bg-gray-100 text-gray-600' };
+              const settingsHref = isActive ? '/organization' : `/admin/organizations/${org.id}`;
+              return (
+                <div key={org.id || idx} className="group flex items-center gap-1">
+                  <button onClick={() => handleOrgSwitch(org)} disabled={!!switching}
+                    className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2 py-2 text-left transition
+                        ${isActive ? '' : 'hover:bg-gray-50 dark:hover:bg-white/5'}
+                        ${isSwitching ? 'opacity-60' : ''}`}
+                    style={isActive ? { backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 8%, transparent)' } : undefined}>
+                    {orgLogoBlobUrls[org.id] ? (
+                      <img src={orgLogoBlobUrls[org.id]} alt={org.name} className="h-7 w-7 shrink-0 rounded-lg object-cover" />
+                    ) : (
+                      <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${orgGradient(idx)} text-[11px] font-bold text-white`}>
+                        {org.name?.charAt(0)?.toUpperCase() || 'O'}
+                      </div>
+                    )}
+                    <p className={`min-w-0 flex-1 truncate text-sm font-medium ${isActive ? '' : 'text-gray-700 dark:text-gray-300'}`}
+                      style={isActive ? { color: 'var(--gogo-primary-dark)' } : undefined}>
+                      {org.name}
+                    </p>
+                    {org.role && <span className={`shrink-0 rounded-full px-1.5 py-px text-[9px] font-bold uppercase ${roleColors[org.role.toUpperCase()] ?? roleColors.MEMBER}`}>{org.role}</span>}
+                    {isActive && <svg className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--gogo-primary)' }} fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
+                    {isSwitching && <svg className="h-3.5 w-3.5 shrink-0 animate-spin" style={{ color: 'var(--gogo-primary)' }} fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
+                  </button>
+                  <a
+                    href={settingsHref}
+                    onClick={(e) => { e.stopPropagation(); closePanel(); }}
+                    title={`${org.name} settings`}
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition hover:bg-gray-100 dark:hover:bg-white/10"
+                    style={{ color: 'var(--gogo-text-secondary)' }}
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </a>
+                </div>
+              );
+            })}
+            {orgs.length > 0 && (
+              <>
+                <div className="my-2 border-t border-gray-100 dark:border-gray-700" />
+                <a href="/organization/new" className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-gray-50 dark:hover:bg-white/5"
+                  style={{ color: 'var(--gogo-primary)' }}>
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                  Add Organization
+                </a>
+              </>
+            )}
+          </div>
+        </Flyout>
 
         {/* Users & Roles */}
         {!hasModuleMenu && (

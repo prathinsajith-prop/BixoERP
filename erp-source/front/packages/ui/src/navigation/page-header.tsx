@@ -2,7 +2,7 @@
 
 import React from "react";
 
-interface PageHeaderProps {
+export interface PageHeaderProps {
   title: string;
   description?: string;
   actions?: React.ReactNode;

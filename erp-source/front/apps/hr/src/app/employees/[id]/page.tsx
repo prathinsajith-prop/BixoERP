@@ -7,7 +7,7 @@ import {
     Mail, Phone, Calendar, Building2, Briefcase, Users,
     DollarSign, Clock, FileText, ChevronRight,
 } from "lucide-react";
-import { Button, LoadingSpinner, DataTable, Tabs, type TableColumn } from "@erp/ui";
+import { Avatar, Button, LoadingSpinner, DataTable, Tabs, type TableColumn } from "@erp/ui";
 import { showToast } from "@erp/shell";
 import {
     api,
@@ -42,10 +42,6 @@ const LEAVE_STATUS_STYLES: Record<string, string> = {
     REJECTED: "bg-red-100 text-red-800",
     CANCELLED: "bg-gray-100 text-gray-800",
 };
-
-function initials(first: string, last: string): string {
-    return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase();
-}
 
 function daysSince(dateStr: string): number {
     const d = new Date(dateStr);
@@ -389,10 +385,7 @@ export default function EmployeeDetailPage() {
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                     {/* Avatar */}
-                    <div className="w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center
-            text-primary-700 dark:text-primary-300 font-bold text-xl shrink-0">
-                        {initials(emp.firstName, emp.lastName)}
-                    </div>
+                    <Avatar name={`${emp.firstName} ${emp.lastName}`} size="2xl" shape="rounded" />
 
                     {/* Name + meta */}
                     <div className="flex-1 min-w-0">

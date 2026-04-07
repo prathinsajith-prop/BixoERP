@@ -10,9 +10,7 @@ import { useAuthStore } from '@/store/auth';
 import { authApi } from '@/lib/api/auth';
 import { filesApi } from '@/lib/api/files';
 import { showToast } from '@erp/shell';
-import { Tabs } from '@erp/ui';
-import Input from '@/components/ui/input';
-import Button from '@/components/ui/button';
+import { Tabs, Input, Button } from '@erp/ui';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),

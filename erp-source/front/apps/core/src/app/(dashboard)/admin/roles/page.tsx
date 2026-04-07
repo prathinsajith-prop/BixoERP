@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import PageHeader from '@/components/page-header';
+import { Input, Textarea } from '@erp/ui';
 import { authApi } from '@/lib/api/auth';
 import { toast } from 'sonner';
 
@@ -160,12 +161,10 @@ export default function RolesPage() {
 
               <div className="mt-5 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Role Name</label>
-                  <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="e.g. Editor, Viewer, Manager" className="mt-1 w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
+                  <Input label="Role Name" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="e.g. Editor, Viewer, Manager" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
-                  <textarea value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder="Brief description of this role..." rows={2} className="mt-1 w-full resize-none rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
+                  <Textarea label="Description" value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder="Brief description of this role..." rows={2} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Permissions</label>

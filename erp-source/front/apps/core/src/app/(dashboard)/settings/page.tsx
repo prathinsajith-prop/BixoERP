@@ -5,6 +5,7 @@ import { useTheme, showToast } from '@erp/shell';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
 import PageHeader from '@/components/page-header';
+import { Card, CardHeader, Switch, Slider, Select, Input, Button } from '@erp/ui';
 
 const SIDEBAR_ITEMS = [
   { key: 'appearance', label: 'Appearance', icon: 'M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008z' },
@@ -32,49 +33,32 @@ const SHORTCUTS = [
   { keys: ['⌘', 'B'], action: 'Toggle notifications' },
 ];
 
-function SettingSection({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 dark:bg-gray-900 dark:ring-gray-800">
-      <div className="mb-5">
-        <h3 className="text-base font-semibold text-gray-900 dark:text-white">{title}</h3>
-        <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{description}</p>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function Toggle({ label, description, checked, onChange }: { label: string; description?: string; checked: boolean; onChange: (v: boolean) => void }) {
+function SettingToggle({ label, description, checked, onChange }: { label: string; description?: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <div className="flex items-center justify-between py-3">
       <div>
-        <p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p>
-        {description && <p className="text-xs text-gray-500 dark:text-gray-400">{description}</p>}
+        <p className="text-sm font-medium" style={{ color: 'var(--gogo-text-primary)' }}>{label}</p>
+        {description && <p className="text-xs" style={{ color: 'var(--gogo-text-secondary)' }}>{description}</p>}
       </div>
-      <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition ${checked ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}>
-        <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
-      </button>
+      <Switch checked={checked} onChange={onChange} />
     </div>
   );
 }
 
-function Slider({ label, description, value, onChange, min = 0, max = 100, unit = '' }: { label: string; description?: string; value: number; onChange: (v: number) => void; min?: number; max?: number; unit?: string }) {
+function SettingSlider({ label, description, value, onChange, min = 0, max = 100, unit = '' }: { label: string; description?: string; value: number; onChange: (v: number) => void; min?: number; max?: number; unit?: string }) {
   return (
     <div className="py-3">
       <div className="mb-2 flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p>
-          {description && <p className="text-xs text-gray-500 dark:text-gray-400">{description}</p>}
+          <p className="text-sm font-medium" style={{ color: 'var(--gogo-text-primary)' }}>{label}</p>
+          {description && <p className="text-xs" style={{ color: 'var(--gogo-text-secondary)' }}>{description}</p>}
         </div>
-        <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">{value}{unit}</span>
+        <span className="text-sm font-semibold" style={{ color: 'var(--gogo-primary)' }}>{value}{unit}</span>
       </div>
-      <input type="range" min={min} max={max} value={value} onChange={(e) => onChange(Number(e.target.value))} className="h-2 w-full cursor-pointer appearance-none rounded-full bg-gray-200 accent-blue-600 dark:bg-gray-700" />
+      <Slider value={value} onChange={(v) => onChange(v as number)} min={min} max={max} showValue={false} />
     </div>
   );
 }
-
-const selectClass = "block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white";
-const labelClass = "mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -331,7 +315,7 @@ export default function SettingsPage() {
 
             {/* Appearance */}
             {activeSection === 'appearance' && (<>
-              <SettingSection title="Theme" description="Choose your preferred color scheme.">
+              <Card><CardHeader title="Theme" description="Choose your preferred color scheme." />
                 <div className="flex gap-3">
                   {[{ key: 'light', emoji: '☀️' }, { key: 'dark', emoji: '🌙' }, { key: 'system', emoji: '💻' }].map((t) => (
                     <button key={t.key} onClick={() => setTheme(t.key)} className={`flex-1 rounded-xl border-2 px-4 py-4 text-center transition ${theme === t.key ? btnActive : btnInactive}`}>
@@ -340,8 +324,8 @@ export default function SettingsPage() {
                     </button>
                   ))}
                 </div>
-              </SettingSection>
-              <SettingSection title="Accent Color" description="Personalize the primary color across the interface.">
+              </Card>
+              <Card><CardHeader title="Accent Color" description="Personalize the primary color across the interface." />
                 <div className="flex flex-wrap gap-3">
                   {ACCENT_COLORS.map((c) => (
                     <button key={c.key} onClick={() => setAccentColor(c.key)} className={`flex h-10 w-10 items-center justify-center rounded-full transition ${c.color} ${accentColor === c.key ? 'ring-2 ring-offset-2 ring-gray-900 scale-110 dark:ring-white' : 'hover:scale-105'}`}>
@@ -349,58 +333,55 @@ export default function SettingsPage() {
                     </button>
                   ))}
                 </div>
-              </SettingSection>
-              <SettingSection title="Layout & Display" description="Adjust the interface density and behavior.">
-                <Slider label="Font size" description="Adjust the base text size" value={fontSize} onChange={setFontSize} min={10} max={20} unit="px" />
+              </Card>
+              <Card><CardHeader title="Layout & Display" description="Adjust the interface density and behavior." />
+                <SettingSlider label="Font size" description="Adjust the base text size" value={fontSize} onChange={setFontSize} min={10} max={20} unit="px" />
                 <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  <Toggle label="Compact mode" description="Reduce spacing and padding" checked={compactMode} onChange={setCompactMode} />
-                  <Toggle label="Animations" description="Enable transitions and motion effects" checked={animationsEnabled} onChange={setAnimationsEnabled} />
-                  <Toggle label="Reduced motion" description="Minimize non-essential movement" checked={reducedMotion} onChange={setReducedMotion} />
+                  <SettingToggle label="Compact mode" description="Reduce spacing and padding" checked={compactMode} onChange={setCompactMode} />
+                  <SettingToggle label="Animations" description="Enable transitions and motion effects" checked={animationsEnabled} onChange={setAnimationsEnabled} />
+                  <SettingToggle label="Reduced motion" description="Minimize non-essential movement" checked={reducedMotion} onChange={setReducedMotion} />
                 </div>
 
-              </SettingSection>
+              </Card>
             </>)}
 
             {/* Notifications */}
             {activeSection === 'notifications' && (<>
-              <SettingSection title="Channels" description="Control how you receive notifications.">
+              <Card><CardHeader title="Channels" description="Control how you receive notifications." />
                 <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  <Toggle label="Email notifications" description="Receive important updates via email" checked={emailNotifs} onChange={setEmailNotifs} />
-                  <Toggle label="Push notifications" description="Get real-time alerts in your browser" checked={pushNotifs} onChange={setPushNotifs} />
-                  <Toggle label="Desktop notifications" description="Show native desktop notification popups" checked={desktopNotifs} onChange={setDesktopNotifs} />
-                  <Toggle label="Sound alerts" description="Play a sound for incoming notifications" checked={soundEnabled} onChange={setSoundEnabled} />
+                  <SettingToggle label="Email notifications" description="Receive important updates via email" checked={emailNotifs} onChange={setEmailNotifs} />
+                  <SettingToggle label="Push notifications" description="Get real-time alerts in your browser" checked={pushNotifs} onChange={setPushNotifs} />
+                  <SettingToggle label="Desktop notifications" description="Show native desktop notification popups" checked={desktopNotifs} onChange={setDesktopNotifs} />
+                  <SettingToggle label="Sound alerts" description="Play a sound for incoming notifications" checked={soundEnabled} onChange={setSoundEnabled} />
                 </div>
                 {soundEnabled && (
                   <div className="mt-4">
-                    <label className={labelClass}>Notification sound</label>
-                    <select value={notifSound} onChange={(e) => setNotifSound(e.target.value)} className={selectClass}>
-                      <option value="default">Default</option><option value="chime">Chime</option><option value="ping">Ping</option><option value="pop">Pop</option><option value="bell">Bell</option><option value="none">None</option>
-                    </select>
+                    <Select label="Notification sound" value={notifSound} onChange={(e) => setNotifSound(e.target.value)} options={[{ value: 'default', label: 'Default' }, { value: 'chime', label: 'Chime' }, { value: 'ping', label: 'Ping' }, { value: 'pop', label: 'Pop' }, { value: 'bell', label: 'Bell' }, { value: 'none', label: 'None' }]} />
                   </div>
                 )}
-              </SettingSection>
-              <SettingSection title="Activity Types" description="Choose which events trigger notifications.">
+              </Card>
+              <Card><CardHeader title="Activity Types" description="Choose which events trigger notifications." />
                 <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  <Toggle label="@Mentions" description="When someone mentions you" checked={mentionNotifs} onChange={setMentionNotifs} />
-                  <Toggle label="Task assignments" description="When a task is assigned to you" checked={taskNotifs} onChange={setTaskNotifs} />
-                  <Toggle label="Module updates" description="Changes in modules you're subscribed to" checked={moduleUpdates} onChange={setModuleUpdates} />
-                  <Toggle label="Weekly digest" description="Summary of activity every Monday" checked={weeklyDigest} onChange={setWeeklyDigest} />
+                  <SettingToggle label="@Mentions" description="When someone mentions you" checked={mentionNotifs} onChange={setMentionNotifs} />
+                  <SettingToggle label="Task assignments" description="When a task is assigned to you" checked={taskNotifs} onChange={setTaskNotifs} />
+                  <SettingToggle label="Module updates" description="Changes in modules you're subscribed to" checked={moduleUpdates} onChange={setModuleUpdates} />
+                  <SettingToggle label="Weekly digest" description="Summary of activity every Monday" checked={weeklyDigest} onChange={setWeeklyDigest} />
                 </div>
-              </SettingSection>
-              <SettingSection title="Quiet Hours" description="Pause notifications during specific times.">
-                <Toggle label="Enable quiet hours" description="Silence all notifications during the set period" checked={quietHoursEnabled} onChange={setQuietHoursEnabled} />
+              </Card>
+              <Card><CardHeader title="Quiet Hours" description="Pause notifications during specific times." />
+                <SettingToggle label="Enable quiet hours" description="Silence all notifications during the set period" checked={quietHoursEnabled} onChange={setQuietHoursEnabled} />
                 {quietHoursEnabled && (
                   <div className="mt-3 grid grid-cols-2 gap-4">
-                    <div><label className={labelClass}>Start time</label><input type="time" value={quietStart} onChange={(e) => setQuietStart(e.target.value)} className={selectClass} /></div>
-                    <div><label className={labelClass}>End time</label><input type="time" value={quietEnd} onChange={(e) => setQuietEnd(e.target.value)} className={selectClass} /></div>
+                    <div><Input type="time" label="Start time" value={quietStart} onChange={(e) => setQuietStart(e.target.value)} /></div>
+                    <div><Input type="time" label="End time" value={quietEnd} onChange={(e) => setQuietEnd(e.target.value)} /></div>
                   </div>
                 )}
-              </SettingSection>
+              </Card>
             </>)}
 
             {/* Security */}
             {activeSection === 'security' && (<>
-              <SettingSection title="Authentication" description="Strengthen your account security.">
+              <Card><CardHeader title="Authentication" description="Strengthen your account security." />
                 <div className="divide-y divide-gray-100 dark:divide-gray-800">
                   <div className="flex items-center justify-between py-3">
                     <div><p className="text-sm font-medium text-gray-900 dark:text-white">Two-factor authentication</p><p className="text-xs text-gray-500 dark:text-gray-400">Add an extra layer of security</p></div>
@@ -411,70 +392,62 @@ export default function SettingsPage() {
                       </button>
                     </div>
                   </div>
-                  <Toggle label="Biometric login" description="Use fingerprint or face ID" checked={biometricLogin} onChange={setBiometricLogin} />
-                  <Toggle label="Login alerts" description="Email alert from new device" checked={loginAlerts} onChange={setLoginAlerts} />
-                  <Toggle label="IP whitelisting" description="Restrict to specific IPs" checked={ipWhitelisting} onChange={setIpWhitelisting} />
+                  <SettingToggle label="Biometric login" description="Use fingerprint or face ID" checked={biometricLogin} onChange={setBiometricLogin} />
+                  <SettingToggle label="Login alerts" description="Email alert from new device" checked={loginAlerts} onChange={setLoginAlerts} />
+                  <SettingToggle label="IP whitelisting" description="Restrict to specific IPs" checked={ipWhitelisting} onChange={setIpWhitelisting} />
                 </div>
-              </SettingSection>
-              <SettingSection title="Session Management" description="Control session behavior and expiry.">
-                <Slider label="Session timeout" description="Auto-logout after inactivity" value={sessionTimeout} onChange={setSessionTimeout} min={5} max={120} unit=" min" />
-                <div className="mt-4"><label className={labelClass}>Password expiry</label>
-                  <select value={passwordExpiry} onChange={(e) => setPasswordExpiry(e.target.value)} className={selectClass}>
-                    <option value="30">Every 30 days</option><option value="60">Every 60 days</option><option value="90">Every 90 days</option><option value="180">Every 180 days</option><option value="never">Never</option>
-                  </select>
+              </Card>
+              <Card><CardHeader title="Session Management" description="Control session behavior and expiry." />
+                <SettingSlider label="Session timeout" description="Auto-logout after inactivity" value={sessionTimeout} onChange={setSessionTimeout} min={5} max={120} unit=" min" />
+                <div className="mt-4">
+                  <Select label="Password expiry" value={passwordExpiry} onChange={(e) => setPasswordExpiry(e.target.value)} options={[{ value: '30', label: 'Every 30 days' }, { value: '60', label: 'Every 60 days' }, { value: '90', label: 'Every 90 days' }, { value: '180', label: 'Every 180 days' }, { value: 'never', label: 'Never' }]} />
                 </div>
-              </SettingSection>
-              <SettingSection title="Password" description="Update your account password.">
+              </Card>
+              <Card><CardHeader title="Password" description="Update your account password." />
                 <button onClick={() => router.push('/change-password')} className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
                   Change Password
                 </button>
-              </SettingSection>
+              </Card>
             </>)}
 
             {/* Privacy */}
             {activeSection === 'privacy' && (<>
-              <SettingSection title="Profile Visibility" description="Control who can see your profile.">
-                <div className="mb-4"><label className={labelClass}>Who can view your profile</label>
-                  <select value={profileVisibility} onChange={(e) => setProfileVisibility(e.target.value)} className={selectClass}>
-                    <option value="everyone">Everyone in organization</option><option value="team">My team only</option><option value="private">Only me</option>
-                  </select>
+              <Card><CardHeader title="Profile Visibility" description="Control who can see your profile." />
+                <div className="mb-4">
+                  <Select label="Who can view your profile" value={profileVisibility} onChange={(e) => setProfileVisibility(e.target.value)} options={[{ value: 'everyone', label: 'Everyone in organization' }, { value: 'team', label: 'My team only' }, { value: 'private', label: 'Only me' }]} />
                 </div>
                 <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  <Toggle label="Show email address" description="Display email on profile" checked={showEmail} onChange={setShowEmail} />
-                  <Toggle label="Show phone number" description="Display phone on profile" checked={showPhone} onChange={setShowPhone} />
-                  <Toggle label="Appear in search results" description="Allow others to find you" checked={searchable} onChange={setSearchable} />
+                  <SettingToggle label="Show email address" description="Display email on profile" checked={showEmail} onChange={setShowEmail} />
+                  <SettingToggle label="Show phone number" description="Display phone on profile" checked={showPhone} onChange={setShowPhone} />
+                  <SettingToggle label="Appear in search results" description="Allow others to find you" checked={searchable} onChange={setSearchable} />
                 </div>
-              </SettingSection>
-              <SettingSection title="Activity & Status" description="Manage what others see about your activity.">
+              </Card>
+              <Card><CardHeader title="Activity & Status" description="Manage what others see about your activity." />
                 <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  <Toggle label="Online activity status" description="Show when you're active" checked={activityStatus} onChange={setActivityStatus} />
-                  <Toggle label="Read receipts" description="Let others know you've seen messages" checked={readReceipts} onChange={setReadReceipts} />
+                  <SettingToggle label="Online activity status" description="Show when you're active" checked={activityStatus} onChange={setActivityStatus} />
+                  <SettingToggle label="Read receipts" description="Let others know you've seen messages" checked={readReceipts} onChange={setReadReceipts} />
                 </div>
-              </SettingSection>
-              <SettingSection title="Data Usage" description="Control how your data is used.">
+              </Card>
+              <Card><CardHeader title="Data Usage" description="Control how your data is used." />
                 <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  <Toggle label="Usage analytics" description="Share anonymized usage data" checked={analyticsOptIn} onChange={setAnalyticsOptIn} />
-                  <Toggle label="Third-party data sharing" description="Allow sharing with trusted partners" checked={dataSharing} onChange={setDataSharing} />
+                  <SettingToggle label="Usage analytics" description="Share anonymized usage data" checked={analyticsOptIn} onChange={setAnalyticsOptIn} />
+                  <SettingToggle label="Third-party data sharing" description="Allow sharing with trusted partners" checked={dataSharing} onChange={setDataSharing} />
                 </div>
-              </SettingSection>
+              </Card>
             </>)}
 
             {/* Language & Region */}
             {activeSection === 'language' && (<>
-              <SettingSection title="Language" description="Set your preferred interface language.">
-                <select value={language} onChange={(e) => setLanguage(e.target.value)} className={selectClass}>
-                  <option value="en">English</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="ar">العربية</option><option value="zh">中文</option><option value="ja">日本語</option><option value="hi">हिन्दी</option><option value="ko">한국어</option><option value="it">Italiano</option><option value="nl">Nederlands</option><option value="ru">Русский</option><option value="tr">Türkçe</option>
-                </select>
-              </SettingSection>
-              <SettingSection title="Timezone & Calendar" description="Configure date, time, and calendar preferences.">
+              <Card><CardHeader title="Language" description="Set your preferred interface language." />
+                <Select value={language} onChange={(e) => setLanguage(e.target.value)} options={[{ value: 'en', label: 'English' }, { value: 'es', label: 'Español' }, { value: 'fr', label: 'Français' }, { value: 'de', label: 'Deutsch' }, { value: 'pt', label: 'Português' }, { value: 'ar', label: 'العربية' }, { value: 'zh', label: '中文' }, { value: 'ja', label: '日本語' }, { value: 'hi', label: 'हिन्दी' }, { value: 'ko', label: '한국어' }, { value: 'it', label: 'Italiano' }, { value: 'nl', label: 'Nederlands' }, { value: 'ru', label: 'Русский' }, { value: 'tr', label: 'Türkçe' }]} />
+              </Card>
+              <Card><CardHeader title="Timezone & Calendar" description="Configure date, time, and calendar preferences." />
                 <div className="space-y-4">
-                  <div><label className={labelClass}>Timezone</label>
-                    <select value={timezone} onChange={(e) => setTimezone(e.target.value)} className={selectClass}>
-                      <option value="UTC">UTC</option><option value="America/New_York">Eastern Time</option><option value="America/Chicago">Central Time</option><option value="America/Denver">Mountain Time</option><option value="America/Los_Angeles">Pacific Time</option><option value="Europe/London">London (GMT)</option><option value="Europe/Paris">Paris (CET)</option><option value="Asia/Kolkata">India (IST)</option><option value="Asia/Tokyo">Tokyo (JST)</option><option value="Asia/Dubai">Dubai (GST)</option><option value="Australia/Sydney">Sydney (AEST)</option>
-                    </select>
+                  <div>
+                    <Select label="Timezone" value={timezone} onChange={(e) => setTimezone(e.target.value)} options={[{ value: 'UTC', label: 'UTC' }, { value: 'America/New_York', label: 'Eastern Time' }, { value: 'America/Chicago', label: 'Central Time' }, { value: 'America/Denver', label: 'Mountain Time' }, { value: 'America/Los_Angeles', label: 'Pacific Time' }, { value: 'Europe/London', label: 'London (GMT)' }, { value: 'Europe/Paris', label: 'Paris (CET)' }, { value: 'Asia/Kolkata', label: 'India (IST)' }, { value: 'Asia/Tokyo', label: 'Tokyo (JST)' }, { value: 'Asia/Dubai', label: 'Dubai (GST)' }, { value: 'Australia/Sydney', label: 'Sydney (AEST)' }]} />
                   </div>
-                  <div><label className={labelClass}>First day of week</label>
+                  <div><p className="mb-1.5 text-sm font-medium" style={{ color: 'var(--gogo-text-primary)' }}>First day of week</p>
                     <div className="flex gap-3">
                       {['sunday', 'monday', 'saturday'].map((day) => (
                         <button key={day} onClick={() => setFirstDayOfWeek(day)} className={`flex-1 rounded-lg border-2 px-3 py-2 text-center text-sm font-medium capitalize transition ${firstDayOfWeek === day ? btnActive : btnInactive}`}>{day}</button>
@@ -482,17 +455,17 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 </div>
-              </SettingSection>
-              <SettingSection title="Formatting" description="Set how dates, times, numbers, and currency are displayed.">
+              </Card>
+              <Card><CardHeader title="Formatting" description="Set how dates, times, numbers, and currency are displayed." />
                 <div className="space-y-4">
-                  <div><label className={labelClass}>Date format</label>
+                  <div><p className="mb-1.5 text-sm font-medium" style={{ color: 'var(--gogo-text-primary)' }}>Date format</p>
                     <div className="flex flex-wrap gap-3">
                       {['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD'].map((fmt) => (
                         <button key={fmt} onClick={() => setDateFormat(fmt)} className={`rounded-lg border-2 px-3 py-2 text-xs font-mono font-medium transition ${dateFormat === fmt ? btnActive : btnInactive}`}>{fmt}</button>
                       ))}
                     </div>
                   </div>
-                  <div><label className={labelClass}>Time format</label>
+                  <div><p className="mb-1.5 text-sm font-medium" style={{ color: 'var(--gogo-text-primary)' }}>Time format</p>
                     <div className="flex gap-3">
                       {[{ key: '12h', label: '12 hour (3:30 PM)' }, { key: '24h', label: '24 hour (15:30)' }].map((f) => (
                         <button key={f.key} onClick={() => setTimeFormat(f.key)} className={`flex-1 rounded-lg border-2 px-3 py-2 text-sm font-medium transition ${timeFormat === f.key ? btnActive : btnInactive}`}>{f.label}</button>
@@ -500,36 +473,36 @@ export default function SettingsPage() {
                     </div>
                   </div>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div><label className={labelClass}>Number format</label><select value={numberFormat} onChange={(e) => setNumberFormat(e.target.value)} className={selectClass}><option value="1,000.00">1,000.00</option><option value="1.000,00">1.000,00</option><option value="1 000.00">1 000.00</option></select></div>
-                    <div><label className={labelClass}>Currency</label><select value={currency} onChange={(e) => setCurrency(e.target.value)} className={selectClass}><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option><option value="INR">INR (₹)</option><option value="JPY">JPY (¥)</option><option value="AUD">AUD (A$)</option><option value="CAD">CAD (C$)</option><option value="AED">AED (د.إ)</option><option value="BRL">BRL (R$)</option><option value="SGD">SGD (S$)</option></select></div>
+                    <div><Select label="Number format" value={numberFormat} onChange={(e) => setNumberFormat(e.target.value)} options={[{ value: '1,000.00', label: '1,000.00' }, { value: '1.000,00', label: '1.000,00' }, { value: '1 000.00', label: '1 000.00' }]} /></div>
+                    <div><Select label="Currency" value={currency} onChange={(e) => setCurrency(e.target.value)} options={[{ value: 'USD', label: 'USD ($)' }, { value: 'EUR', label: 'EUR (€)' }, { value: 'GBP', label: 'GBP (£)' }, { value: 'INR', label: 'INR (₹)' }, { value: 'JPY', label: 'JPY (¥)' }, { value: 'AUD', label: 'AUD (A$)' }, { value: 'CAD', label: 'CAD (C$)' }, { value: 'AED', label: 'AED (د.إ)' }, { value: 'BRL', label: 'BRL (R$)' }, { value: 'SGD', label: 'SGD (S$)' }]} /></div>
                   </div>
                 </div>
-              </SettingSection>
+              </Card>
             </>)}
 
             {/* Accessibility */}
             {activeSection === 'accessibility' && (<>
-              <SettingSection title="Visual" description="Adjust visual settings for better readability.">
+              <Card><CardHeader title="Visual" description="Adjust visual settings for better readability." />
                 <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  <Toggle label="High contrast mode" description="Increase contrast for better visibility" checked={highContrast} onChange={setHighContrast} />
-                  <Toggle label="Increased text spacing" description="Add more space between letters and lines" checked={textSpacing} onChange={setTextSpacing} />
-                  <Toggle label="Focus indicators" description="Show visible outlines on focused elements" checked={focusIndicators} onChange={setFocusIndicators} />
+                  <SettingToggle label="High contrast mode" description="Increase contrast for better visibility" checked={highContrast} onChange={setHighContrast} />
+                  <SettingToggle label="Increased text spacing" description="Add more space between letters and lines" checked={textSpacing} onChange={setTextSpacing} />
+                  <SettingToggle label="Focus indicators" description="Show visible outlines on focused elements" checked={focusIndicators} onChange={setFocusIndicators} />
                 </div>
-              </SettingSection>
-              <SettingSection title="Interaction" description="Customize how you interact with the interface.">
+              </Card>
+              <Card><CardHeader title="Interaction" description="Customize how you interact with the interface." />
                 <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  <Toggle label="Keyboard navigation" description="Full interface navigation via keyboard" checked={keyboardNavigation} onChange={setKeyboardNavigation} />
-                  <Toggle label="Screen reader optimized" description="Optimize layout for screen readers" checked={screenReaderOptimized} onChange={setScreenReaderOptimized} />
-                  <Toggle label="Auto-play media" description="Automatically play videos and animations" checked={autoplayMedia} onChange={setAutoplayMedia} />
-                  <Toggle label="Closed captions" description="Show captions on video and audio content" checked={captionsEnabled} onChange={setCaptionsEnabled} />
+                  <SettingToggle label="Keyboard navigation" description="Full interface navigation via keyboard" checked={keyboardNavigation} onChange={setKeyboardNavigation} />
+                  <SettingToggle label="Screen reader optimized" description="Optimize layout for screen readers" checked={screenReaderOptimized} onChange={setScreenReaderOptimized} />
+                  <SettingToggle label="Auto-play media" description="Automatically play videos and animations" checked={autoplayMedia} onChange={setAutoplayMedia} />
+                  <SettingToggle label="Closed captions" description="Show captions on video and audio content" checked={captionsEnabled} onChange={setCaptionsEnabled} />
                 </div>
-                <Slider label="Tooltip delay" description="Time before tooltips appear" value={tooltipDelay} onChange={setTooltipDelay} min={0} max={2000} unit="ms" />
-              </SettingSection>
+                <SettingSlider label="Tooltip delay" description="Time before tooltips appear" value={tooltipDelay} onChange={setTooltipDelay} min={0} max={2000} unit="ms" />
+              </Card>
             </>)}
 
             {/* Data & Storage */}
             {activeSection === 'data' && (<>
-              <SettingSection title="Storage Usage" description="Monitor your data storage consumption.">
+              <Card><CardHeader title="Storage Usage" description="Monitor your data storage consumption." />
                 <div className="mb-4">
                   <div className="mb-2 flex items-end justify-between">
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">{storageUsed} GB</p>
@@ -542,20 +515,20 @@ export default function SettingsPage() {
                     <div key={item.label} className={`rounded-xl px-3 py-2.5 text-center ${item.color}`}><p className="text-xs font-medium">{item.label}</p><p className="text-sm font-bold">{item.size}</p></div>
                   ))}
                 </div>
-              </SettingSection>
-              <SettingSection title="Auto-Save" description="Automatically save your work at regular intervals.">
-                <Toggle label="Enable auto-save" description="Automatically save unsaved changes" checked={autoSave} onChange={setAutoSave} />
-                {autoSave && <Slider label="Save interval" description="How often to auto-save" value={autoSaveInterval} onChange={setAutoSaveInterval} min={1} max={30} unit=" min" />}
-              </SettingSection>
-              <SettingSection title="Cache & Offline" description="Manage cached data and offline access.">
+              </Card>
+              <Card><CardHeader title="Auto-Save" description="Automatically save your work at regular intervals." />
+                <SettingToggle label="Enable auto-save" description="Automatically save unsaved changes" checked={autoSave} onChange={setAutoSave} />
+                {autoSave && <SettingSlider label="Save interval" description="How often to auto-save" value={autoSaveInterval} onChange={setAutoSaveInterval} min={1} max={30} unit=" min" />}
+              </Card>
+              <Card><CardHeader title="Cache & Offline" description="Manage cached data and offline access." />
                 <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  <Toggle label="Enable caching" description="Cache data locally for faster loading" checked={cacheEnabled} onChange={setCacheEnabled} />
-                  <Toggle label="Offline mode" description="Access recently viewed data without internet" checked={offlineMode} onChange={setOfflineMode} />
+                  <SettingToggle label="Enable caching" description="Cache data locally for faster loading" checked={cacheEnabled} onChange={setCacheEnabled} />
+                  <SettingToggle label="Offline mode" description="Access recently viewed data without internet" checked={offlineMode} onChange={setOfflineMode} />
                 </div>
                 <div className="mt-4"><button className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800">Clear Cache</button></div>
-              </SettingSection>
-              <SettingSection title="Export Data" description="Download your data in various formats.">
-                <div className="mb-4"><label className={labelClass}>Export format</label>
+              </Card>
+              <Card><CardHeader title="Export Data" description="Download your data in various formats." />
+                <div className="mb-4"><p className="mb-1.5 text-sm font-medium" style={{ color: 'var(--gogo-text-primary)' }}>Export format</p>
                   <div className="flex flex-wrap gap-3">
                     {['csv', 'json', 'xlsx', 'pdf'].map((fmt) => (
                       <button key={fmt} onClick={() => setExportFormat(fmt)} className={`rounded-lg border-2 px-4 py-2 text-xs font-mono font-medium uppercase transition ${exportFormat === fmt ? btnActive : btnInactive}`}>.{fmt}</button>
@@ -566,12 +539,12 @@ export default function SettingsPage() {
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
                   Export All Data
                 </button>
-              </SettingSection>
+              </Card>
             </>)}
 
             {/* Integrations */}
             {activeSection === 'integrations' && (<>
-              <SettingSection title="Connected Apps" description="Manage third-party service integrations.">
+              <Card><CardHeader title="Connected Apps" description="Manage third-party service integrations." />
                 <div className="space-y-3">
                   {[
                     { name: 'Slack', desc: 'Receive notifications in Slack', connected: slackConnected, toggle: setSlackConnected, color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' },
@@ -592,11 +565,11 @@ export default function SettingsPage() {
                     </div>
                   ))}
                 </div>
-              </SettingSection>
-              <SettingSection title="API & Webhooks" description="Developer integrations and automation.">
+              </Card>
+              <Card><CardHeader title="API & Webhooks" description="Developer integrations and automation." />
                 <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  <Toggle label="API access" description="Allow external apps to access data via API" checked={apiAccess} onChange={setApiAccess} />
-                  <Toggle label="Webhooks" description="Send real-time events to external URLs" checked={webhooksEnabled} onChange={setWebhooksEnabled} />
+                  <SettingToggle label="API access" description="Allow external apps to access data via API" checked={apiAccess} onChange={setApiAccess} />
+                  <SettingToggle label="Webhooks" description="Send real-time events to external URLs" checked={webhooksEnabled} onChange={setWebhooksEnabled} />
                 </div>
                 {apiAccess && (
                   <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
@@ -607,12 +580,12 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 )}
-              </SettingSection>
+              </Card>
             </>)}
 
             {/* Keyboard Shortcuts */}
             {activeSection === 'keyboard' && (
-              <SettingSection title="Keyboard Shortcuts" description="Quick reference for available shortcuts.">
+              <Card><CardHeader title="Keyboard Shortcuts" description="Quick reference for available shortcuts." />
                 <div className="divide-y divide-gray-100 dark:divide-gray-800">
                   {SHORTCUTS.map((s, i) => (
                     <div key={i} className="flex items-center justify-between py-3">
@@ -628,12 +601,12 @@ export default function SettingsPage() {
                     </div>
                   ))}
                 </div>
-              </SettingSection>
+              </Card>
             )}
 
             {/* Danger Zone */}
             {activeSection === 'danger' && (
-              <SettingSection title="Danger Zone" description="These actions are irreversible. Proceed with caution.">
+              <Card><CardHeader title="Danger Zone" description="These actions are irreversible. Proceed with caution." />
                 <div className="space-y-3">
                   {[
                     { title: 'Clear all notifications', desc: 'Remove all notification history permanently.', level: 'amber' as const, btn: 'Clear' },
@@ -657,7 +630,7 @@ export default function SettingsPage() {
                     <button className="shrink-0 self-start rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-700">Delete Account</button>
                   </div>
                 </div>
-              </SettingSection>
+              </Card>
             )}
           </div>
         </div>
@@ -668,7 +641,7 @@ export default function SettingsPage() {
               <p className="text-sm text-gray-600 dark:text-gray-400">You have unsaved changes</p>
               <div className="flex items-center gap-3">
                 <button onClick={() => { setDirty(false); window.location.reload(); }} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">Discard</button>
-                <button onClick={handleSave} disabled={saving} className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60">{saving ? 'Saving…' : 'Save Changes'}</button>
+                <Button onClick={handleSave} disabled={saving} loading={saving}>Save Changes</Button>
               </div>
             </div>
           </div>

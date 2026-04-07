@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import PageHeader from '@/components/page-header';
+import { Input } from '@erp/ui';
 
 interface Module {
   key: string;
@@ -202,12 +203,12 @@ export default function ModulesPage() {
       <StatsBar activeModules={activeModules.size} total={MODULE_CATALOG.length} />
 
       <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center">
-        <input
+        <Input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search modules..."
-          className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm placeholder:text-gray-400 sm:w-64 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-500"
+          className="sm:w-64"
         />
         <div className="flex flex-wrap gap-2">
           {CATEGORIES.map((cat) => (

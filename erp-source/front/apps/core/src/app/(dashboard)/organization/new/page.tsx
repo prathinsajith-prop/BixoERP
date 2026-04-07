@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
 import { useAuthStore } from '@/store/auth';
 import { showToast } from '@erp/shell';
+import { Input, Textarea, Button } from '@erp/ui';
 
 const orgSchema = z.object({
   name: z.string().min(1, 'Organization name is required'),
@@ -85,22 +86,16 @@ export default function CreateOrganizationPage() {
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Organization Name <span className="text-red-400">*</span>
-            </label>
-            <input type="text" {...register('name')} onChange={(e) => handleNameChange(e.target.value)} placeholder="Acme Corporation" className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 dark:focus:ring-blue-900" maxLength={100} autoFocus />
-            {errors.name && <div className="mt-1 text-xs text-red-500">{errors.name.message}</div>}
+            <Input label="Organization Name" type="text" {...register('name')} onChange={(e) => handleNameChange(e.target.value)} placeholder="Acme Corporation" maxLength={100} autoFocus error={errors.name?.message} />
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Slug</label>
-            <input type="text" {...register('slug')} onChange={(e) => setValue('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} placeholder="acme-corporation" className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 dark:focus:ring-blue-900" maxLength={100} />
+            <Input label="Slug" type="text" {...register('slug')} onChange={(e) => setValue('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} placeholder="acme-corporation" maxLength={100} />
             <p className="mt-1 text-xs text-gray-400">URL-friendly identifier. Auto-generated from name if left blank.</p>
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
-            <textarea {...register('description')} placeholder="Brief description of the organization..." rows={3} className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 dark:focus:ring-blue-900 resize-none" maxLength={500} />
+            <Textarea label="Description" {...register('description')} placeholder="Brief description of the organization..." rows={3} maxLength={500} />
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-2">

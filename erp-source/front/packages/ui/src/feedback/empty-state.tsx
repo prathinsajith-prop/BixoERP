@@ -2,7 +2,7 @@
 
 import React from "react";
 
-interface EmptyStateProps {
+export interface EmptyStateProps {
   title: string;
   description?: string;
   action?: React.ReactNode;

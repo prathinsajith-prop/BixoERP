@@ -5,7 +5,7 @@ import PageHeader from '@/components/page-header';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
 import { APP_NAME } from '@/lib/config';
-import Button from '@/components/ui/button';
+import { Button } from '@erp/ui';
 import { showToast } from '@erp/shell';
 
 const STEPS = [

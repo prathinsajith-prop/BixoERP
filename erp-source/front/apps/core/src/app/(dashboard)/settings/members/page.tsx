@@ -6,8 +6,7 @@ import { useOrgContext } from '@/context/org';
 import { showToast } from '@erp/shell';
 import CanDo from '@/components/can-do';
 import PageHeader from '@/components/page-header';
-import Button from '@/components/ui/button';
-import { DataTable, type TableColumn } from '@erp/ui';
+import { Button, DataTable, type TableColumn } from '@erp/ui';
 
 interface Member {
     userId: string;

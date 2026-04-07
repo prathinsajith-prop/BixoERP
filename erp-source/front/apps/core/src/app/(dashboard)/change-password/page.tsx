@@ -7,8 +7,7 @@ import PageHeader from '@/components/page-header';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
 import { showToast } from '@erp/shell';
-import Input from '@/components/ui/input';
-import Button from '@/components/ui/button';
+import { Button, Input } from '@erp/ui';
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required'),

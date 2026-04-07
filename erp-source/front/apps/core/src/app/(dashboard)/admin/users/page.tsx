@@ -8,12 +8,21 @@ import { authApi } from '@/lib/api/auth';
 import { showToast, filesApi } from '@erp/shell';
 import {
   ActionButtons,
+  Avatar,
   Button,
+  Chip,
+  ConfirmDialog,
   DataTable,
+  EmptyState,
+  Input,
   ListView,
+  Modal,
   PageHeader,
+  PageLoadingState,
   Pagination,
   SearchFilter,
+  Select,
+  Stats,
   StatusBadge,
   ViewSwitcher,
   type ActiveFilters,
@@ -23,25 +32,7 @@ import {
   type ViewMode,
 } from '@erp/ui';
 
-/* ── Avatar helpers ─────────────────────────────────────────────── */
-const AVATAR_COLORS = [
-  'from-violet-500 to-purple-600', 'from-blue-500 to-cyan-500', 'from-emerald-500 to-teal-500', 'from-rose-500 to-pink-500',
-  'from-amber-500 to-orange-500', 'from-indigo-500 to-blue-600', 'from-fuchsia-500 to-purple-500', 'from-sky-500 to-blue-500',
-];
 
-function avatarGradient(str: string) {
-  let hash = 0;
-  for (let i = 0; i < (str || '').length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
-
-function getInitials(name: string, email: string) {
-  if (name) {
-    const parts = name.trim().split(/\s+/);
-    return parts.length > 1 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : parts[0].substring(0, 2).toUpperCase();
-  }
-  return (email || 'U').substring(0, 2).toUpperCase();
-}
 
 /* ── SVG icon components ────────────────────────────────────────── */
 const Icons = {
@@ -121,18 +112,7 @@ function generateSeedUsers(): User[] {
   });
 }
 
-/* ── Stat card ──────────────────────────────────────────────────── */
-function StatCard({ label, value, icon, color }: { label: string; value: number; icon: React.ReactNode; color: string }) {
-  return (
-    <div className="flex items-center gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-100 dark:bg-gray-900 dark:ring-gray-800">
-      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${color}`}>{icon}</div>
-      <div>
-        <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
-        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{label}</p>
-      </div>
-    </div>
-  );
-}
+
 
 /* ── Row action dropdown ────────────────────────────────────────── */
 function RowActions({ user, onView, onRoles, onToggleStatus, onDelete }: {
@@ -322,8 +302,13 @@ export default function UserManagementPage() {
     return filteredUsers.slice(start, start + limit);
   }, [filteredUsers, page, limit]);
 
-  // Reset to page 1 when filters change
-  useEffect(() => { setPage(1); }, [search, statusFilter, statusOperator, roleFilter, roleOperator]);
+  // Reset to page 1 when filters change (derived state during render — avoids useEffect)
+  const filterKey = `${search}|${statusFilter}|${statusOperator}|${roleFilter}|${roleOperator}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (prevFilterKey !== filterKey) {
+    setPrevFilterKey(filterKey);
+    setPage(1);
+  }
 
   /* ── Avatar blob URLs (authenticated download) ─── */
   useEffect(() => {
@@ -618,9 +603,7 @@ export default function UserManagementPage() {
 
         return (
           <div className="flex items-center gap-3">
-            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${avatarGradient(user.email)} text-xs font-bold text-white shadow-sm`}>
-              {getInitials(name, user.email)}
-            </div>
+            <Avatar name={name || user.email} src={avatarBlobUrls[user.id]} size="sm" onClick={() => router.push(`/admin/users/${user.id}`)} />
             <div className="min-w-0">
               <button onClick={() => router.push(`/admin/users/${user.id}`)} className="block truncate text-sm font-semibold text-[var(--gogo-text-primary)] transition hover:text-[var(--gogo-primary)]">
                 {displayName}
@@ -649,12 +632,14 @@ export default function UserManagementPage() {
         return userRoles.length > 0 ? (
           <div className="flex flex-wrap gap-1.5">
             {userRoles.map((role, index) => (
-              <span key={role.id || role.name || index} className="group/role inline-flex items-center gap-1 rounded-full border border-[var(--gogo-divider)] bg-[var(--gogo-grey-100)] px-2.5 py-0.5 text-xs font-medium text-[var(--gogo-primary)]">
-                {role.name}
-                <button onClick={() => handleRemoveRole(user.id, role.id)} className="hidden rounded-full p-0.5 text-[var(--gogo-text-secondary)] transition hover:bg-[var(--gogo-surface)] hover:text-[var(--gogo-primary)] group-hover/role:inline-flex" title="Remove role">
-                  {Icons.x}
-                </button>
-              </span>
+              <Chip
+                key={role.id || role.name || index}
+                label={role.name}
+                variant="outlined"
+                color="primary"
+                size="small"
+                onDelete={() => handleRemoveRole(user.id, role.id)}
+              />
             ))}
           </div>
         ) : <span className="text-xs italic text-[var(--gogo-text-secondary)]">No roles</span>;
@@ -693,9 +678,13 @@ export default function UserManagementPage() {
         return userRoles.length > 0 ? (
           <div className="flex flex-wrap gap-1.5">
             {userRoles.map((role, index) => (
-              <span key={role.id || role.name || index} className="inline-flex items-center rounded-full border border-[var(--gogo-divider)] bg-[var(--gogo-grey-100)] px-2.5 py-0.5 text-xs font-medium text-[var(--gogo-primary)]">
-                {role.name}
-              </span>
+              <Chip
+                key={role.id || role.name || index}
+                label={role.name}
+                variant="outlined"
+                color="primary"
+                size="small"
+              />
             ))}
           </div>
         ) : <span className="text-xs italic text-[var(--gogo-text-secondary)]">No roles</span>;
@@ -739,12 +728,15 @@ export default function UserManagementPage() {
       )}
 
       {/* ── Stat cards ─── */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Total Users" value={stats.total} icon={Icons.users} color="bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" />
-        <StatCard label="Active" value={stats.active} icon={Icons.checkCircle} color="bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400" />
-        <StatCard label="Inactive" value={stats.inactive} icon={Icons.xCircle} color="bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400" />
-        <StatCard label="Roles" value={stats.roles} icon={Icons.shieldLg} color="bg-violet-50 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400" />
-      </div>
+      <Stats
+        columns={4}
+        metrics={[
+          { label: 'Total Users', value: stats.total, icon: Icons.users, color: 'info' },
+          { label: 'Active', value: stats.active, icon: Icons.checkCircle, color: 'success' },
+          { label: 'Inactive', value: stats.inactive, icon: Icons.xCircle, color: 'error' },
+          { label: 'Roles', value: stats.roles, icon: Icons.shieldLg, color: 'secondary' },
+        ]}
+      />
 
       {/* ── Toolbar ─── */}
       <SearchFilter
@@ -780,23 +772,17 @@ export default function UserManagementPage() {
 
       {/* ── Table ─── */}
       {loading ? (
-        <div className="flex items-center justify-center rounded-[var(--radius-card)] border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] py-20 shadow-[var(--shadow-card)]">{Icons.spinner}</div>
+        <PageLoadingState message="Loading users..." size="lg" />
       ) : paginatedUsers.length === 0 ? (
-        <div className="rounded-[var(--radius-card)] border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] py-20 text-center shadow-[var(--shadow-card)]">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--gogo-grey-100)] text-[var(--gogo-primary)]">
-            {Icons.users}
-          </div>
-          <p className="mt-4 text-sm font-semibold text-[var(--gogo-text-primary)]">No users found</p>
-          <p className="mt-1 text-xs text-[var(--gogo-text-secondary)]">{search || activeFilterCount ? 'Try adjusting your search or filters' : 'Get started by creating a new user'}</p>
-          {!search && !activeFilterCount && (
-            <div className="mt-5">
-              <Button size="sm" onClick={() => setAddModalOpen(true)} className="gap-1.5">
-                {Icons.plus}
-                Create User
-              </Button>
-            </div>
-          )}
-        </div>
+        <EmptyState
+          title="No users found"
+          description={search || activeFilterCount ? 'Try adjusting your search or filters' : 'Get started by creating a new user'}
+          action={!search && !activeFilterCount ? (
+            <Button size="sm" onClick={() => setAddModalOpen(true)}>
+              {Icons.plus} Create User
+            </Button>
+          ) : undefined}
+        />
       ) : view === 'table' ? (
         <div className="overflow-hidden rounded-[var(--radius-card)] border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] shadow-[var(--shadow-card)]">
           <DataTable
@@ -830,11 +816,7 @@ export default function UserManagementPage() {
             subtitle={(user) => user.email}
             leading={(user) => {
               const name = [user.firstName, user.lastName].filter(Boolean).join(' ');
-              return (
-                <div className={`flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br ${avatarGradient(user.email)} text-sm font-bold text-white shadow-sm`}>
-                  {getInitials(name, user.email)}
-                </div>
-              );
+              return <Avatar name={name || user.email} src={avatarBlobUrls[user.id]} size="md" />;
             }}
             trailing={(user) => (
               <RowActions
@@ -864,176 +846,112 @@ export default function UserManagementPage() {
          ══════════════════════════════════════════════════════════ */}
 
       {/* ── Add User modal ─── */}
-      {addModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-gray-200/60 dark:bg-gray-900 dark:ring-gray-700">
-            <button onClick={() => { setAddModalOpen(false); setAddError(''); }} className="absolute right-4 top-4 rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300">
-              {Icons.xLg}
-            </button>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Add New User</h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Create a new user account</p>
-
-            {addError && (
-              <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">{addError}</div>
-            )}
-
-            <div className="mt-5 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">First Name</label>
-                  <input type="text" value={addForm.firstName} onChange={(e) => setAddForm((p) => ({ ...p, firstName: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-white" placeholder="John" />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Last Name</label>
-                  <input type="text" value={addForm.lastName} onChange={(e) => setAddForm((p) => ({ ...p, lastName: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-white" placeholder="Doe" />
-                </div>
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-                <input type="email" value={addForm.email} onChange={(e) => setAddForm((p) => ({ ...p, email: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-white" placeholder="john@company.com" />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
-                <input type="password" value={addForm.password} onChange={(e) => setAddForm((p) => ({ ...p, password: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-white" placeholder="Min. 8 characters" />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Role (optional)</label>
-                <div className="relative">
-                  <select value={addForm.roleId} onChange={(e) => setAddForm((p) => ({ ...p, roleId: e.target.value }))}
-                    className="w-full appearance-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-white">
-                    <option value="">Select a role...</option>
-                    {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-                  </select>
-                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400">{Icons.chevronDown}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-2">
-              <button onClick={() => { setAddModalOpen(false); setAddError(''); }}
-                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
-                Cancel
-              </button>
-              <button onClick={handleAddUser} disabled={addLoading}
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60">
-                {addLoading && Icons.spinnerSm}
-                Create User
-              </button>
-            </div>
+      <Modal
+        open={addModalOpen}
+        onClose={() => { setAddModalOpen(false); setAddError(''); }}
+        title="Add New User"
+        size="sm"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => { setAddModalOpen(false); setAddError(''); }}>Cancel</Button>
+            <Button onClick={handleAddUser} loading={addLoading}>Create User</Button>
           </div>
+        }
+      >
+        {addError && (
+          <div className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{addError}</div>
+        )}
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <Input label="First Name" value={addForm.firstName} onChange={(e) => setAddForm((p) => ({ ...p, firstName: e.target.value }))} placeholder="John" />
+            <Input label="Last Name" value={addForm.lastName} onChange={(e) => setAddForm((p) => ({ ...p, lastName: e.target.value }))} placeholder="Doe" />
+          </div>
+          <Input label="Email" type="email" value={addForm.email} onChange={(e) => setAddForm((p) => ({ ...p, email: e.target.value }))} placeholder="john@company.com" />
+          <Input label="Password" type="password" value={addForm.password} onChange={(e) => setAddForm((p) => ({ ...p, password: e.target.value }))} placeholder="Min. 8 characters" />
+          <Select
+            label="Role (optional)"
+            value={addForm.roleId}
+            onChange={(e) => setAddForm((p) => ({ ...p, roleId: e.target.value }))}
+            options={[{ value: '', label: 'Select a role...' }, ...roles.map((r) => ({ value: r.id, label: r.name }))]}
+          />
         </div>
-      )}
+      </Modal>
 
       {/* ── Role management modal ─── */}
-      {roleModalOpen && selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-gray-200/60 dark:bg-gray-900 dark:ring-gray-700">
-            <button onClick={() => { setRoleModalOpen(false); setSelectedUser(null); }} className="absolute right-4 top-4 rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300">
-              {Icons.xLg}
-            </button>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Manage Roles</h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Assign or remove roles for <span className="font-semibold text-gray-700 dark:text-gray-200">{selectedUser.email}</span></p>
-
+      <Modal
+        open={roleModalOpen && !!selectedUser}
+        onClose={() => { setRoleModalOpen(false); setSelectedUser(null); }}
+        title="Manage Roles"
+        size="sm"
+      >
+        {selectedUser && (
+          <>
+            <p className="mb-4 text-sm text-[var(--gogo-text-secondary)]">
+              Assign or remove roles for <span className="font-semibold text-[var(--gogo-text-primary)]">{selectedUser.email}</span>
+            </p>
             {getUserRoles(selectedUser).length > 0 && (
-              <div className="mb-4 mt-4">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-400">Current Roles</p>
+              <div className="mb-4">
+                <p className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--gogo-text-secondary)]">Current Roles</p>
                 <div className="flex flex-wrap gap-2">
                   {getUserRoles(selectedUser).map((role) => (
-                    <span key={role.id || role.name} className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                      {Icons.check}
-                      {role.name}
-                      <button onClick={() => handleRemoveRole(selectedUser.id, role.id)} className="ml-1 rounded-full p-0.5 text-blue-400 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-800">
-                        {Icons.x}
-                      </button>
-                    </span>
+                    <Chip
+                      key={role.id || role.name}
+                      label={role.name}
+                      color="primary"
+                      size="small"
+                      onDelete={() => handleRemoveRole(selectedUser.id, role.id)}
+                    />
                   ))}
                 </div>
               </div>
             )}
-
-            <div className="mt-4">
-              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-400">Available Roles</p>
+            <div>
+              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--gogo-text-secondary)]">Available Roles</p>
               <div className="max-h-48 space-y-1.5 overflow-y-auto">
                 {roles.filter((r) => !getUserRoles(selectedUser).some((ur) => ur.id === r.id)).map((role) => (
                   <button key={role.id} onClick={() => handleAssignRole(selectedUser.id, role.id)} disabled={assigning}
-                    className="flex w-full items-center justify-between rounded-xl border border-gray-100 px-4 py-3 text-left transition hover:border-gray-200 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-800 dark:hover:border-gray-700 dark:hover:bg-gray-800">
+                    className="flex w-full items-center justify-between rounded-xl border border-[var(--gogo-divider)] px-4 py-3 text-left transition hover:bg-[var(--gogo-grey-100)] disabled:opacity-50">
                     <div>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{role.name}</p>
-                      {role.description && <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{role.description}</p>}
+                      <p className="text-sm font-semibold text-[var(--gogo-text-primary)]">{role.name}</p>
+                      {role.description && <p className="mt-0.5 text-xs text-[var(--gogo-text-secondary)]">{role.description}</p>}
                     </div>
                     {Icons.plus}
                   </button>
                 ))}
                 {roles.filter((r) => !getUserRoles(selectedUser).some((ur) => ur.id === r.id)).length === 0 && (
-                  <p className="py-4 text-center text-xs text-gray-400">All roles assigned</p>
+                  <p className="py-4 text-center text-xs text-[var(--gogo-text-secondary)]">All roles assigned</p>
                 )}
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
 
-      {/* ── Delete confirmation modal ─── */}
-      {/* ── Toggle Active/Inactive confirmation modal ─── */}
-      {toggleModalOpen && selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-gray-200/60 dark:bg-gray-900 dark:ring-gray-700">
-            <div className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full ${selectedUser.isActive !== false ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-emerald-100 dark:bg-emerald-900/30'}`}>
-              <span className={selectedUser.isActive !== false ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}>{Icons.userToggle}</span>
-            </div>
-            <h3 className="mt-4 text-center text-lg font-bold text-gray-900 dark:text-white">
-              {selectedUser.isActive !== false ? 'Deactivate User' : 'Activate User'}
-            </h3>
-            <p className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
-              {selectedUser.isActive !== false
-                ? <>Are you sure you want to deactivate <span className="font-semibold text-gray-700 dark:text-gray-200">{selectedUser.email}</span>? They will lose access immediately.</>
-                : <>Are you sure you want to activate <span className="font-semibold text-gray-700 dark:text-gray-200">{selectedUser.email}</span>? They will regain access.</>
-              }
-            </p>
-            <div className="mt-6 flex gap-2">
-              <button onClick={() => { setToggleModalOpen(false); setSelectedUser(null); }}
-                className="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
-                Cancel
-              </button>
-              <button onClick={confirmToggleActive} disabled={toggling}
-                className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-60 ${selectedUser.isActive !== false ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-600 hover:bg-emerald-700'
-                  }`}>
-                {toggling && Icons.spinnerSm}
-                {selectedUser.isActive !== false ? 'Deactivate' : 'Activate'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={toggleModalOpen && !!selectedUser}
+        onClose={() => { setToggleModalOpen(false); setSelectedUser(null); }}
+        onConfirm={confirmToggleActive}
+        variant={selectedUser?.isActive !== false ? 'warning' : 'success'}
+        title={selectedUser?.isActive !== false ? 'Deactivate User' : 'Activate User'}
+        message={selectedUser ? (
+          selectedUser.isActive !== false
+            ? <>Are you sure you want to deactivate <strong>{selectedUser.email}</strong>? They will lose access immediately.</>
+            : <>Are you sure you want to activate <strong>{selectedUser.email}</strong>? They will regain access.</>
+        ) : ''}
+        confirmLabel={selectedUser?.isActive !== false ? 'Deactivate' : 'Activate'}
+        loading={toggling}
+      />
 
-      {deleteModalOpen && selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-gray-200/60 dark:bg-gray-900 dark:ring-gray-700">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
-              <span className="text-red-600 dark:text-red-400">{Icons.trash}</span>
-            </div>
-            <h3 className="mt-4 text-center text-lg font-bold text-gray-900 dark:text-white">Delete User</h3>
-            <p className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
-              Are you sure you want to delete <span className="font-semibold text-gray-700 dark:text-gray-200">{selectedUser.email}</span>? This action cannot be undone.
-            </p>
-            <div className="mt-6 flex gap-2">
-              <button onClick={() => { setDeleteModalOpen(false); setSelectedUser(null); }}
-                className="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
-                Cancel
-              </button>
-              <button onClick={handleDeleteUser} disabled={deleting}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60">
-                {deleting && Icons.spinnerSm}
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={deleteModalOpen && !!selectedUser}
+        onClose={() => { setDeleteModalOpen(false); setSelectedUser(null); }}
+        onConfirm={handleDeleteUser}
+        variant="danger"
+        title="Delete User"
+        message={selectedUser ? <>Are you sure you want to delete <strong>{selectedUser.email}</strong>? This action cannot be undone.</> : ''}
+        confirmLabel="Delete"
+        loading={deleting}
+      />
     </div>
   );
 }

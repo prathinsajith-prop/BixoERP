@@ -2,9 +2,7 @@
 
 import React from 'react';
 import { Button } from '../forms/button';
-
-type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline';
-type ButtonSize = 'sm' | 'md' | 'lg';
+import type { ButtonVariant, ButtonSize } from '../forms/button';
 
 export interface ActionButtonItem {
   key?: string;

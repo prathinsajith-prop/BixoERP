@@ -1,12 +1,14 @@
+# syntax=docker/dockerfile:1
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm config set fetch-retry-mintimeout 20000 && \
+RUN --mount=type=cache,target=/root/.npm \
+    npm config set fetch-retry-mintimeout 20000 && \
     npm config set fetch-retry-maxtimeout 120000 && \
     npm config set fetch-retries 5 && \
-    npm ci && npm cache clean --force
+    npm ci
 COPY . .
-RUN npm run build && npm prune --production
+RUN --mount=type=cache,target=/root/.npm npm run build && npm prune --omit=dev
 
 FROM node:20-alpine AS runner
 RUN addgroup -g 1001 -S appgroup && adduser -S appuser -u 1001

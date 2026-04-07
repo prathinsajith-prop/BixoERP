@@ -211,6 +211,7 @@ export class OrganizationUseCase {
       name: string;
       slug: string;
       role: string;
+      logoUrl?: string;
     }> = [];
 
     for (const m of memberships) {
@@ -221,6 +222,7 @@ export class OrganizationUseCase {
           name: org.name,
           slug: org.slug,
           role: m.role,
+          logoUrl: org.logoUrl || undefined,
         });
       }
     }

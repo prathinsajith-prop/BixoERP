@@ -4,14 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
 import { showToast, filesApi } from '@erp/shell';
-import { StatusBadge } from '@erp/ui';
+import { Avatar, Chip, Input, Modal, PageErrorState, PageLoadingState, StatusBadge } from '@erp/ui';
 import PageHeader from '@/components/page-header';
 import CanDo from '@/components/can-do';
 
-const AVATAR_COLORS = ['from-violet-500 to-purple-600', 'from-blue-500 to-cyan-500', 'from-emerald-500 to-teal-500', 'from-rose-500 to-pink-500', 'from-amber-500 to-orange-500', 'from-indigo-500 to-blue-600', 'from-fuchsia-500 to-purple-500', 'from-sky-500 to-blue-500'];
 
-function avatarGradient(str: string) { let hash = 0; for (let i = 0; i < (str || '').length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash); return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]; }
-function getInitials(name: string, email: string) { if (name) { const parts = name.trim().split(/\s+/); return parts.length > 1 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : parts[0].substring(0, 2).toUpperCase(); } return (email || 'U').substring(0, 2).toUpperCase(); }
 function formatDate(dateStr: string) { if (!dateStr) return '—'; const d = new Date(dateStr); if (isNaN(d.getTime())) return '—'; return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); }
 function formatDateTime(dateStr: string) { if (!dateStr) return '—'; const d = new Date(dateStr); if (isNaN(d.getTime())) return '—'; return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
 function timeAgo(dateStr: string) { if (!dateStr) return null; const d = new Date(dateStr); if (isNaN(d.getTime())) return null; const seconds = Math.floor((Date.now() - d.getTime()) / 1000); if (seconds < 60) return 'just now'; const minutes = Math.floor(seconds / 60); if (minutes < 60) return `${minutes}m ago`; const hours = Math.floor(minutes / 60); if (hours < 24) return `${hours}h ago`; const days = Math.floor(hours / 24); if (days < 30) return `${days}d ago`; const months = Math.floor(days / 30); if (months < 12) return `${months}mo ago`; return `${Math.floor(months / 12)}y ago`; }
@@ -146,20 +143,15 @@ export default function UserDetailsPage() {
     }
   };
 
-  if (loading) return <div className="space-y-6"><div className="flex items-center justify-center py-32"><svg className="h-8 w-8 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg></div></div>;
+  if (loading) return <PageLoadingState message="Loading user details..." size="lg" />;
 
   if (error || !user) return (
-    <div className="space-y-6">
-      <div className="flex flex-col items-center justify-center py-32">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-100 dark:bg-red-900/30"><svg className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg></div>
-        <h2 className="mt-4 text-lg font-bold text-gray-900 dark:text-white">{error || 'User not found'}</h2>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">The user you&apos;re looking for doesn&apos;t exist or couldn&apos;t be loaded.</p>
-        <button onClick={() => router.push('/admin/users')} className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
-          Back to Users
-        </button>
-      </div>
-    </div>
+    <PageErrorState
+      title={error || 'User not found'}
+      description="The user you're looking for doesn't exist or couldn't be loaded."
+      onRetry={() => router.push('/admin/users')}
+      retryLabel="Back to Users"
+    />
   );
 
   const name = [user.firstName, user.lastName].filter(Boolean).join(' ');
@@ -187,9 +179,8 @@ export default function UserDetailsPage() {
           <div className="flex flex-col sm:flex-row sm:items-end sm:gap-6">
             <div className="-mt-12 sm:-mt-14">
               {avatarBlobUrl
-                ? <img src={avatarBlobUrl} alt={displayName} className="h-24 w-24 rounded-2xl object-cover shadow-lg ring-4 ring-white sm:h-28 sm:w-28 dark:ring-gray-900" />
-                : <div className={`flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br ${avatarGradient(user.email)} text-2xl font-bold text-white shadow-lg ring-4 ring-white sm:h-28 sm:w-28 sm:text-3xl dark:ring-gray-900`}>{getInitials(name, user.email)}</div>
-              }
+                ? <Avatar src={avatarBlobUrl} name={displayName} size="2xl" shape="rounded" className="shadow-lg ring-4 ring-white dark:ring-gray-900" />
+                : <Avatar name={name || user.email} size="2xl" shape="rounded" className="shadow-lg ring-4 ring-white dark:ring-gray-900" />}
             </div>
             <div className="mt-4 flex-1 sm:mb-1 sm:mt-0">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -361,7 +352,7 @@ export default function UserDetailsPage() {
                         </div>
                         <button onClick={() => handleRemoveRole(role.id)} className="rounded-lg p-1.5 text-gray-400 opacity-0 transition hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 dark:hover:bg-red-900/20" title="Remove role"><svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
                       </div>
-                      {rolePerms.length > 0 && <div className="mt-3 flex flex-wrap gap-1">{rolePerms.slice(0, 5).map((p) => <span key={p.id} title={p.code ?? `${p.resource}:${p.action}`} className="inline-flex items-center rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-gray-600 ring-1 ring-gray-200 dark:bg-gray-900 dark:text-gray-300 dark:ring-gray-700">{formatPermChip(p)}</span>)}{rolePerms.length > 5 && <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-400">+{rolePerms.length - 5} more</span>}</div>}
+                      {rolePerms.length > 0 && <div className="mt-3 flex flex-wrap gap-1">{rolePerms.slice(0, 5).map((p) => <Chip key={p.id} label={formatPermChip(p)} size="small" variant="outlined" />)}{rolePerms.length > 5 && <Chip label={`+${rolePerms.length - 5} more`} size="small" />}</div>}
                     </div>
                   );
                 })}
@@ -416,78 +407,63 @@ export default function UserDetailsPage() {
       )}
 
       {/* Assign Role Modal */}
-      {roleModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-gray-200/60 dark:bg-gray-900 dark:ring-gray-700">
-            <button onClick={() => { setRoleModalOpen(false); }} className="absolute right-4 top-4 rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"><svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Assign Role</h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Select a role to assign to <span className="font-semibold text-gray-700 dark:text-gray-200">{displayName}</span></p>
-            {userRoles.length > 0 && <div className="mb-4 mt-4"><p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-400">Current Roles</p><div className="flex flex-wrap gap-2">{userRoles.map((role) => <span key={role.id || role.name} className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">{role.name}</span>)}</div></div>}
-            <div className="mt-4"><p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-400">Available Roles</p>
-              <div className="max-h-48 space-y-1.5 overflow-y-auto">
-                {roles.filter((r) => !userRoles.some((ur) => ur.id === r.id)).map((role) => (
-                  <button key={role.id} onClick={() => handleAssignRole(role.id)} disabled={assigning} className="flex w-full items-center justify-between rounded-xl border border-gray-100 px-4 py-3 text-left transition hover:border-gray-200 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-800 dark:hover:border-gray-700 dark:hover:bg-gray-800">
-                    <div><p className="text-sm font-semibold text-gray-900 dark:text-white">{role.name}</p>{role.description && <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{role.description}</p>}</div>
-                    <svg className="h-4 w-4 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                  </button>
-                ))}
-                {roles.filter((r) => !userRoles.some((ur) => ur.id === r.id)).length === 0 && <p className="py-4 text-center text-xs text-gray-400">All roles assigned</p>}
-              </div>
+      <Modal
+        open={roleModalOpen}
+        onClose={() => setRoleModalOpen(false)}
+        title="Assign Role"
+        size="sm"
+      >
+        <p className="mb-4 text-sm text-[var(--gogo-text-secondary)]">Select a role to assign to <span className="font-semibold text-[var(--gogo-text-primary)]">{displayName}</span></p>
+        {userRoles.length > 0 && (
+          <div className="mb-4">
+            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--gogo-text-secondary)]">Current Roles</p>
+            <div className="flex flex-wrap gap-2">
+              {userRoles.map((role) => <Chip key={role.id || role.name} label={role.name} color="primary" size="small" />)}
             </div>
           </div>
+        )}
+        <div>
+          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--gogo-text-secondary)]">Available Roles</p>
+          <div className="max-h-48 space-y-1.5 overflow-y-auto">
+            {roles.filter((r) => !userRoles.some((ur) => ur.id === r.id)).map((role) => (
+              <button key={role.id} onClick={() => handleAssignRole(role.id)} disabled={assigning}
+                className="flex w-full items-center justify-between rounded-xl border border-[var(--gogo-divider)] px-4 py-3 text-left transition hover:bg-[var(--gogo-grey-100)] disabled:opacity-50">
+                <div>
+                  <p className="text-sm font-semibold text-[var(--gogo-text-primary)]">{role.name}</p>
+                  {role.description && <p className="mt-0.5 text-xs text-[var(--gogo-text-secondary)]">{role.description}</p>}
+                </div>
+                <svg className="h-4 w-4 shrink-0 text-[var(--gogo-text-secondary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+              </button>
+            ))}
+            {roles.filter((r) => !userRoles.some((ur) => ur.id === r.id)).length === 0 && <p className="py-4 text-center text-xs text-[var(--gogo-text-secondary)]">All roles assigned</p>}
+          </div>
         </div>
-      )}
+      </Modal>
 
       {/* Edit User Modal */}
-      {editOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-800">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Edit User</h2>
-              <button onClick={() => setEditOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <form onSubmit={handleSaveEdit} className="space-y-4">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">First Name</label>
-                <input
-                  type="text"
-                  value={editFirstName}
-                  onChange={(e) => setEditFirstName(e.target.value)}
-                  required
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Last Name</label>
-                <input
-                  type="text"
-                  value={editLastName}
-                  onChange={(e) => setEditLastName(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setEditOpen(false)} className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700">
-                  Cancel
-                </button>
-                <button type="submit" disabled={editSaving} className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-60">
-                  {editSaving && (
-                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                    </svg>
-                  )}
-                  {editSaving ? 'Saving…' : 'Save Changes'}
-                </button>
-              </div>
-            </form>
+      <Modal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        title="Edit User"
+        size="sm"
+        footer={
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setEditOpen(false)} className="rounded-lg px-4 py-2 text-sm font-medium text-[var(--gogo-text-secondary)] hover:bg-[var(--gogo-grey-100)] transition">
+              Cancel
+            </button>
+            <button type="button" onClick={(e) => handleSaveEdit(e as unknown as React.FormEvent)} disabled={editSaving}
+              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-60">
+              {editSaving && <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>}
+              {editSaving ? 'Saving…' : 'Save Changes'}
+            </button>
           </div>
-        </div>
-      )}
+        }
+      >
+        <form onSubmit={handleSaveEdit} className="space-y-4">
+          <Input label="First Name" type="text" value={editFirstName} onChange={(e) => setEditFirstName(e.target.value)} required />
+          <Input label="Last Name" type="text" value={editLastName} onChange={(e) => setEditLastName(e.target.value)} />
+        </form>
+      </Modal>
     </div>
   );
 }

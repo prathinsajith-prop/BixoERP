@@ -2,7 +2,7 @@
 
 import React from "react";
 
-interface InputProps extends React.ComponentPropsWithRef<"input"> {
+export interface InputProps extends React.ComponentPropsWithRef<"input"> {
   label?: string;
   error?: string;
   helperText?: string;
@@ -20,11 +20,10 @@ export function Input({ label, error, helperText, className = "", id, ref, ...pr
       <input
         ref={ref}
         id={inputId}
-        className={`gogo-input block w-full px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none ${
-          error
+        className={`gogo-input block w-full px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none ${error
             ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-200"
             : ""
-        } ${className}`}
+          } ${className}`}
         {...props}
       />
       {error && <p className="text-xs text-red-600">{error}</p>}
@@ -33,7 +32,7 @@ export function Input({ label, error, helperText, className = "", id, ref, ...pr
   );
 }
 
-interface SelectProps extends React.ComponentPropsWithRef<"select"> {
+export interface SelectProps extends React.ComponentPropsWithRef<"select"> {
   label?: string;
   error?: string;
   options: { value: string; label: string }[];
@@ -51,11 +50,10 @@ export function Select({ label, error, options, className = "", id, ref, ...prop
       <select
         ref={ref}
         id={selectId}
-        className={`gogo-input block w-full px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none ${
-          error
+        className={`gogo-input block w-full px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none ${error
             ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-200"
             : ""
-        } ${className}`}
+          } ${className}`}
         {...props}
       >
         {options.map((opt) => (
@@ -69,7 +67,7 @@ export function Select({ label, error, options, className = "", id, ref, ...prop
   );
 }
 
-interface TextareaProps extends React.ComponentPropsWithRef<"textarea"> {
+export interface TextareaProps extends React.ComponentPropsWithRef<"textarea"> {
   label?: string;
   error?: string;
 }
@@ -86,11 +84,10 @@ export function Textarea({ label, error, className = "", id, ref, ...props }: Te
       <textarea
         ref={ref}
         id={textareaId}
-        className={`gogo-input block w-full px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none ${
-          error
+        className={`gogo-input block w-full px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none ${error
             ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-200"
             : ""
-        } ${className}`}
+          } ${className}`}
         {...props}
       />
       {error && <p className="text-xs text-red-600">{error}</p>}

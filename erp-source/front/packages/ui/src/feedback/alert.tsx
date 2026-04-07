@@ -2,9 +2,9 @@
 
 import React from 'react';
 
-type AlertVariant = 'info' | 'success' | 'warning' | 'error';
+export type AlertVariant = 'info' | 'success' | 'warning' | 'error';
 
-interface AlertProps {
+export interface AlertProps {
     variant?: AlertVariant;
     title?: string;
     children: React.ReactNode;

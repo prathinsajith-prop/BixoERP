@@ -4,6 +4,7 @@ import { useState, useEffect, type ReactNode } from 'react';
 import PageHeader from '@/components/page-header';
 import { authApi } from '@/lib/api/auth';
 import { filesApi } from '@/lib/api/files';
+import { Card, CardHeader, Input, Select, Textarea, Switch, Button } from '@erp/ui';
 
 
 const SECTIONS = [
@@ -15,55 +16,13 @@ const SECTIONS = [
 ];
 
 /* ─── Shared helpers ────────────────────────────────────── */
-function SectionCard({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
-  return (
-    <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 dark:bg-gray-900 dark:ring-gray-800">
-      <div className="mb-5">
-        <h3 className="text-base font-semibold text-gray-900 dark:text-white">{title}</h3>
-        {description && <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{description}</p>}
-      </div>
-      {children}
-    </div>
-  );
-}
-
 function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{label}</label>
+      <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--gogo-text-primary)' }}>{label}</label>
       {children}
-      {hint && <p className="mt-1 text-xs text-gray-400">{hint}</p>}
+      {hint && <p className="mt-1 text-xs" style={{ color: 'var(--gogo-text-secondary)' }}>{hint}</p>}
     </div>
-  );
-}
-
-function TextInput({ value, onChange, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
-  return (
-    <input
-      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-      value={value}
-      onChange={onChange}
-      {...props}
-    />
-  );
-}
-
-function SelectInput({ value, onChange, options, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { value: string; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void; options: { value: string; label: string }[] }) {
-  return (
-    <select className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white" value={value} onChange={onChange} {...props}>
-      {options.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-    </select>
-  );
-}
-
-function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
-  return (
-    <label className="flex items-center gap-3 cursor-pointer">
-      <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${checked ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'}`}>
-        <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
-      </button>
-      <span className="text-sm text-gray-700 dark:text-gray-300">{label}</span>
-    </label>
   );
 }
 
@@ -74,36 +33,37 @@ interface SettingsData { general?: Record<string, string>; security?: Record<str
 function GeneralSection({ org, setOrg, settings, setSettings, saving, onSave }: { org: OrgData; setOrg: (o: OrgData) => void; settings: SettingsData; setSettings: (s: SettingsData) => void; saving: boolean; onSave: () => void }) {
   return (
     <div className="space-y-6">
-      <SectionCard title="Organization Information" description="Basic details about your organization">
+      <Card>
+        <CardHeader title="Organization Information" description="Basic details about your organization" />
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <Field label="Organization Name">
-            <TextInput value={org.name} onChange={(e) => setOrg({ ...org, name: e.target.value })} placeholder="Acme Corp" />
+            <Input value={org.name} onChange={(e) => setOrg({ ...org, name: e.target.value })} placeholder="Acme Corp" />
           </Field>
           <Field label="Slug" hint="URL-friendly identifier">
-            <TextInput value={org.slug} onChange={(e) => setOrg({ ...org, slug: e.target.value })} placeholder="acme-corp" />
+            <Input value={org.slug} onChange={(e) => setOrg({ ...org, slug: e.target.value })} placeholder="acme-corp" />
           </Field>
           <div className="sm:col-span-2">
             <Field label="Description">
-              <textarea className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white" rows={3} value={org.description} onChange={(e) => setOrg({ ...org, description: e.target.value })} placeholder="Tell us about your organization..." />
+              <Textarea rows={3} value={org.description} onChange={(e) => setOrg({ ...org, description: e.target.value })} placeholder="Tell us about your organization..." />
             </Field>
           </div>
           <Field label="Website">
-            <TextInput value={settings.general?.website || ''} onChange={(e) => setSettings({ ...settings, general: { ...settings.general, website: e.target.value } })} placeholder="https://example.com" type="url" />
+            <Input value={settings.general?.website || ''} onChange={(e) => setSettings({ ...settings, general: { ...settings.general, website: e.target.value } })} placeholder="https://example.com" type="url" />
           </Field>
           <Field label="Industry">
-            <SelectInput value={settings.general?.industry || ''} onChange={(e) => setSettings({ ...settings, general: { ...settings.general, industry: e.target.value } })} options={[{ value: '', label: 'Select industry' }, { value: 'Technology', label: 'Technology' }, { value: 'Finance', label: 'Finance' }, { value: 'Healthcare', label: 'Healthcare' }, { value: 'Education', label: 'Education' }, { value: 'Manufacturing', label: 'Manufacturing' }, { value: 'Retail', label: 'Retail' }, { value: 'Other', label: 'Other' }]} />
+            <Select value={settings.general?.industry || ''} onChange={(e) => setSettings({ ...settings, general: { ...settings.general, industry: e.target.value } })} options={[{ value: '', label: 'Select industry' }, { value: 'Technology', label: 'Technology' }, { value: 'Finance', label: 'Finance' }, { value: 'Healthcare', label: 'Healthcare' }, { value: 'Education', label: 'Education' }, { value: 'Manufacturing', label: 'Manufacturing' }, { value: 'Retail', label: 'Retail' }, { value: 'Other', label: 'Other' }]} />
           </Field>
           <Field label="Company Size">
-            <SelectInput value={settings.general?.size || ''} onChange={(e) => setSettings({ ...settings, general: { ...settings.general, size: e.target.value } })} options={[{ value: '', label: 'Select size' }, { value: '1-10', label: '1-10 employees' }, { value: '11-50', label: '11-50 employees' }, { value: '51-200', label: '51-200 employees' }, { value: '201-500', label: '201-500 employees' }, { value: '501-1000', label: '501-1000 employees' }, { value: '1000+', label: '1000+ employees' }]} />
+            <Select value={settings.general?.size || ''} onChange={(e) => setSettings({ ...settings, general: { ...settings.general, size: e.target.value } })} options={[{ value: '', label: 'Select size' }, { value: '1-10', label: '1-10 employees' }, { value: '11-50', label: '11-50 employees' }, { value: '51-200', label: '51-200 employees' }, { value: '201-500', label: '201-500 employees' }, { value: '501-1000', label: '501-1000 employees' }, { value: '1000+', label: '1000+ employees' }]} />
           </Field>
           <Field label="Timezone">
-            <SelectInput value={settings.general?.timezone || 'UTC'} onChange={(e) => setSettings({ ...settings, general: { ...settings.general, timezone: e.target.value } })} options={[{ value: 'UTC', label: 'UTC' }, { value: 'America/New_York', label: 'Eastern Time (US)' }, { value: 'America/Chicago', label: 'Central Time (US)' }, { value: 'America/Denver', label: 'Mountain Time (US)' }, { value: 'America/Los_Angeles', label: 'Pacific Time (US)' }, { value: 'Europe/London', label: 'London (GMT)' }, { value: 'Europe/Berlin', label: 'Berlin (CET)' }, { value: 'Asia/Tokyo', label: 'Tokyo (JST)' }, { value: 'Asia/Kolkata', label: 'India (IST)' }, { value: 'Australia/Sydney', label: 'Sydney (AEST)' }]} />
+            <Select value={settings.general?.timezone || 'UTC'} onChange={(e) => setSettings({ ...settings, general: { ...settings.general, timezone: e.target.value } })} options={[{ value: 'UTC', label: 'UTC' }, { value: 'America/New_York', label: 'Eastern Time (US)' }, { value: 'America/Chicago', label: 'Central Time (US)' }, { value: 'America/Denver', label: 'Mountain Time (US)' }, { value: 'America/Los_Angeles', label: 'Pacific Time (US)' }, { value: 'Europe/London', label: 'London (GMT)' }, { value: 'Europe/Berlin', label: 'Berlin (CET)' }, { value: 'Asia/Tokyo', label: 'Tokyo (JST)' }, { value: 'Asia/Kolkata', label: 'India (IST)' }, { value: 'Australia/Sydney', label: 'Sydney (AEST)' }]} />
           </Field>
         </div>
         <div className="mt-5 flex justify-end">
-          <button onClick={onSave} disabled={saving} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50">{saving ? 'Saving...' : 'Save Changes'}</button>
+          <Button onClick={onSave} loading={saving}>Save Changes</Button>
         </div>
-      </SectionCard>
+      </Card>
     </div>
   );
 }
@@ -155,13 +115,14 @@ function BrandingSection({ orgId }: { orgId: string }) {
 
   return (
     <div className="space-y-6">
-      <SectionCard title="Brand Colors" description="Customize the look and feel of your organization">
+      <Card>
+        <CardHeader title="Brand Colors" description="Customize the look and feel of your organization" />
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
           {([['primaryColor', 'Primary Color'], ['secondaryColor', 'Secondary Color'], ['accentColor', 'Accent Color']] as const).map(([key, label]) => (
             <Field key={key} label={label}>
               <div className="flex items-center gap-2">
                 <input type="color" value={branding[key]} onChange={(e) => setBranding({ ...branding, [key]: e.target.value })} className="h-10 w-10 cursor-pointer rounded-lg border border-gray-300 dark:border-gray-600" />
-                <TextInput value={branding[key]} onChange={(e) => setBranding({ ...branding, [key]: e.target.value })} maxLength={7} />
+                <Input value={branding[key]} onChange={(e) => setBranding({ ...branding, [key]: e.target.value })} maxLength={7} />
               </div>
             </Field>
           ))}
@@ -171,9 +132,10 @@ function BrandingSection({ orgId }: { orgId: string }) {
             <div key={key} className="h-12 flex-1 rounded-lg" style={{ backgroundColor: branding[key as keyof typeof branding] }} />
           ))}
         </div>
-      </SectionCard>
+      </Card>
 
-      <SectionCard title="Logo" description="Upload your organization logo">
+      <Card>
+        <CardHeader title="Logo" description="Upload your organization logo" />
         <div className="flex items-center gap-6">
           <div className="flex h-20 w-20 items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-700">
             {logoBlobUrl ? (
@@ -190,10 +152,10 @@ function BrandingSection({ orgId }: { orgId: string }) {
             <p className="mt-1 text-xs text-gray-400">PNG, JPG, SVG. Max 2MB.</p>
           </div>
         </div>
-      </SectionCard>
+      </Card>
 
       <div className="flex justify-end">
-        <button onClick={handleSave} disabled={saving} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50">{saving ? 'Saving...' : 'Save Branding'}</button>
+        <Button onClick={handleSave} loading={saving}>Save Branding</Button>
       </div>
     </div>
   );
@@ -209,34 +171,37 @@ function SecuritySection({ settings, setSettings, saving, onSave }: { settings: 
 
   return (
     <div className="space-y-6">
-      <SectionCard title="Authentication" description="Configure authentication policies for your organization">
+      <Card>
+        <CardHeader title="Authentication" description="Configure authentication policies for your organization" />
         <div className="space-y-4">
-          <Toggle checked={!!security.enforceTwoFactor} onChange={(v) => update('enforceTwoFactor', v)} label="Require two-factor authentication for all members" />
+          <Switch checked={!!security.enforceTwoFactor} onChange={(v) => update('enforceTwoFactor', v)} label="Require two-factor authentication for all members" />
           <Field label="Session Timeout (minutes)">
-            <TextInput type="number" value={String(Math.floor(((security.sessionTimeout as number) || 3600) / 60))} onChange={(e) => update('sessionTimeout', parseInt(e.target.value) * 60 || 3600)} min={5} max={1440} />
+            <Input type="number" value={String(Math.floor(((security.sessionTimeout as number) || 3600) / 60))} onChange={(e) => update('sessionTimeout', parseInt(e.target.value) * 60 || 3600)} min={5} max={1440} />
           </Field>
         </div>
-      </SectionCard>
+      </Card>
 
-      <SectionCard title="Password Policy" description="Set minimum requirements for user passwords">
+      <Card>
+        <CardHeader title="Password Policy" description="Set minimum requirements for user passwords" />
         <div className="space-y-4">
           <Field label="Minimum Password Length">
-            <TextInput type="number" value={String((policy.minLength as number) || 8)} onChange={(e) => updatePolicy('minLength', parseInt(e.target.value) || 8)} min={6} max={128} />
+            <Input type="number" value={String((policy.minLength as number) || 8)} onChange={(e) => updatePolicy('minLength', parseInt(e.target.value) || 8)} min={6} max={128} />
           </Field>
-          <Toggle checked={policy.requireUppercase !== false} onChange={(v) => updatePolicy('requireUppercase', v)} label="Require uppercase letters" />
-          <Toggle checked={policy.requireNumbers !== false} onChange={(v) => updatePolicy('requireNumbers', v)} label="Require numbers" />
-          <Toggle checked={policy.requireSpecialChars !== false} onChange={(v) => updatePolicy('requireSpecialChars', v)} label="Require special characters" />
+          <Switch checked={policy.requireUppercase !== false} onChange={(v) => updatePolicy('requireUppercase', v)} label="Require uppercase letters" />
+          <Switch checked={policy.requireNumbers !== false} onChange={(v) => updatePolicy('requireNumbers', v)} label="Require numbers" />
+          <Switch checked={policy.requireSpecialChars !== false} onChange={(v) => updatePolicy('requireSpecialChars', v)} label="Require special characters" />
         </div>
-      </SectionCard>
+      </Card>
 
-      <SectionCard title="IP Whitelist" description="Restrict access to specific IP addresses">
+      <Card>
+        <CardHeader title="IP Whitelist" description="Restrict access to specific IP addresses" />
         <Field label="Allowed IPs" hint="Comma-separated IP addresses or CIDR ranges. Leave empty to allow all.">
-          <TextInput value={((security.ipWhitelist as string[]) || []).join(', ')} onChange={(e) => update('ipWhitelist', e.target.value.split(',').map((s) => s.trim()).filter(Boolean))} placeholder="192.168.1.0/24, 10.0.0.1" />
+          <Input value={((security.ipWhitelist as string[]) || []).join(', ')} onChange={(e) => update('ipWhitelist', e.target.value.split(',').map((s) => s.trim()).filter(Boolean))} placeholder="192.168.1.0/24, 10.0.0.1" />
         </Field>
-      </SectionCard>
+      </Card>
 
       <div className="flex justify-end">
-        <button onClick={onSave} disabled={saving} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50">{saving ? 'Saving...' : 'Save Security Settings'}</button>
+        <Button onClick={onSave} loading={saving}>Save Security Settings</Button>
       </div>
     </div>
   );
@@ -375,8 +340,8 @@ function DangerSection({ orgId, orgName }: { orgId: string; orgName: string }) {
         </div>
         <div className="px-6 py-5">
           <div className="flex gap-3">
-            <TextInput value={transferEmail} onChange={(e) => setTransferEmail(e.target.value)} placeholder="Enter user ID or email" />
-            <button onClick={handleTransfer} disabled={!transferEmail} className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700 disabled:opacity-50">Transfer</button>
+            <Input value={transferEmail} onChange={(e) => setTransferEmail(e.target.value)} placeholder="Enter user ID or email" />
+            <Button variant="secondary" onClick={handleTransfer} disabled={!transferEmail}>Transfer</Button>
           </div>
         </div>
       </div>
@@ -388,10 +353,10 @@ function DangerSection({ orgId, orgName }: { orgId: string; orgName: string }) {
         </div>
         <div className="px-6 py-5">
           <Field label={`Type "${orgName}" to confirm`}>
-            <TextInput value={deleteConfirm} onChange={(e) => setDeleteConfirm(e.target.value)} placeholder={orgName} />
+            <Input value={deleteConfirm} onChange={(e) => setDeleteConfirm(e.target.value)} placeholder={orgName} />
           </Field>
           <div className="mt-3">
-            <button onClick={handleDelete} disabled={deleteConfirm !== orgName} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-50">Permanently Delete Organization</button>
+            <Button variant="danger" onClick={handleDelete} disabled={deleteConfirm !== orgName}>Permanently Delete Organization</Button>
           </div>
         </div>
       </div>

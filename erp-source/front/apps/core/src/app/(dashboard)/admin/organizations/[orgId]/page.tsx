@@ -624,6 +624,19 @@ export default function OrganizationDetailPage() {
     );
 }
 
+/* ── Settings Card wrapper ───────────────────────────────────────── */
+function SCard({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
+    return (
+        <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 dark:bg-gray-900 dark:ring-gray-800">
+            <div className="mb-5">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">{title}</h3>
+                {description && <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{description}</p>}
+            </div>
+            {children}
+        </div>
+    );
+}
+
 /* ── Settings Tab ───────────────────────────────────────────────── */
 function SettingsTab({
     orgId, org, onOrgUpdate,
@@ -672,18 +685,6 @@ function SettingsTab({
 
     if (loadingSettings) {
         return <div className="flex items-center justify-center py-20"><svg className="h-7 w-7 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg></div>;
-    }
-
-    function SCard({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
-        return (
-            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 dark:bg-gray-900 dark:ring-gray-800">
-                <div className="mb-5">
-                    <h3 className="text-base font-semibold text-gray-900 dark:text-white">{title}</h3>
-                    {description && <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{description}</p>}
-                </div>
-                {children}
-            </div>
-        );
     }
 
     return (
