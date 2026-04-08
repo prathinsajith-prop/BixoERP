@@ -1,5 +1,5 @@
 {
-  "extends": "@erp/config/typescript/base.json",
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
     "rootDir": "src",

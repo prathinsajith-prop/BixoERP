@@ -365,9 +365,7 @@ const Gallery: React.FC<GalleryProps> = memo(
                         name={fieldKey}
                         multiple
                         maxFiles={maxFilesAllowed}
-                        maxSize={maxSizeMb ? maxSizeMb * 1024 * 1024 : undefined}
-                        uploadUrl={resolvedUploadUrl || undefined}
-                        metadata={metadata as any}
+                        maxSize={maxSize}
                         onChange={handleUploadChange as any}
                     />
                 )}

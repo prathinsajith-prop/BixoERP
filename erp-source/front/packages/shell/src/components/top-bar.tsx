@@ -71,23 +71,23 @@ function OrgBadge() {
   const initial = currentOrg.name?.charAt(0)?.toUpperCase() || "O";
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2.5">
       {logoBlobUrl ? (
         <img
           src={logoBlobUrl}
           alt={currentOrg.name}
-          className="h-14 w-14 shrink-0 rounded-2xl object-cover shadow-md ring-2 ring-gray-100 dark:ring-gray-700"
+          className="h-8 w-8 shrink-0 rounded-lg object-cover ring-1 ring-gray-200 dark:ring-gray-700"
         />
       ) : (
         <div
-          className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${gradient} text-xl font-bold text-white shadow-md`}
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${gradient} text-sm font-bold text-white`}
         >
           {initial}
         </div>
       )}
       <div className="hidden flex-col sm:flex">
         <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Organization</span>
-        <span className="max-w-[200px] truncate text-base font-bold text-gray-800 dark:text-gray-100">
+        <span className="max-w-[180px] truncate text-sm font-semibold text-gray-800 dark:text-gray-100">
           {currentOrg.name}
         </span>
       </div>
@@ -97,15 +97,26 @@ function OrgBadge() {
 
 export function TopBar({ moduleId }: { moduleId?: string }) {
   return (
-    <div className="gogo-header flex w-full items-center justify-between border-b border-[var(--gogo-divider)] bg-white px-5 md:px-6 dark:bg-[var(--gogo-surface)]">
-      <div className="flex shrink-0 items-center">
+    <header className="fixed left-0 right-0 top-0 z-50 flex h-[var(--gogo-header-height)] w-full items-center justify-between border-b border-[var(--gogo-divider)] bg-white px-4 shadow-[var(--shadow-header)] md:px-6 dark:bg-[var(--gogo-surface)]">
+      {/* Left: brand + org */}
+      <div className="flex shrink-0 items-center gap-3">
+        <a
+          href="/"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-sm"
+          style={{ background: 'linear-gradient(135deg, var(--gogo-primary) 0%, var(--gogo-secondary) 100%)' }}
+          title="Home"
+        >
+          <span className="text-sm font-extrabold tracking-wide text-white">B</span>
+        </a>
+        <div className="hidden h-5 w-px bg-[var(--gogo-divider)] md:block" />
         <OrgBadge />
       </div>
-      <div className="flex shrink-0 items-center gap-2">
+      {/* Right: app switcher + alerts */}
+      <div className="flex shrink-0 items-center gap-1">
         <AppSelector />
         <AlertsDropdown />
       </div>
-    </div>
+    </header>
   );
 }
 

@@ -47,14 +47,14 @@ export default function ChartOfAccountsPage() {
 
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10 pointer-events-none" />
           <Input
             type="text"
             placeholder="Search by name or code..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
+            className="pr-10"
           />
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
         </div>
         <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
           {["all", "asset", "liability", "equity", "revenue", "expense"].map((t) => (

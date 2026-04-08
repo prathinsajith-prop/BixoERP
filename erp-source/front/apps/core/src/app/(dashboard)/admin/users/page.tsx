@@ -119,10 +119,28 @@ function RowActions({ user, onView, onRoles, onToggleStatus, onDelete }: {
   user: User; onView: () => void; onRoles: () => void; onToggleStatus: () => void; onDelete: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [coords, setCoords] = useState({ top: 0, right: 0 });
+
+  // Position the portal dropdown relative to the trigger button
+  useEffect(() => {
+    if (!open || !triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    setCoords({
+      top: rect.bottom + window.scrollY + 4,
+      right: window.innerWidth - rect.right,
+    });
+  }, [open]);
 
   useEffect(() => {
-    const handle = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const handle = (e: MouseEvent) => {
+      const target = e.target as Node;
+      // Close if clicking outside trigger and outside the portal dropdown
+      if (triggerRef.current && !triggerRef.current.contains(target)) {
+        const portal = document.getElementById('row-action-portal');
+        if (!portal || !portal.contains(target)) setOpen(false);
+      }
+    };
     if (open) document.addEventListener('mousedown', handle);
     return () => document.removeEventListener('mousedown', handle);
   }, [open]);
@@ -134,22 +152,29 @@ function RowActions({ user, onView, onRoles, onToggleStatus, onDelete }: {
     { label: 'Delete user', icon: Icons.trash, onClick: onDelete, danger: true },
   ];
 
+  const dropdown = open ? createPortal(
+    <div
+      id="row-action-portal"
+      className="fixed z-[9999] w-44 rounded-xl bg-white py-1 shadow-lg ring-1 ring-gray-200/60 dark:bg-gray-900 dark:ring-gray-700"
+      style={{ top: coords.top, right: coords.right }}
+    >
+      {items.map((item) => (
+        <button key={item.label} onClick={() => { setOpen(false); item.onClick(); }}
+          className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition hover:bg-gray-50 dark:hover:bg-gray-800 ${item.danger ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}>
+          {item.icon}
+          {item.label}
+        </button>
+      ))}
+    </div>,
+    document.body
+  ) : null;
+
   return (
-    <div ref={ref} className="relative">
-      <button onClick={() => setOpen(!open)} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300">
+    <div>
+      <button ref={triggerRef} onClick={() => setOpen(!open)} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300">
         {Icons.dots}
       </button>
-      {open && (
-        <div className="absolute right-0 top-full z-30 mt-1 w-44 rounded-xl bg-white py-1 shadow-lg ring-1 ring-gray-200/60 dark:bg-gray-900 dark:ring-gray-700">
-          {items.map((item) => (
-            <button key={item.label} onClick={() => { setOpen(false); item.onClick(); }}
-              className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition hover:bg-gray-50 dark:hover:bg-gray-800 ${item.danger ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}>
-              {item.icon}
-              {item.label}
-            </button>
-          ))}
-        </div>
-      )}
+      {dropdown}
     </div>
   );
 }

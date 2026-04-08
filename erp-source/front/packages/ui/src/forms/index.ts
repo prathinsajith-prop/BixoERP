@@ -22,3 +22,5 @@ export { Switch } from "./switch";
 export type { SwitchProps } from "./switch";
 export { Tags } from "./tags";
 export type { TagsProps } from "./tags";
+export { default as TextEditor } from "./text-editor";
+export type { TextEditorProps } from "./text-editor";

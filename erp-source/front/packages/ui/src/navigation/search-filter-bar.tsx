@@ -474,7 +474,6 @@ export function SearchFilterBar({
               </button>
 
               <div className="relative flex flex-1 items-center gap-2">
-                <Search className="pointer-events-none shrink-0 text-[var(--gogo-text-secondary)] h-4 w-4" />
                 {visibleInlineFilters.length > 0 && (
                   <div className="flex shrink-0 items-center gap-1">
                     {visibleInlineFilters.map((entry) => (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import React, { useState, useEffect, useRef, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '../store/auth';
@@ -66,19 +66,48 @@ function SidebarIcon({ icon, label, onClick, active, badge }: {
 }
 
 /* ─── Flyout panel (right of icon rail on desktop, bottom sheet on mobile) ─── */
-function Flyout({ open, onClose, title, children }: {
+function Flyout({ open, onClose, title, children, anchorRef }: {
   open: boolean; onClose: () => void; title: string; children: ReactNode;
+  anchorRef?: React.RefObject<HTMLElement | null>;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useClickOutside(ref, onClose);
+
+  // Position the panel relative to its trigger button, opening upward when
+  // the trigger is near the bottom of the sidebar so the panel stays visible.
+  const [panelPos, setPanelPos] = useState<{ top?: string; bottom?: string }>({ top: '0px' });
+  useEffect(() => {
+    if (!open) return;
+    const headerHeight = parseInt(
+      getComputedStyle(document.documentElement).getPropertyValue('--gogo-header-height') || '64', 10
+    );
+    if (!anchorRef?.current) {
+      setPanelPos({ top: '0px' });
+      return;
+    }
+    const btn = anchorRef.current.getBoundingClientRect();
+    const sidebarHeight = window.innerHeight - headerHeight;
+    const btnTopRelative = btn.top - headerHeight; // distance from sidebar top
+
+    // If button is in the lower 55 % of the sidebar, open the panel upward
+    if (btnTopRelative > sidebarHeight * 0.55) {
+      const bottomOffset = sidebarHeight - btnTopRelative - btn.height;
+      setPanelPos({ bottom: `${Math.max(0, bottomOffset)}px` });
+    } else {
+      setPanelPos({ top: `${Math.max(0, btnTopRelative)}px` });
+    }
+  }, [open, anchorRef]);
 
   if (!open) return null;
   return (
     <>
       {/* Mobile backdrop */}
       <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px] md:hidden" onClick={onClose} />
-      <div ref={ref} className="fixed bottom-16 left-3 right-3 z-50 w-auto rounded-2xl bg-white shadow-xl ring-1 ring-gray-200/60 dark:bg-gray-800 dark:ring-gray-700 md:absolute md:bottom-auto md:left-full md:right-auto md:top-0 md:ml-2 md:w-72"
-        style={{ maxHeight: 'calc(100vh - 80px)' }}>
+      <div ref={ref} className="fixed bottom-16 left-3 right-3 z-50 w-auto rounded-2xl bg-white shadow-xl ring-1 ring-gray-200/60 dark:bg-gray-800 dark:ring-gray-700 md:absolute md:bottom-auto md:left-full md:right-auto md:ml-2 md:w-72"
+        style={{
+          maxHeight: 'calc(100vh - var(--gogo-header-height) - 2rem)',
+          ...panelPos,
+        }}>
         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-700">
           <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h3>
           <button onClick={onClose} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/10">
@@ -108,13 +137,14 @@ function AdminLink({ icon, label, path, active }: { icon: ReactNode; label: stri
 }
 
 /* ─── Org Switcher (inline sidebar version) ─── */
-function SidebarOrgSwitcher({ onToggle, active, currentOrg, gradientIdx, logoBlobUrl }: {
+const SidebarOrgSwitcher = React.forwardRef<HTMLButtonElement, {
   onToggle: () => void; active: boolean; currentOrg: Org | null; gradientIdx: number; logoBlobUrl?: string | null;
-}) {
+}>(function SidebarOrgSwitcher({ onToggle, active, currentOrg, gradientIdx, logoBlobUrl }, ref) {
   const initial = currentOrg?.name?.charAt(0)?.toUpperCase() || 'O';
 
   return (
     <button
+      ref={ref}
       onClick={onToggle}
       title={currentOrg?.name || 'Switch Organization'}
       className={`group relative flex h-10 w-10 items-center justify-center rounded-xl transition-all
@@ -133,7 +163,7 @@ function SidebarOrgSwitcher({ onToggle, active, currentOrg, gradientIdx, logoBlo
       )}
     </button>
   );
-}
+});
 
 
 
@@ -236,17 +266,15 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
 
   const initial = displayName.charAt(0).toUpperCase();
 
+  // Ref for the org-switcher button so the flyout can anchor to it
+  const orgSwitcherRef = useRef<HTMLButtonElement>(null);
+
   return (
-    <aside className="fixed bottom-0 left-0 right-0 z-40 flex md:bottom-3 md:left-3 md:right-auto md:top-3">
+    <aside className="fixed bottom-0 left-0 right-0 z-40 flex md:bottom-0 md:left-0 md:right-auto md:top-[var(--gogo-header-height)]">
       {/* Icon rail */}
-      <div className="gogo-sidebar flex h-14 w-full flex-row items-center justify-around bg-white/95 ring-1 ring-gray-200/60 backdrop-blur-xl dark:bg-gray-900/95 dark:ring-gray-700/60 dark:shadow-none md:h-[calc(100vh-24px)] md:w-[var(--gogo-sidebar-width)] md:flex-col md:justify-start md:rounded-[var(--radius-sidebar)] md:py-3 md:shadow-lg">
+      <div className="gogo-sidebar flex h-14 w-full flex-row items-center justify-around bg-white ring-1 ring-gray-200/60 backdrop-blur-xl dark:bg-gray-900 dark:ring-gray-700/60 md:h-[calc(100vh-var(--gogo-header-height))] md:w-[var(--gogo-sidebar-width)] md:flex-col md:justify-start md:border-r md:border-[var(--gogo-divider)] md:py-3 md:ring-0 md:shadow-none md:dark:border-gray-700/60">
 
-        {/* Logo */}
-        <a href="/" className="mb-4 hidden h-10 w-10 items-center justify-center rounded-xl shadow-md ring-1 ring-white/20 md:flex" style={{ background: 'linear-gradient(135deg, var(--gogo-primary) 0%, var(--gogo-secondary) 100%)' }} title={APP_NAME}>
-          <span className="text-sm font-extrabold tracking-wide text-white">B</span>
-        </a>
-
-        <div className="my-1.5 hidden h-px w-6 bg-gray-200 md:block dark:bg-gray-700" />
+        <div className="my-1 hidden h-px w-6 bg-gray-200 md:block dark:bg-gray-700" />
 
         {/* ─── Module Nav or Default Admin Icons ─── */}
         {hasModuleMenu ? (
@@ -254,9 +282,14 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
           <div className="contents md:flex md:flex-col md:items-center md:gap-1">
             {menuItems.map((item) => {
               const itemHasChildren = (item.children?.length ?? 0) > 0;
+              // Active when the flyout panel is open (children) OR when the
+              // current pathname exactly matches or is a sub-path of this item.
+              // Never use a blanket fallback like `pathname === '/'` which would
+              // highlight every item on the root page.
               const isActive = itemHasChildren
                 ? activePanel === item.href
-                : pathname === item.href || pathname === item.href.replace(`/${moduleId}`, '') || pathname === '/';
+                : pathname === item.href ||
+                (item.href.length > 1 && pathname.startsWith(item.href + '/'));
               return (
                 <SidebarIcon
                   key={item.href}
@@ -295,6 +328,7 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
         {/* Org Switcher — above settings */}
         <div className="mb-1">
           <SidebarOrgSwitcher
+            ref={orgSwitcherRef}
             onToggle={() => toggle('orgs')}
             active={activePanel === 'orgs'}
             currentOrg={orgs.find((o) => o.id === currentOrgId) ?? null}
@@ -340,7 +374,7 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
                   key={child.href}
                   label={child.label}
                   path={child.href}
-                  active={pathname === child.href}
+                  active={pathname === child.href || pathname.startsWith(child.href + '/')}
                   icon={getIcon(child.icon, 'h-4 w-4')}
                 />
               ))}
@@ -348,8 +382,8 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
           </Flyout>
         ))}
 
-        {/* Org Switcher flyout — always available */}
-        <Flyout open={activePanel === 'orgs'} onClose={closePanel} title="Switch Organization">
+        {/* Org Switcher flyout — always available, anchored to its trigger button */}
+        <Flyout open={activePanel === 'orgs'} onClose={closePanel} title="Switch Organization" anchorRef={orgSwitcherRef}>
           <div className="px-2 py-1">
             {switching && (
               <p className="mb-2 text-[10px] text-gray-400 px-1">Switching...</p>
