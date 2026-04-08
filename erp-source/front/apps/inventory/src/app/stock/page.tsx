@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { AlertTriangle } from "lucide-react";
-import { DataTable, LoadingSpinner, EmptyState, PageHeader, type TableColumn } from "@erp/ui";
+import { Alert, DataTable, LoadingSpinner, EmptyState, PageHeader, type TableColumn } from "@erp/ui";
 import { api, type StockLevel } from "../../lib/api";
 
 export default function StockLevelsPage() {
@@ -30,7 +30,7 @@ export default function StockLevelsPage() {
       <PageHeader title="Stock Levels" description="Current inventory quantities by warehouse" />
 
       {loading && <LoadingSpinner />}
-      {error && <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+      {error && <Alert variant="error">{error}</Alert>}
 
       {!loading && !error && (() => {
         const stockColumns: TableColumn<StockLevel>[] = [

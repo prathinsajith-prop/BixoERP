@@ -20,7 +20,9 @@
     "clean": "rm -rf dist node_modules"
   },
   "dependencies": {
-    "@erp/shared": "*"
+    "@erp/shared": "*",
+    "chart.js": "^4.4.0",
+    "react-chartjs-2": "^5.2.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

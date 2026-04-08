@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { DataTable, LoadingSpinner, PageHeader, KPICard, StatusBadge, type TableColumn } from "@erp/ui";
+import { DataTable, LoadingSpinner, PageHeader, KPICard, StatusBadge, PageErrorState, type TableColumn } from "@erp/ui";
 import { api } from "../lib/api";
 
 type RecentJournal = { entryNumber: string; description: string; debit: number; currency: string; status: string };
@@ -47,7 +47,7 @@ export default function FinanceDashboardPage() {
   useEffect(() => { load(); }, [load]);
 
   if (loading) return <LoadingSpinner />;
-  if (error) return <div className="p-6 text-sm text-red-600">{error}</div>;
+  if (error) return <PageErrorState error={error} onRetry={load} />;
 
   const kpis = [
     { title: "Total Accounts", value: stats.accounts.toString(), trend: "up" },

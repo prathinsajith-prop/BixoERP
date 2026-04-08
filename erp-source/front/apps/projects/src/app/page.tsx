@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { LoadingSpinner, PageHeader, KPICard } from "@erp/ui";
+import { LoadingSpinner, PageHeader, KPICard, PageErrorState } from "@erp/ui";
 import { api } from "../lib/api";
 
 export default function ProjectsDashboardPage() {
@@ -31,7 +31,7 @@ export default function ProjectsDashboardPage() {
   useEffect(() => { load(); }, [load]);
 
   if (loading) return <LoadingSpinner />;
-  if (error) return <div className="p-6 text-sm text-red-600">{error}</div>;
+  if (error) return <PageErrorState error={error} onRetry={load} />;
 
   const kpis = [
     { title: "Total Projects", value: stats.projects },

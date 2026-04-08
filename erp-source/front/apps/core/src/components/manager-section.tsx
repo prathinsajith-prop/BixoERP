@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { authApi } from '@/lib/api/auth';
+import { Avatar } from '@erp/ui';
 
 const SETTING_GROUPS = [
   {
@@ -30,20 +31,6 @@ const SETTING_GROUPS = [
     ],
   },
 ];
-
-function UserAvatar({ name }: { name: string }) {
-  const initials = (name || '?')
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-  return (
-    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-[11px] font-bold text-white">
-      {initials}
-    </div>
-  );
-}
 
 function RoleBadge({ role }: { role: string }) {
   const isManager = role === 'manager';
@@ -178,7 +165,7 @@ export default function ManagerSection({ orgId, entityType, entityId }: ManagerS
         {manager ? (
           <div className="flex items-center justify-between rounded-xl border border-gray-100 dark:border-gray-700 px-4 py-3">
             <div className="flex items-center gap-3">
-              <UserAvatar name={getUserName(manager.userId)} />
+              <Avatar name={getUserName(manager.userId)} size="sm" shape="circular" />
               <div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">{getUserName(manager.userId)}</p>
                 <p className="text-xs text-gray-400">{getUserEmail(manager.userId)}</p>
@@ -215,7 +202,7 @@ export default function ManagerSection({ orgId, entityType, entityId }: ManagerS
             {assistants.map((a) => (
               <div key={a.id} className="flex items-center justify-between rounded-xl border border-gray-100 dark:border-gray-700 px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <UserAvatar name={getUserName(a.userId)} />
+                  <Avatar name={getUserName(a.userId)} size="sm" shape="circular" />
                   <div>
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">{getUserName(a.userId)}</p>
                     <p className="text-xs text-gray-400">{getUserEmail(a.userId)}</p>

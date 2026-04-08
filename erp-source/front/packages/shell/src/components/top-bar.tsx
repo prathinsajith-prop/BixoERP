@@ -71,23 +71,26 @@ function OrgBadge() {
   const initial = currentOrg.name?.charAt(0)?.toUpperCase() || "O";
 
   return (
-    <div className="flex items-center gap-2 rounded-xl px-2 py-1.5">
+    <div className="flex items-center gap-3">
       {logoBlobUrl ? (
         <img
           src={logoBlobUrl}
           alt={currentOrg.name}
-          className="h-7 w-7 shrink-0 rounded-lg object-cover shadow-sm ring-1 ring-gray-200/60 dark:ring-gray-700/60"
+          className="h-14 w-14 shrink-0 rounded-2xl object-cover shadow-md ring-2 ring-gray-100 dark:ring-gray-700"
         />
       ) : (
         <div
-          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${gradient} text-[11px] font-bold text-white shadow-sm`}
+          className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${gradient} text-xl font-bold text-white shadow-md`}
         >
           {initial}
         </div>
       )}
-      <span className="hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-200 max-w-[180px] truncate">
-        {currentOrg.name}
-      </span>
+      <div className="hidden flex-col sm:flex">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Organization</span>
+        <span className="max-w-[200px] truncate text-base font-bold text-gray-800 dark:text-gray-100">
+          {currentOrg.name}
+        </span>
+      </div>
     </div>
   );
 }

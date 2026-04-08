@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/auth';
 import { showToast } from '@erp/shell';
 import { toast } from 'sonner';
 import PageHeader from '@/components/page-header';
+import { OrgAvatar, RoleBadge } from '@erp/ui';
 
 interface OrgMembership {
     orgId: string;
@@ -17,25 +18,6 @@ interface OrgMembership {
     isActive: boolean;
     joinedAt?: string;
 }
-
-const ROLE_COLOURS: Record<string, string> = {
-    OWNER: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-    ADMIN: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-    MANAGER: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300',
-    MEMBER: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
-};
-function roleBadge(role: string) {
-    return ROLE_COLOURS[role?.toUpperCase()] ?? ROLE_COLOURS['MEMBER'];
-}
-
-const GRADIENTS = [
-    'from-violet-500 to-purple-600',
-    'from-blue-500 to-cyan-500',
-    'from-emerald-500 to-teal-500',
-    'from-rose-500 to-pink-500',
-    'from-amber-500 to-orange-500',
-    'from-indigo-500 to-blue-600',
-];
 
 export default function OrganisationsPage() {
     const { orgId: currentOrgId } = useOrgContext();
@@ -135,11 +117,7 @@ export default function OrganisationsPage() {
                                     }`}
                             >
                                 {/* Avatar */}
-                                <div
-                                    className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${GRADIENTS[idx % GRADIENTS.length]} text-lg font-bold text-white shadow`}
-                                >
-                                    {org.orgName?.charAt(0)?.toUpperCase() ?? 'O'}
-                                </div>
+                                <OrgAvatar name={org.orgName} size="xl" shape="rounded-xl" />
 
                                 <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-2">
@@ -152,9 +130,7 @@ export default function OrganisationsPage() {
                                     </div>
                                     <p className="truncate text-xs text-gray-400 dark:text-gray-500">/{org.orgSlug}</p>
                                     <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${roleBadge(org.role)}`}>
-                                            {org.role}
-                                        </span>
+                                        <RoleBadge role={org.role} />
                                         {org.membershipType && org.membershipType !== 'REGULAR' && (
                                             <span className="text-xs text-gray-400 dark:text-gray-500">{org.membershipType}</span>
                                         )}

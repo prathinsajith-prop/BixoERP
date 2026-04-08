@@ -3,9 +3,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
-import { showToast } from '@erp/shell';
+import { showToast, filesApi } from '@erp/shell';
 import PageHeader from '@/components/page-header';
-import { DataTable, Pagination, type TableColumn } from '@erp/ui';
+import { DataTable, OrgAvatar, Pagination, StatusBadge, type TableColumn } from '@erp/ui';
 
 /* ── Icons ──────────────────────────────────────────────────────── */
 const Icons = {
@@ -20,26 +20,6 @@ const Icons = {
     spinner: <svg className="h-8 w-8 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>,
 };
 
-/* ── Avatar ─────────────────────────────────────────────────────── */
-const ORG_COLORS = [
-    'from-violet-500 to-purple-600', 'from-blue-500 to-cyan-500', 'from-emerald-500 to-teal-500',
-    'from-rose-500 to-pink-500', 'from-amber-500 to-orange-500', 'from-indigo-500 to-blue-600',
-    'from-fuchsia-500 to-purple-500', 'from-sky-500 to-blue-500',
-];
-function orgGradient(str: string) {
-    let hash = 0;
-    for (let i = 0; i < (str || '').length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    return ORG_COLORS[Math.abs(hash) % ORG_COLORS.length];
-}
-function OrgAvatar({ name }: { name: string }) {
-    const initials = (name || '?').split(/\s+/).map((w) => w[0]).join('').toUpperCase().slice(0, 2);
-    return (
-        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${orgGradient(name)} text-xs font-bold text-white`}>
-            {initials}
-        </div>
-    );
-}
-
 /* ── Types ──────────────────────────────────────────────────────── */
 interface Organization {
     id: string;
@@ -49,18 +29,10 @@ interface Organization {
     status?: string;
     ownerId?: string;
     createdAt?: string;
+    logoUrl?: string;
 }
 
 type StatusFilter = 'all' | 'ACTIVE' | 'INACTIVE';
-
-/* ── Status Badge ───────────────────────────────────────────────── */
-function StatusBadge({ status }: { status?: string }) {
-    const s = (status || 'ACTIVE').toUpperCase();
-    const cls = s === 'ACTIVE'
-        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-        : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400';
-    return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${cls}`}>{s.charAt(0) + s.slice(1).toLowerCase()}</span>;
-}
 
 const PAGE_SIZES = [10, 25, 50];
 
@@ -73,6 +45,7 @@ export default function AdminOrganizationsPage() {
     const [pageSize, setPageSize] = useState(25);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+    const [orgLogoBlobUrls, setOrgLogoBlobUrls] = useState<Record<string, string>>({});
 
     const fetchOrgs = useCallback(async () => {
         setLoading(true);
@@ -91,6 +64,17 @@ export default function AdminOrganizationsPage() {
     }, [page, pageSize]);
 
     useEffect(() => { fetchOrgs(); }, [fetchOrgs]);
+
+    useEffect(() => {
+        orgs.forEach((org) => {
+            if (!org.logoUrl) return;
+            const match = org.logoUrl.match(/\/files\/([0-9a-f-]+)\/download/);
+            if (!match) { setOrgLogoBlobUrls((prev) => ({ ...prev, [org.id]: org.logoUrl! })); return; }
+            filesApi.download(match[1]).then((url) => {
+                if (url) setOrgLogoBlobUrls((prev) => ({ ...prev, [org.id]: url }));
+            }).catch(() => { });
+        });
+    }, [orgs]);
 
     const filtered = useMemo(() => {
         let list = orgs;
@@ -116,7 +100,7 @@ export default function AdminOrganizationsPage() {
             header: 'Organization',
             render: (org) => (
                 <div className="flex items-center gap-3">
-                    <OrgAvatar name={org.name} />
+                    <OrgAvatar name={org.name} src={orgLogoBlobUrls[org.id]} size="md" shape="rounded-lg" />
                     <div className="min-w-0">
                         <p className="truncate font-medium text-gray-900 dark:text-white">{org.name}</p>
                         {org.description && (
@@ -134,7 +118,7 @@ export default function AdminOrganizationsPage() {
         {
             key: 'status',
             header: 'Status',
-            render: (org) => <StatusBadge status={org.status} />,
+            render: (org) => <StatusBadge status={org.status ?? 'ACTIVE'} />,
         },
         {
             key: 'createdAt',

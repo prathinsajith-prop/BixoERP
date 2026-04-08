@@ -1,5 +1,7 @@
 // Data Display
 export { Card, CardHeader } from "./data-display/card";
+export { ChartRenderer } from "./data-display/chart-renderer";
+export type { ChartRendererProps } from "./data-display/chart-renderer";
 export { DataTable, DataTable as Table } from "./data-display/data-table";
 export type { Column as TableColumn, RowAction, SortDirection } from "./data-display/data-table";
 export { ListView } from "./data-display/list-view";
@@ -9,6 +11,8 @@ export type { EntityCardProps, EntityCardField } from "./data-display/entity-car
 
 // Feedback
 export { StatusBadge } from "./feedback/badge";
+export { RoleBadge } from "./feedback/role-badge";
+export type { RoleBadgeProps } from "./feedback/role-badge";
 export { EmptyState, LoadingSpinner } from "./feedback/empty-state";
 export type { EmptyStateProps } from "./feedback/empty-state";
 export { Modal } from "./feedback/modal";
@@ -45,6 +49,8 @@ export { Tabs } from "./navigation/tabs";
 export type { TabItem } from "./navigation/tabs";
 
 // Data Display (extended)
+export { OrgAvatar } from "./data-display/org-avatar";
+export type { OrgAvatarProps } from "./data-display/org-avatar";
 export { Avatar } from "./data-display/avatar";
 export type { AvatarProps } from "./data-display/avatar";
 export { AvatarGroup } from "./data-display/avatar-group";

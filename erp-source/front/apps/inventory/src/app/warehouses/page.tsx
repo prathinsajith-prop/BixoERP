@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Plus } from "lucide-react";
-import { LoadingSpinner, EmptyState, PageHeader, StatusBadge, ActionButtons, type ActionButtonItem } from "@erp/ui";
+import { Alert, LoadingSpinner, EmptyState, PageHeader, StatusBadge, ActionButtons, type ActionButtonItem } from "@erp/ui";
 import { api, type Warehouse } from "../../lib/api";
 
 export default function WarehousesPage() {
@@ -38,7 +38,7 @@ export default function WarehousesPage() {
       />
 
       {loading && <LoadingSpinner />}
-      {error && <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+      {error && <Alert variant="error">{error}</Alert>}
 
       {!loading && !error && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

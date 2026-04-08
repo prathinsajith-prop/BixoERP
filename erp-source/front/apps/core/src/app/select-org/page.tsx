@@ -3,17 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
-
-const ROLE_BADGE_COLOURS: Record<string, string> = {
-  OWNER: 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300',
-  ADMIN: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
-  MANAGER: 'bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300',
-  MEMBER: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
-};
-
-function roleBadge(role: string) {
-  return ROLE_BADGE_COLOURS[role?.toUpperCase()] ?? ROLE_BADGE_COLOURS['MEMBER'];
-}
+import { OrgAvatar, RoleBadge } from '@erp/ui';
 
 export default function SelectOrgPage() {
   const router = useRouter();
@@ -67,9 +57,7 @@ export default function SelectOrgPage() {
               className="group flex w-full items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-indigo-300 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-indigo-600"
             >
               {/* Org avatar */}
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-lg font-bold text-white shadow">
-                {org.orgName?.charAt(0)?.toUpperCase() ?? 'O'}
-              </div>
+              <OrgAvatar name={org.orgName ?? 'O'} size="xl" shape="rounded-xl" />
 
               <div className="min-w-0 flex-1">
                 <p className="truncate font-semibold text-gray-900 dark:text-white group-hover:text-indigo-700 dark:group-hover:text-indigo-400">
@@ -81,9 +69,7 @@ export default function SelectOrgPage() {
               </div>
 
               <div className="flex flex-shrink-0 flex-col items-end gap-1">
-                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${roleBadge(org.role)}`}>
-                  {org.role}
-                </span>
+                <RoleBadge role={org.role} />
                 {org.membershipType && org.membershipType !== 'REGULAR' && (
                   <span className="text-xs text-gray-400 dark:text-gray-500">{org.membershipType}</span>
                 )}

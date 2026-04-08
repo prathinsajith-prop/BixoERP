@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Bell, CheckCheck } from "lucide-react";
-import { LoadingSpinner, EmptyState, PageHeader } from "@erp/ui";
+import { Alert, LoadingSpinner, EmptyState, PageHeader } from "@erp/ui";
 import { api, type Notification } from "../lib/api";
 
 export default function NotificationsPage() {
@@ -62,7 +62,7 @@ export default function NotificationsPage() {
       />
 
       {loading && <LoadingSpinner />}
-      {error && <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+      {error && <Alert variant="error">{error}</Alert>}
 
       {!loading && !error && (
         notifications.length === 0 ? (

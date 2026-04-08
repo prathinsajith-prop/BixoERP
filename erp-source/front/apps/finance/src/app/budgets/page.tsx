@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Plus } from "lucide-react";
-import { LoadingSpinner, EmptyState, PageHeader, ActionButtons, type ActionButtonItem } from "@erp/ui";
+import { Alert, LoadingSpinner, EmptyState, PageHeader, ActionButtons, type ActionButtonItem } from "@erp/ui";
 import { api, type Budget } from "../../lib/api";
 
 export default function BudgetsPage() {
@@ -38,7 +38,7 @@ export default function BudgetsPage() {
       />
 
       {loading && <LoadingSpinner />}
-      {error && <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+      {error && <Alert variant="error">{error}</Alert>}
 
       {!loading && !error && (
         budgets.length === 0 ? (

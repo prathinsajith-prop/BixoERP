@@ -6,7 +6,7 @@ import { useOrgContext } from '@/context/org';
 import { showToast } from '@erp/shell';
 import CanDo from '@/components/can-do';
 import PageHeader from '@/components/page-header';
-import { Button, DataTable, type TableColumn } from '@erp/ui';
+import { Button, DataTable, RoleBadge, type TableColumn } from '@erp/ui';
 
 interface Member {
     userId: string;
@@ -28,15 +28,6 @@ interface PendingInvite {
     invitedBy?: string;
 }
 
-const ROLE_COLOURS: Record<string, string> = {
-    OWNER: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-    ADMIN: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-    MANAGER: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300',
-    MEMBER: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
-};
-function roleBadge(role: string) {
-    return ROLE_COLOURS[role?.toUpperCase()] ?? ROLE_COLOURS['MEMBER'];
-}
 
 // ── Invite Modal ──────────────────────────────────────────────────────────────
 interface InviteModalProps {
@@ -255,11 +246,7 @@ export default function MembersPage() {
                             {
                                 key: 'role',
                                 header: 'Role',
-                                render: (m) => (
-                                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${roleBadge(m.role)}`}>
-                                        {m.role}
-                                    </span>
-                                ),
+                                render: (m) => <RoleBadge role={m.role} />,
                             },
                             { key: 'membershipType', header: 'Type' },
                             {
@@ -304,11 +291,7 @@ export default function MembersPage() {
                             {
                                 key: 'roleName',
                                 header: 'Role',
-                                render: (inv) => (
-                                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${roleBadge(inv.roleName)}`}>
-                                        {inv.roleName}
-                                    </span>
-                                ),
+                                render: (inv) => <RoleBadge role={inv.roleName} />,
                             },
                             {
                                 key: 'createdAt',

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { DataTable, LoadingSpinner, EmptyState, PageHeader, StatusBadge, type TableColumn } from "@erp/ui";
+import { Alert, DataTable, LoadingSpinner, EmptyState, PageHeader, StatusBadge, type TableColumn } from "@erp/ui";
 import { api, type ProjectTask } from "../../lib/api";
 
 export default function TasksPage() {
@@ -29,7 +29,7 @@ export default function TasksPage() {
       <PageHeader title="Tasks" description={`${tasks.length} tasks`} />
 
       {loading && <LoadingSpinner />}
-      {error && <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+      {error && <Alert variant="error">{error}</Alert>}
 
       {!loading && !error && (() => {
         const taskColumns: TableColumn<ProjectTask>[] = [

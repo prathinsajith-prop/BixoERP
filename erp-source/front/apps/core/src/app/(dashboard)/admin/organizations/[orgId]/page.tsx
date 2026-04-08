@@ -3,9 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
-import { showToast } from '@erp/shell';
+import { showToast, filesApi } from '@erp/shell';
 import PageHeader from '@/components/page-header';
-import { DataTable, StatusBadge, Tabs, type TableColumn } from '@erp/ui';
+import { DataTable, OrgAvatar, RoleBadge, StatusBadge, Tabs, Avatar, type TableColumn } from '@erp/ui';
 
 /* ── Icons ──────────────────────────────────────────────────────── */
 const Icons = {
@@ -50,49 +50,6 @@ interface Member {
 
 type TabKey = 'overview' | 'members' | 'settings';
 
-/* ── Role Badge ─────────────────────────────────────────────────── */
-const ROLE_COLOURS: Record<string, string> = {
-    OWNER: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-    ADMIN: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-    MANAGER: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300',
-    MEMBER: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
-};
-function RoleBadge({ role }: { role: string }) {
-    const key = role?.toUpperCase();
-    return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${ROLE_COLOURS[key] ?? ROLE_COLOURS['MEMBER']}`}>{role}</span>;
-}
-
-
-
-/* ── Avatar ─────────────────────────────────────────────────────── */
-const ORG_COLORS = [
-    'from-violet-500 to-purple-600', 'from-blue-500 to-cyan-500', 'from-emerald-500 to-teal-500',
-    'from-rose-500 to-pink-500', 'from-amber-500 to-orange-500', 'from-indigo-500 to-blue-600',
-];
-function orgGradient(str: string) {
-    let hash = 0;
-    for (let i = 0; i < (str || '').length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    return ORG_COLORS[Math.abs(hash) % ORG_COLORS.length];
-}
-function OrgAvatar({ name, size = 14 }: { name: string; size?: number }) {
-    const initials = (name || '?').split(/\s+/).map((w) => w[0]).join('').toUpperCase().slice(0, 2);
-    const sz = `h-${size} w-${size}`;
-    return (
-        <div className={`flex ${sz} shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${orgGradient(name)} text-lg font-bold text-white`}>
-            {initials}
-        </div>
-    );
-}
-function MemberAvatar({ name, email }: { name: string; email: string }) {
-    const initials = name?.trim()
-        ? name.split(/\s+/).map((w) => w[0]).join('').toUpperCase().slice(0, 2)
-        : (email || '?').substring(0, 2).toUpperCase();
-    return (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 text-[11px] font-bold text-white">
-            {initials}
-        </div>
-    );
-}
 
 /* ── Inline editable field ──────────────────────────────────────── */
 function EditableField({
@@ -239,6 +196,7 @@ export default function OrganizationDetailPage() {
     const [showInvite, setShowInvite] = useState(false);
     const [removingId, setRemovingId] = useState<string | null>(null);
     const [togglingStatus, setTogglingStatus] = useState(false);
+    const [logoBlobUrl, setLogoBlobUrl] = useState<string | null>(null);
 
     const handleToggleOrgStatus = async () => {
         if (!org) return;
@@ -284,6 +242,13 @@ export default function OrganizationDetailPage() {
     }, [orgId]);
 
     useEffect(() => { fetchOrg(); }, [fetchOrg]);
+
+    useEffect(() => {
+        if (!org?.logoUrl) { setLogoBlobUrl(null); return; }
+        const match = org.logoUrl.match(/\/files\/([0-9a-f-]+)\/download/);
+        if (!match) { setLogoBlobUrl(org.logoUrl); return; }
+        filesApi.download(match[1]).then((url) => { if (url) setLogoBlobUrl(url); }).catch(() => { });
+    }, [org?.logoUrl]);
     useEffect(() => { if (activeTab === 'members') fetchMembers(); }, [activeTab, fetchMembers]);
 
     const handleFieldSave = async (field: keyof Pick<Organization, 'name' | 'slug' | 'description'>, value: string) => {
@@ -367,7 +332,7 @@ export default function OrganizationDetailPage() {
                 {/* Header */}
                 <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-4">
-                        <OrgAvatar name={org.name} />
+                        <OrgAvatar name={org.name} src={logoBlobUrl ?? undefined} size="2xl" shape="rounded-2xl" />
                         <div>
                             <div className="flex items-center gap-2">
                                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{org.name}</h1>
@@ -561,7 +526,7 @@ export default function OrganizationDetailPage() {
                                             const fullName = [m.firstName, m.lastName].filter(Boolean).join(' ');
                                             return (
                                                 <div className="flex items-center gap-3">
-                                                    <MemberAvatar name={fullName} email={m.email} />
+                                                    <Avatar name={fullName || m.email} size="sm" shape="circular" />
                                                     <div className="min-w-0">
                                                         {fullName && <p className="truncate font-medium text-gray-900 dark:text-white">{fullName}</p>}
                                                         <p className="truncate text-xs text-gray-400">{m.email}</p>
