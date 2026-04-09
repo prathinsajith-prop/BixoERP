@@ -1,16 +1,20 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
 import { showToast, filesApi } from '@erp/shell';
 import { buildSearchParams } from '@erp/shared';
-import PageHeader from '@/components/page-header';
 import {
+    ActionButtons,
+    Button,
+    ConfirmDialog,
     DataTable,
     EmptyState,
     ListView,
     OrgAvatar,
+    PageHeader,
     PageLoadingState,
     Pagination,
     SearchFilter,
@@ -37,6 +41,10 @@ const Icons = {
     xCircle: <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
     spinner: <svg className="h-8 w-8 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>,
     gear: <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+    dots: <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>,
+    download: <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>,
+    trash: <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>,
+    orgToggle: <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>,
 };
 
 /* ── Types ──────────────────────────────────────────────────────── */
@@ -55,6 +63,67 @@ interface OrgStats { total: number; active: number; inactive: number; }
 
 const PAGE_SIZES = [10, 25, 50];
 
+/* ── Row action dropdown ────────────────────────────────────────── */
+function OrgRowActions({ org, onView, onEdit, onToggleStatus, onDelete }: {
+    org: Organization; onView: () => void; onEdit: () => void; onToggleStatus: () => void; onDelete: () => void;
+}) {
+    const [open, setOpen] = useState(false);
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const [coords, setCoords] = useState({ top: 0, right: 0 });
+
+    useEffect(() => {
+        if (!open || !triggerRef.current) return;
+        const rect = triggerRef.current.getBoundingClientRect();
+        setCoords({ top: rect.bottom + window.scrollY + 4, right: window.innerWidth - rect.right });
+    }, [open]);
+
+    useEffect(() => {
+        const handle = (e: MouseEvent) => {
+            const target = e.target as Node;
+            if (triggerRef.current && !triggerRef.current.contains(target)) {
+                const portal = document.getElementById('org-row-action-portal');
+                if (!portal || !portal.contains(target)) setOpen(false);
+            }
+        };
+        if (open) document.addEventListener('mousedown', handle);
+        return () => document.removeEventListener('mousedown', handle);
+    }, [open]);
+
+    const isActive = (org.status ?? 'ACTIVE').toUpperCase() === 'ACTIVE';
+    const items = [
+        { label: 'View organization', icon: Icons.eye, onClick: onView },
+        { label: 'Edit settings', icon: Icons.gear, onClick: onEdit },
+        { label: isActive ? 'Deactivate' : 'Activate', icon: Icons.orgToggle, onClick: onToggleStatus, danger: isActive },
+        { label: 'Delete organization', icon: Icons.trash, onClick: onDelete, danger: true },
+    ];
+
+    const dropdown = open ? createPortal(
+        <div
+            id="org-row-action-portal"
+            className="fixed z-[9999] w-48 rounded-xl bg-white py-1 shadow-lg ring-1 ring-gray-200/60 dark:bg-gray-900 dark:ring-gray-700"
+            style={{ top: coords.top, right: coords.right }}
+        >
+            {items.map((item) => (
+                <button key={item.label} onClick={() => { setOpen(false); item.onClick(); }}
+                    className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition hover:bg-gray-50 dark:hover:bg-gray-800 ${item.danger ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                    {item.icon}
+                    {item.label}
+                </button>
+            ))}
+        </div>,
+        document.body
+    ) : null;
+
+    return (
+        <div>
+            <button ref={triggerRef} onClick={() => setOpen(!open)} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300">
+                {Icons.dots}
+            </button>
+            {dropdown}
+        </div>
+    );
+}
+
 export default function AdminOrganizationsPage() {
     const router = useRouter();
     const [orgs, setOrgs] = useState<Organization[]>([]);
@@ -68,6 +137,16 @@ export default function AdminOrganizationsPage() {
     const [activeOperators, setActiveOperators] = useState<ActiveOperators>({});
     const [orgLogoBlobUrls, setOrgLogoBlobUrls] = useState<Record<string, string>>({});
     const [view, setView] = useState<ViewMode>('table');
+
+    /* ── Selection ─── */
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+    /* ── Modals ─── */
+    const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [toggleModalOpen, setToggleModalOpen] = useState(false);
+    const [toggling, setToggling] = useState(false);
 
     const pendingFiltersRef = useRef<ActiveFilters>({});
     const pendingOperatorsRef = useRef<ActiveOperators>({});
@@ -166,6 +245,65 @@ export default function AdminOrganizationsPage() {
         fetchOrgs(newPage, searchRef.current, pendingFiltersRef.current, pendingOperatorsRef.current);
     }, [fetchOrgs]);
 
+    /* ── Delete organization ─── */
+    const handleDeleteOrg = useCallback(async () => {
+        if (!selectedOrg) return;
+        setDeleting(true);
+        const name = selectedOrg.name;
+        try {
+            await authApi.deleteOrganization(selectedOrg.id);
+            setOrgs((prev) => prev.filter((o) => o.id !== selectedOrg.id));
+            setDeleteModalOpen(false);
+            setSelectedOrg(null);
+            showToast.success(`Organization "${name}" deleted successfully.`);
+        } catch (err: unknown) {
+            const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to delete organization.';
+            showToast.error('Something went wrong', msg);
+            setDeleteModalOpen(false);
+            setSelectedOrg(null);
+        } finally { setDeleting(false); }
+    }, [selectedOrg]);
+
+    /* ── Toggle active/inactive ─── */
+    const confirmToggleOrg = useCallback(async () => {
+        if (!selectedOrg) return;
+        setToggling(true);
+        const isActive = (selectedOrg.status ?? 'ACTIVE').toUpperCase() === 'ACTIVE';
+        try {
+            await authApi.updateOrganization(selectedOrg.id, { status: isActive ? 'INACTIVE' : 'ACTIVE' });
+            setOrgs((prev) => prev.map((o) =>
+                o.id === selectedOrg.id ? { ...o, status: isActive ? 'INACTIVE' : 'ACTIVE' } : o
+            ));
+            setToggleModalOpen(false);
+            setSelectedOrg(null);
+            showToast.success(`Organization "${selectedOrg.name}" ${isActive ? 'deactivated' : 'activated'} successfully.`);
+        } catch (err: unknown) {
+            const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to update organization.';
+            showToast.error('Something went wrong', msg);
+            setToggleModalOpen(false);
+            setSelectedOrg(null);
+        } finally { setToggling(false); }
+    }, [selectedOrg]);
+
+    /* ── Export CSV ─── */
+    const handleExport = useCallback(() => {
+        const header = 'Name,Slug,Status,Created\n';
+        const rows = orgs.map((o) => {
+            const status = (o.status ?? 'ACTIVE').toUpperCase() === 'ACTIVE' ? 'Active' : 'Inactive';
+            const created = o.createdAt ? new Date(o.createdAt).toLocaleDateString() : '';
+            return `"${o.name}","${o.slug ?? ''}","${status}","${created}"`;
+        }).join('\n');
+        const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'organizations.csv'; a.click();
+        URL.revokeObjectURL(url);
+    }, [orgs]);
+
+    /* ── Selection helpers ─── */
+    const selectedKeys = useMemo(() => Array.from(selectedIds), [selectedIds]);
+    const someSelected = selectedIds.size > 0;
+
     const filterConfigs = useMemo<FilterConfig[]>(() => [
         {
             key: 'status',
@@ -235,21 +373,14 @@ export default function AdminOrganizationsPage() {
             header: '',
             align: 'right' as const,
             render: (org) => (
-                <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                    <button
-                        title="View organization"
-                        onClick={() => router.push(`/admin/organizations/${org.id}`)}
-                        className="flex items-center justify-center rounded-md p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                    >
-                        {Icons.eye}
-                    </button>
-                    <button
-                        title="Organization settings"
-                        onClick={() => router.push(`/admin/organizations/${org.id}?tab=settings`)}
-                        className="flex items-center justify-center rounded-md p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                    >
-                        {Icons.gear}
-                    </button>
+                <div onClick={(e) => e.stopPropagation()}>
+                    <OrgRowActions
+                        org={org}
+                        onView={() => router.push(`/admin/organizations/${org.id}`)}
+                        onEdit={() => router.push(`/admin/organizations/${org.id}?tab=settings`)}
+                        onToggleStatus={() => { setSelectedOrg(org); setToggleModalOpen(true); }}
+                        onDelete={() => { setSelectedOrg(org); setDeleteModalOpen(true); }}
+                    />
                 </div>
             ),
         },
@@ -272,15 +403,32 @@ export default function AdminOrganizationsPage() {
     );
 
     const toolbarActions = (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
             <ViewSwitcher view={view} onViewChange={setView} options={viewOptions} />
-            <button
-                onClick={() => fetchOrgs(page, searchRef.current, pendingFiltersRef.current, pendingOperatorsRef.current)}
-                title="Refresh"
-                className="flex items-center justify-center rounded-lg border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] p-2 text-[var(--gogo-text-secondary)] transition hover:bg-[var(--gogo-surface-hover)]"
-            >
-                {Icons.refresh}
-            </button>
+            <ActionButtons
+                actions={[
+                    {
+                        key: 'refresh-orgs',
+                        label: 'Refresh',
+                        icon: Icons.refresh,
+                        variant: 'outline',
+                        onClick: () => fetchOrgs(page, searchRef.current, pendingFiltersRef.current, pendingOperatorsRef.current),
+                    },
+                    {
+                        key: 'export-orgs',
+                        label: 'Export CSV',
+                        icon: Icons.download,
+                        variant: 'outline',
+                        onClick: handleExport,
+                    },
+                    {
+                        key: 'create-org',
+                        label: 'New Organization',
+                        icon: Icons.plus,
+                        onClick: () => router.push('/admin/organizations/new'),
+                    },
+                ]}
+            />
         </div>
     );
 
@@ -306,16 +454,7 @@ export default function AdminOrganizationsPage() {
         <div className="space-y-6">
             <PageHeader
                 title="Organizations"
-                subtitle={`${total} organization${total !== 1 ? 's' : ''} in system`}
-                action={
-                    <button
-                        onClick={() => router.push('/admin/organizations/new')}
-                        className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
-                        style={{ backgroundColor: 'var(--gogo-primary)' }}
-                    >
-                        {Icons.plus} New Organization
-                    </button>
-                }
+                description={`${total} organization${total !== 1 ? 's' : ''} in system`}
             />
 
             {/* Stats */}
@@ -351,6 +490,17 @@ export default function AdminOrganizationsPage() {
                 </p>
             )}
 
+            {/* Bulk selection bar */}
+            {someSelected && (
+                <div className="flex items-center gap-3 rounded-[var(--radius-card)] border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] px-4 py-2.5 shadow-[var(--shadow-card)]">
+                    <span className="text-sm font-medium text-[var(--gogo-primary)]">{selectedIds.size} selected</span>
+                    <div className="h-4 w-px bg-[var(--gogo-divider)]" />
+                    <button onClick={() => setSelectedIds(new Set())} className="text-sm font-medium text-[var(--gogo-primary)] transition hover:opacity-80">
+                        Deselect all
+                    </button>
+                </div>
+            )}
+
             {/* Table / List */}
             {loading ? (
                 <PageLoadingState message="Loading organizations..." size="lg" />
@@ -358,6 +508,11 @@ export default function AdminOrganizationsPage() {
                 <EmptyState
                     title="No organizations found"
                     description={hasActiveSearch ? 'Try adjusting your search or filters' : 'No organizations exist yet'}
+                    action={!hasActiveSearch ? (
+                        <Button size="sm" onClick={() => router.push('/admin/organizations/new')}>
+                            {Icons.plus} New Organization
+                        </Button>
+                    ) : undefined}
                 />
             ) : view === 'table' ? (
                 <>
@@ -366,6 +521,9 @@ export default function AdminOrganizationsPage() {
                             columns={orgColumns}
                             data={orgs}
                             keyExtractor={(org) => org.id}
+                            selectable
+                            selectedKeys={selectedKeys}
+                            onSelectionChange={(keys) => setSelectedIds(new Set(keys))}
                             onRowClick={(org) => router.push(`/admin/organizations/${org.id}`)}
                         />
                     </div>
@@ -385,27 +543,21 @@ export default function AdminOrganizationsPage() {
                         columns={listColumns}
                         data={orgs}
                         keyExtractor={(org) => org.id}
+                        selectable
+                        selectedKeys={selectedKeys}
+                        onSelectionChange={(keys) => setSelectedIds(new Set(keys))}
                         onRowClick={(org) => router.push(`/admin/organizations/${org.id}`)}
                         title={(org) => org.name}
                         subtitle={(org) => org.slug || ''}
                         leading={(org) => <OrgAvatar name={org.name} src={orgLogoBlobUrls[org.id]} size="md" shape="rounded-lg" />}
                         trailing={(org) => (
-                            <div className="flex items-center gap-1">
-                                <button
-                                    title="View organization"
-                                    onClick={() => router.push(`/admin/organizations/${org.id}`)}
-                                    className="flex items-center justify-center rounded-md p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                >
-                                    {Icons.eye}
-                                </button>
-                                <button
-                                    title="Organization settings"
-                                    onClick={() => router.push(`/admin/organizations/${org.id}?tab=settings`)}
-                                    className="flex items-center justify-center rounded-md p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                >
-                                    {Icons.gear}
-                                </button>
-                            </div>
+                            <OrgRowActions
+                                org={org}
+                                onView={() => router.push(`/admin/organizations/${org.id}`)}
+                                onEdit={() => router.push(`/admin/organizations/${org.id}?tab=settings`)}
+                                onToggleStatus={() => { setSelectedOrg(org); setToggleModalOpen(true); }}
+                                onDelete={() => { setSelectedOrg(org); setDeleteModalOpen(true); }}
+                            />
                         )}
                         emptyMessage={hasActiveSearch ? 'No organizations match your filters' : 'No organizations found'}
                     />
@@ -422,6 +574,34 @@ export default function AdminOrganizationsPage() {
                     </div>
                 </div>
             )}
+
+            {/* ── Delete confirmation ─── */}
+            <ConfirmDialog
+                open={deleteModalOpen && !!selectedOrg}
+                onClose={() => { setDeleteModalOpen(false); setSelectedOrg(null); }}
+                onConfirm={handleDeleteOrg}
+                variant="danger"
+                title="Delete Organization"
+                message={selectedOrg ? <>Are you sure you want to delete <strong>{selectedOrg.name}</strong>? This action cannot be undone.</> : ''}
+                confirmLabel="Delete"
+                loading={deleting}
+            />
+
+            {/* ── Toggle active/inactive confirmation ─── */}
+            <ConfirmDialog
+                open={toggleModalOpen && !!selectedOrg}
+                onClose={() => { setToggleModalOpen(false); setSelectedOrg(null); }}
+                onConfirm={confirmToggleOrg}
+                variant={(selectedOrg?.status ?? 'ACTIVE').toUpperCase() === 'ACTIVE' ? 'warning' : 'success'}
+                title={(selectedOrg?.status ?? 'ACTIVE').toUpperCase() === 'ACTIVE' ? 'Deactivate Organization' : 'Activate Organization'}
+                message={selectedOrg ? (
+                    (selectedOrg.status ?? 'ACTIVE').toUpperCase() === 'ACTIVE'
+                        ? <>Are you sure you want to deactivate <strong>{selectedOrg.name}</strong>?</>
+                        : <>Are you sure you want to activate <strong>{selectedOrg.name}</strong>?</>
+                ) : ''}
+                confirmLabel={(selectedOrg?.status ?? 'ACTIVE').toUpperCase() === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                loading={toggling}
+            />
         </div>
     );
 }

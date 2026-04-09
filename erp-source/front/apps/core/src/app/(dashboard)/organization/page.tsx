@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, type ReactNode } from 'react';
-import PageHeader from '@/components/page-header';
 import { authApi } from '@/lib/api/auth';
 import { filesApi } from '@/lib/api/files';
 import { Input, Select, Textarea, Switch } from '@erp/ui';
@@ -202,7 +201,7 @@ function BrandingSection({ orgId }: { orgId: string }) {
         </div>
         <div className="mt-5 flex items-center justify-between border-t border-[var(--gogo-divider)] pt-5">
           <p className="text-xs text-[var(--gogo-text-secondary)]">Colors apply across your organization&apos;s interface.</p>
-          <button onClick={handleSave} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50">
+          <button onClick={handleSave} disabled={saving} className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:opacity-50" style={{ backgroundColor: 'var(--gogo-primary)' }}>
             {saving && <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
             Save Colors
           </button>
@@ -343,7 +342,7 @@ function AuditSection({ orgId }: { orgId: string }) {
   return (
     <div className="rounded-xl border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] shadow-[var(--shadow-card)]">
       <div className="flex items-start gap-3.5 border-b border-[var(--gogo-divider)] px-6 py-4">
-        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 10%, transparent)', color: 'var(--gogo-primary)' }}>
           <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
         </div>
         <div>
@@ -353,7 +352,7 @@ function AuditSection({ orgId }: { orgId: string }) {
       </div>
       <div className="px-6 py-5">
         {loading ? (
-          <div className="flex items-center justify-center py-16"><div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" /></div>
+          <div className="flex items-center justify-center py-16"><div className="h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: 'var(--gogo-primary)', borderTopColor: 'transparent' }} /></div>
         ) : entries.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--gogo-divider)]">
@@ -538,32 +537,56 @@ export default function OrganizationSettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" /></div>
+      <div className="flex min-h-[60vh] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: 'var(--gogo-primary)', borderTopColor: 'transparent' }} /></div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Organization Settings" subtitle={org.name ? `Manage settings for ${org.name}` : 'Manage your organization details'} />
+      <div className="mb-6">
+        <div className="mb-1 flex items-center gap-2 text-xs font-medium" style={{ color: 'var(--gogo-text-secondary)' }}>
+          <span>Settings</span>
+          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+          <span style={{ color: 'var(--gogo-primary)', fontWeight: 600 }}>Organization</span>
+        </div>
+        <h1 className="text-xl font-bold" style={{ color: 'var(--gogo-text-primary)', fontFamily: 'var(--font-gogo)' }}>Organization Settings</h1>
+        <p className="mt-0.5 text-sm" style={{ color: 'var(--gogo-text-secondary)' }}>{org.name ? `Manage settings for ${org.name}` : 'Manage your organization details'}</p>
+      </div>
 
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
 
         {/* Desktop sidebar */}
-        <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-52 shrink-0 overflow-y-auto pb-8 lg:block">
+        <aside className="sticky hidden h-fit w-56 shrink-0 overflow-y-auto lg:block" style={{ top: 'calc(var(--gogo-header-height) + 1.5rem)', backgroundColor: 'var(--gogo-surface)', borderRadius: 'var(--radius-card)', boxShadow: 'var(--shadow-card)', border: '1px solid var(--gogo-divider)', padding: '12px' }}>
           <nav className="space-y-0.5">
             {SECTIONS.map((section) => {
               const isActive = activeSection === section.key;
+              const isDanger = section.key === 'danger';
               return (
                 <button
                   key={section.key}
                   onClick={() => setActiveSection(section.key)}
-                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition ${isActive ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'text-[var(--gogo-text-secondary)] hover:bg-[var(--gogo-divider)] hover:text-[var(--gogo-text-primary)]'}`}
+                  className="relative flex w-full items-center gap-3 rounded-[var(--radius-button)] px-3 py-2.5 text-left text-sm transition-all"
+                  style={{
+                    backgroundColor: isActive ? 'color-mix(in srgb, var(--gogo-primary) 10%, transparent)' : 'transparent',
+                    color: isActive ? 'var(--gogo-primary)' : isDanger ? '#dc2626' : 'var(--gogo-text-secondary)',
+                    fontWeight: isActive ? 600 : 500,
+                  }}
+                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.backgroundColor = 'var(--gogo-grey-100)'; }}
+                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.backgroundColor = 'transparent'; }}
                 >
-                  <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d={section.icon} />
-                  </svg>
-                  {section.label}
-                  {section.key === 'danger' && <span className="ml-auto h-2 w-2 rounded-full bg-red-500" />}
+                  {isActive && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full" style={{ width: 3, height: '60%', backgroundColor: 'var(--gogo-primary)' }} />
+                  )}
+                  <span
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-chip)]"
+                    style={{ backgroundColor: isActive ? 'color-mix(in srgb, var(--gogo-primary) 15%, transparent)' : 'var(--gogo-grey-100)' }}
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d={section.icon} />
+                    </svg>
+                  </span>
+                  <span className="flex-1">{section.label}</span>
+                  {isDanger && <span className="h-1.5 w-1.5 rounded-full bg-red-500" />}
                 </button>
               );
             })}
@@ -581,7 +604,7 @@ export default function OrganizationSettingsPage() {
                   className="flex w-full items-center justify-between rounded-xl border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] px-4 py-3 text-left shadow-[var(--shadow-card)] transition hover:bg-[var(--gogo-divider)]"
                 >
                   <span className="flex items-center gap-3">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-chip)]" style={{ backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 10%, transparent)', color: 'var(--gogo-primary)' }}>
                       <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d={active?.icon} /></svg>
                     </span>
                     <span className="text-sm font-medium text-[var(--gogo-text-primary)]">{active?.label}</span>
@@ -596,12 +619,13 @@ export default function OrganizationSettingsPage() {
                         <button
                           key={item.key}
                           onClick={() => { setActiveSection(item.key); setMobileSectionOpen(false); }}
-                          className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition ${activeSection === item.key ? 'bg-blue-50 font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'text-[var(--gogo-text-secondary)] hover:bg-[var(--gogo-divider)] hover:text-[var(--gogo-text-primary)]'}`}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium transition"
+                          style={{ color: activeSection === item.key ? 'var(--gogo-primary)' : 'var(--gogo-text-secondary)', backgroundColor: activeSection === item.key ? 'color-mix(in srgb, var(--gogo-primary) 8%, transparent)' : undefined }}
                         >
                           <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d={item.icon} /></svg>
                           {item.label}
                           {item.key === 'danger' && <span className="ml-auto h-2 w-2 rounded-full bg-red-500" />}
-                          {activeSection === item.key && <svg className="ml-auto h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>}
+                          {activeSection === item.key && <svg className="ml-auto h-4 w-4 shrink-0" style={{ color: 'var(--gogo-primary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>}
                         </button>
                       ))}
                     </div>
