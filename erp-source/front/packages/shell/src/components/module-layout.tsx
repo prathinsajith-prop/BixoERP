@@ -30,7 +30,7 @@ export function ModuleLayout({ moduleId, children }: ModuleLayoutProps) {
           <ModuleSidebar moduleId={moduleId} />
           <div className="flex min-h-screen min-w-0 flex-col pb-16 pt-[var(--gogo-header-height)] md:ml-[var(--gogo-sidebar-width)] md:pb-[var(--gogo-footer-height)]">
             <main className="flex flex-1 flex-col">
-              <div className="mx-auto w-full max-w-[1200px] flex-1 px-8 pt-6 pb-10 lg:px-10">
+              <div className="mx-auto w-full max-w-[1200px] flex-1 px-4 pt-4 pb-10 sm:px-6 sm:pt-6 lg:px-10">
                 {children}
               </div>
             </main>

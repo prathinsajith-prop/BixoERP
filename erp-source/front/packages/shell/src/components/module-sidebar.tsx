@@ -101,20 +101,23 @@ function Flyout({ open, onClose, title, children, anchorRef }: {
   if (!open) return null;
   return (
     <>
-      {/* Mobile backdrop */}
-      <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px] md:hidden" onClick={onClose} />
-      <div ref={ref} className="fixed bottom-16 left-3 right-3 z-50 w-auto rounded-2xl bg-white shadow-xl ring-1 ring-gray-200/60 dark:bg-gray-800 dark:ring-gray-700 md:absolute md:bottom-auto md:left-full md:right-auto md:ml-2 md:w-72"
+      {/* Mobile backdrop — sits above page content, below topbar */}
+      <div className="fixed inset-0 z-[55] bg-black/25 backdrop-blur-[2px] md:hidden" onClick={onClose} />
+      <div
+        ref={ref}
+        className="fixed bottom-[68px] left-3 right-3 z-[60] flex flex-col rounded-2xl bg-white shadow-xl ring-1 ring-gray-200/60 dark:bg-gray-800 dark:ring-gray-700 md:absolute md:bottom-auto md:left-full md:right-auto md:ml-2 md:w-72"
         style={{
-          maxHeight: 'calc(100vh - var(--gogo-header-height) - 2rem)',
+          maxHeight: 'calc(100vh - var(--gogo-header-height) - 80px)',
           ...panelPos,
-        }}>
-        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-700">
+        }}
+      >
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-700">
           <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h3>
           <button onClick={onClose} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/10">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
-        <div className="overflow-y-auto py-2" style={{ maxHeight: 'calc(100vh - 144px)' }}>
+        <div className="min-h-0 flex-1 overflow-y-auto py-2">
           {children}
         </div>
       </div>

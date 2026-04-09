@@ -3,7 +3,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import PageHeader from '@/components/page-header';
+import { PageHeader } from '@erp/ui';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
 import { showToast } from '@erp/shell';
@@ -60,11 +60,11 @@ export default function ChangePasswordPage() {
 
   const strength = requirements.filter((r) => r.met).length;
   const strengthLabel = ['', 'Weak', 'Weak', 'Fair', 'Strong', 'Excellent'][strength];
-  const strengthColor = ['', 'bg-red-500', 'bg-red-500', 'bg-amber-500', 'bg-blue-500', 'bg-emerald-500'][strength];
+  const strengthColor = ['', 'bg-red-500', 'bg-red-500', 'bg-amber-500', 'bg-[var(--gogo-primary)]', 'bg-emerald-500'][strength];
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Change Password" subtitle="Update your account password" />
+      <PageHeader title="Change Password" description="Update your account password" />
       <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-gray-100 dark:bg-gray-900 dark:ring-gray-800">
 
 
@@ -77,7 +77,7 @@ export default function ChangePasswordPage() {
               <div className="mt-3">
                 <div className="mb-1.5 flex items-center justify-between">
                   <span className="text-xs text-gray-400">Password strength</span>
-                  <span className={`text-xs font-semibold ${strength <= 2 ? 'text-red-600' : strength <= 3 ? 'text-amber-600' : strength <= 4 ? 'text-blue-600' : 'text-emerald-600'}`}>{strengthLabel}</span>
+                  <span className={`text-xs font-semibold ${strength <= 2 ? 'text-red-600' : strength <= 3 ? 'text-amber-600' : strength <= 4 ? 'text-[var(--gogo-primary)]' : 'text-emerald-600'}`}>{strengthLabel}</span>
                 </div>
                 <div className="flex gap-1">
                   {[1, 2, 3, 4, 5].map((i) => (
@@ -103,7 +103,7 @@ export default function ChangePasswordPage() {
           <Input id="confirmPassword" label="Confirm New Password" type="password" placeholder="Re-enter new password" {...register('confirmPassword')} error={errors.confirmPassword?.message} autoComplete="new-password" />
 
           <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-4 dark:border-gray-800">
-            <button type="button" onClick={() => router.push('/dashboard')} className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800">Cancel</button>
+            <button type="button" onClick={() => router.push('/')} className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800">Cancel</button>
             <Button type="submit" loading={isSubmitting}>Update Password</Button>
           </div>
         </form>
