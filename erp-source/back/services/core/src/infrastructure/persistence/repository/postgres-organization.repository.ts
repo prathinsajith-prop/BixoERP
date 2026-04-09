@@ -1,12 +1,25 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { OrganizationRepository } from '../../../domain/repository/organization.repository';
+import { OrganizationRepository, OrgListFilters } from '../../../domain/repository/organization.repository';
 import { Organization, OrganizationStatus } from '../../../domain/entity/organization.entity';
 import { OrganizationOrmEntity } from '../entity/organization.orm-entity';
+import { FilterBuilder } from '../../filter/filter-builder';
+import { ORGANIZATION_FILTERS, ORGANIZATION_SEARCH_COLUMNS } from '../../filter/filter-definitions';
 
 @Injectable()
 export class PostgresOrganizationRepository implements OrganizationRepository {
+  private readonly logger = new Logger(PostgresOrganizationRepository.name);
+  private readonly filterBuilder = FilterBuilder.for(ORGANIZATION_FILTERS, { logger: this.logger, context: PostgresOrganizationRepository.name });
+
+  /** Whitelisted sort columns to prevent SQL injection via sort_by param. */
+  private readonly ALLOWED_SORT: Record<string, string> = {
+    name: 'o.name',
+    slug: 'o.slug',
+    status: 'o.status',
+    created_at: 'o.created_at',
+  };
+
   constructor(
     @InjectRepository(OrganizationOrmEntity)
     private readonly repo: Repository<OrganizationOrmEntity>,
@@ -22,13 +35,48 @@ export class PostgresOrganizationRepository implements OrganizationRepository {
     return row ? this.toDomain(row) : null;
   }
 
-  async findAll(page: number, limit: number): Promise<{ organizations: Organization[]; total: number }> {
-    const [rows, total] = await this.repo.findAndCount({
-      order: { created_at: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-    return { organizations: rows.map((r) => this.toDomain(r)), total };
+  async findAll(
+    page: number,
+    limit: number,
+    filters?: OrgListFilters,
+  ): Promise<{ organizations: Organization[]; total: number; summary: { total: number; active: number; inactive: number } }> {
+    const sortCol = (filters?.sortBy && this.ALLOWED_SORT[filters.sortBy]) ?? 'o.created_at';
+    const sortDir = filters?.sortDir === 'ASC' ? 'ASC' : 'DESC';
+
+    const qb = this.repo
+      .createQueryBuilder('o')
+      .orderBy(sortCol, sortDir);
+
+    this.filterBuilder.applySearch(qb, 'o', filters?.search, ORGANIZATION_SEARCH_COLUMNS);
+    this.filterBuilder.applyFilters(qb, 'o', filters?.filter);
+
+    const [rows, total] = await qb
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    const summaryRows = await this.repo
+      .createQueryBuilder('s')
+      .select('s.status', 'status')
+      .addSelect('COUNT(*)::int', 'count')
+      .groupBy('s.status')
+      .getRawMany<{ status: string; count: number }>();
+
+    let summaryTotal = 0;
+    let summaryActive = 0;
+    let summaryInactive = 0;
+    for (const row of summaryRows) {
+      const c = Number(row.count);
+      summaryTotal += c;
+      if (row.status === 'ACTIVE') summaryActive = c;
+      if (row.status === 'INACTIVE') summaryInactive = c;
+    }
+
+    return {
+      organizations: rows.map((r) => this.toDomain(r)),
+      total,
+      summary: { total: summaryTotal, active: summaryActive, inactive: summaryInactive },
+    };
   }
 
   async save(org: Organization): Promise<void> {

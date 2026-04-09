@@ -106,7 +106,7 @@ export default function UserDetailsPage() {
     if (!user?.avatarUrl) return;
     const match = user.avatarUrl.match(/\/api\/v1\/files\/([^/]+)\/download/);
     if (!match) return;
-    filesApi.download(match[1]).then((url) => setAvatarBlobUrl(url)).catch(() => { });
+    filesApi.download(match[1], user.tenantId || user.organizationId || undefined).then((url) => setAvatarBlobUrl(url)).catch(() => { });
   }, [user?.avatarUrl]);
 
   const handleAssignRole = async (roleId: string) => {
@@ -335,7 +335,7 @@ export default function UserDetailsPage() {
           <div className={cardClass}>
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-3"><div className={`${sectionIcon} bg-indigo-100 dark:bg-indigo-900/30`}><svg className="h-4.5 w-4.5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg></div><div><h2 className="text-base font-bold text-gray-900 dark:text-white">Assigned Roles</h2><p className="text-xs text-gray-500 dark:text-gray-400">{userRoles.length} role{userRoles.length !== 1 ? 's' : ''} assigned</p></div></div>
-              <button onClick={() => setRoleModalOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-700"><svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>Assign Role</button>
+              <button onClick={() => setRoleModalOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:opacity-90" style={{ backgroundColor: "var(--gogo-primary)" }}><svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>Assign Role</button>
             </div>
             {userRoles.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center"><svg className="h-10 w-10 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg><p className="mt-3 text-sm font-medium text-gray-500 dark:text-gray-400">No roles assigned</p></div>

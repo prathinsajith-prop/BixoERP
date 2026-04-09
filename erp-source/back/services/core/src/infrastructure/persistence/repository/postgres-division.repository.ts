@@ -1,12 +1,25 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { DivisionRepository } from '../../../domain/repository/division.repository';
+import { DivisionRepository, OrgEntityFilters, OrgEntitySummary } from '../../../domain/repository/division.repository';
 import { Division } from '../../../domain/entity/division.entity';
 import { DivisionOrmEntity } from '../entity/division.orm-entity';
+import { FilterBuilder } from '../../filter/filter-builder';
+import { DIVISION_FILTERS, DIVISION_SEARCH_COLUMNS } from '../../filter/filter-definitions';
 
 @Injectable()
 export class PostgresDivisionRepository implements DivisionRepository {
+  private readonly logger = new Logger(PostgresDivisionRepository.name);
+  private readonly filterBuilder = FilterBuilder.for(DIVISION_FILTERS, { logger: this.logger, context: PostgresDivisionRepository.name });
+
+  /** Whitelisted sort columns to prevent SQL injection via sort_by param. */
+  private readonly ALLOWED_SORT: Record<string, string> = {
+    name: 'd.name',
+    code: 'd.code',
+    status: 'd.status',
+    created_at: 'd.created_at',
+  };
+
   constructor(
     @InjectRepository(DivisionOrmEntity)
     private readonly repo: Repository<DivisionOrmEntity>,
@@ -23,6 +36,56 @@ export class PostgresDivisionRepository implements DivisionRepository {
       order: { name: 'ASC' },
     });
     return rows.map((r) => this.toDomain(r));
+  }
+
+  async findByOrganizationFiltered(
+    tenantId: string,
+    organizationId: string,
+    page: number,
+    limit: number,
+    filters?: OrgEntityFilters,
+  ): Promise<{ divisions: Division[]; total: number; summary: OrgEntitySummary }> {
+    const sortCol = (filters?.sortBy && this.ALLOWED_SORT[filters.sortBy]) ?? 'd.name';
+    const sortDir = filters?.sortDir === 'DESC' ? 'DESC' : 'ASC';
+
+    const qb = this.repo
+      .createQueryBuilder('d')
+      .where('d.tenant_id = :tenantId', { tenantId })
+      .andWhere('d.organization_id = :organizationId', { organizationId })
+      .orderBy(sortCol, sortDir);
+
+    this.filterBuilder.applySearch(qb, 'd', filters?.search, DIVISION_SEARCH_COLUMNS);
+    this.filterBuilder.applyFilters(qb, 'd', filters?.filter);
+
+    const [rows, total] = await qb
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    const summaryRows = await this.repo
+      .createQueryBuilder('s')
+      .select('s.status', 'status')
+      .addSelect('COUNT(*)::int', 'count')
+      .where('s.tenant_id = :tenantId', { tenantId })
+      .andWhere('s.organization_id = :organizationId', { organizationId })
+      .groupBy('s.status')
+      .getRawMany<{ status: string; count: number }>();
+
+    let summaryTotal = 0;
+    let summaryActive = 0;
+    let summaryInactive = 0;
+    for (const row of summaryRows) {
+      const c = Number(row.count);
+      summaryTotal += c;
+      if (row.status === 'ACTIVE') summaryActive = c;
+      if (row.status === 'INACTIVE') summaryInactive = c;
+    }
+
+    return {
+      divisions: rows.map((r) => this.toDomain(r)),
+      total,
+      summary: { total: summaryTotal, active: summaryActive, inactive: summaryInactive },
+    };
   }
 
   async findByCode(tenantId: string, organizationId: string, code: string): Promise<Division | null> {

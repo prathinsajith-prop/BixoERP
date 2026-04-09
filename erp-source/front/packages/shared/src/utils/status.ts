@@ -41,5 +41,6 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function statusColor(status: string): string {
-  return STATUS_COLORS[status] || "bg-gray-100 text-gray-800";
+  const key = status.toLowerCase().replace(/_/g, "-");
+  return STATUS_COLORS[key] || "bg-gray-100 text-gray-800";
 }

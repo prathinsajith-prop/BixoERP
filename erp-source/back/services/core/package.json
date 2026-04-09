@@ -8,10 +8,28 @@
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",
     "lint": "eslint \"{src,test}/**/*.ts\" --fix",
+    "test": "jest",
+    "test:watch": "jest --watch",
     "typeorm": "node ./node_modules/typeorm/cli.js",
     "migration:generate": "npm run typeorm -- migration:generate -d dist/infrastructure/persistence/data-source.js",
     "migration:run": "npm run typeorm -- migration:run -d dist/infrastructure/persistence/data-source.js",
     "seed": "node dist/infrastructure/persistence/seed.js"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "roots": [
+      "<rootDir>/src"
+    ],
+    "testMatch": [
+      "**/*.spec.ts"
+    ],
+    "moduleNameMapper": {
+      "@domain/(.*)": "<rootDir>/src/domain/$1",
+      "@application/(.*)": "<rootDir>/src/application/$1",
+      "@infrastructure/(.*)": "<rootDir>/src/infrastructure/$1",
+      "@api/(.*)": "<rootDir>/src/api/$1"
+    }
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
@@ -38,9 +56,9 @@
     "qrcode": "^1.5.4",
     "reflect-metadata": "^0.2.1",
     "rxjs": "^7.8.1",
+    "swagger-ui-express": "^5.0.1",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.19",
     "zod": "^3.22.4"
   },
@@ -50,8 +68,11 @@
     "@types/bcrypt": "^5.0.2",
     "@types/cookie-parser": "^1.4.8",
     "@types/express": "^4.17.21",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.11.0",
     "@types/qrcode": "^1.5.6",
+    "jest": "^30.3.0",
+    "ts-jest": "^29.4.9",
     "typescript": "^5.3.3"
   }
 }

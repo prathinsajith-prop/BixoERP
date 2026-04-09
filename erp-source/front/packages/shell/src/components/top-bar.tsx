@@ -56,7 +56,7 @@ function OrgBadge() {
         if (org?.logoUrl) {
           const match = org.logoUrl.match(/\/files\/([0-9a-f-]+)\/download/);
           if (match) {
-            filesApi.download(match[1]).then((url: string | null) => { if (url) setLogoBlobUrl(url); }).catch(() => { });
+            filesApi.download(match[1], org.id).then((url: string | null) => { if (url) setLogoBlobUrl(url); }).catch(() => { });
           } else {
             setLogoBlobUrl(org.logoUrl);
           }

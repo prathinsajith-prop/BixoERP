@@ -17,6 +17,9 @@ import { ZodValidationPipe } from '../pipe/zod-validation.pipe';
 import { TenantId } from '../decorator/auth.decorators';
 import { OrgStructureUseCase } from '../../application/use-case/org-structure.use-case';
 import { ManagerService, EntityType, ManagerRole } from '../../infrastructure/manager/manager.service';
+import { Division } from '../../domain/entity/division.entity';
+import { Department } from '../../domain/entity/department.entity';
+import { Team } from '../../domain/entity/team.entity';
 import {
   CreateDepartmentDto,
   UpdateDepartmentDto,
@@ -34,7 +37,7 @@ export class OrgStructureController {
   constructor(
     private readonly orgStructure: OrgStructureUseCase,
     private readonly managerService: ManagerService,
-  ) {}
+  ) { }
 
   // ─── Full Structure ────────────────────────────────────────
 
@@ -62,9 +65,20 @@ export class OrgStructureController {
   async listDivisions(
     @TenantId() tenantId: string,
     @Param('organizationId') organizationId: string,
+    @Query('q') search?: string,
+    @Query('filter') filter?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('sort_by') sortBy?: string,
+    @Query('sort_dir') sortDir?: string,
   ) {
-    const divisions = await this.orgStructure.listDivisions(tenantId, organizationId);
-    return { statusCode: 200, data: divisions.map((d) => this.mapDivision(d)) };
+    const p = Math.max(1, parseInt(page ?? '1', 10) || 1);
+    const l = Math.min(Math.max(1, parseInt(limit ?? '20', 10) || 20), 200);
+    const { divisions, total, summary } = await this.orgStructure.listDivisionsFiltered(
+      tenantId, organizationId, p, l,
+      { search, filter, sortBy, sortDir: sortDir?.toUpperCase() as 'ASC' | 'DESC' | undefined },
+    );
+    return { statusCode: 200, data: divisions.map((d) => this.mapDivision(d)), total, page: p, limit: l, summary };
   }
 
   @Post(':organizationId/divisions')
@@ -123,9 +137,20 @@ export class OrgStructureController {
   async listDepartments(
     @TenantId() tenantId: string,
     @Param('organizationId') organizationId: string,
+    @Query('q') search?: string,
+    @Query('filter') filter?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('sort_by') sortBy?: string,
+    @Query('sort_dir') sortDir?: string,
   ) {
-    const departments = await this.orgStructure.listDepartments(tenantId, organizationId);
-    return { statusCode: 200, data: departments.map((d) => this.mapDepartment(d)) };
+    const p = Math.max(1, parseInt(page ?? '1', 10) || 1);
+    const l = Math.min(Math.max(1, parseInt(limit ?? '20', 10) || 20), 200);
+    const { departments, total, summary } = await this.orgStructure.listDepartmentsFiltered(
+      tenantId, organizationId, p, l,
+      { search, filter, sortBy, sortDir: sortDir?.toUpperCase() as 'ASC' | 'DESC' | undefined },
+    );
+    return { statusCode: 200, data: departments.map((d) => this.mapDepartment(d)), total, page: p, limit: l, summary };
   }
 
   @Post(':organizationId/departments')
@@ -186,11 +211,30 @@ export class OrgStructureController {
     @TenantId() tenantId: string,
     @Param('organizationId') organizationId: string,
     @Query('departmentId') departmentId?: string,
+    @Query('q') search?: string,
+    @Query('filter') filter?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('sort_by') sortBy?: string,
+    @Query('sort_dir') sortDir?: string,
   ) {
-    const teams = departmentId
-      ? await this.orgStructure.listTeamsByDepartment(tenantId, departmentId)
-      : await this.orgStructure.listTeams(tenantId, organizationId);
-    return { statusCode: 200, data: teams.map((t) => this.mapTeam(t)) };
+    // When filtering by a specific departmentId (legacy use), return all without server-side search/filter
+    if (departmentId && !search && !filter) {
+      const teams = await this.orgStructure.listTeamsByDepartment(tenantId, departmentId);
+      return { statusCode: 200, data: teams.map((t) => this.mapTeam(t)), total: teams.length, page: 1, limit: teams.length };
+    }
+    const p = Math.max(1, parseInt(page ?? '1', 10) || 1);
+    const l = Math.min(Math.max(1, parseInt(limit ?? '20', 10) || 20), 200);
+    // Build filter string combining departmentId param with any explicit filter string
+    const combinedFilter = [
+      departmentId ? `department:EQ(${departmentId})` : '',
+      filter ?? '',
+    ].filter(Boolean).join(';') || undefined;
+    const { teams, total, summary } = await this.orgStructure.listTeamsFiltered(
+      tenantId, organizationId, p, l,
+      { search, filter: combinedFilter, sortBy, sortDir: sortDir?.toUpperCase() as 'ASC' | 'DESC' | undefined },
+    );
+    return { statusCode: 200, data: teams.map((t) => this.mapTeam(t)), total, page: p, limit: l, summary };
   }
 
   @Post(':organizationId/teams')
@@ -412,7 +456,7 @@ export class OrgStructureController {
     };
   }
 
-  private mapDivision(d: any) {
+  private mapDivision(d: Division) {
     return {
       id: d.id,
       organizationId: d.organizationId,
@@ -426,7 +470,7 @@ export class OrgStructureController {
     };
   }
 
-  private mapDepartment(d: any) {
+  private mapDepartment(d: Department) {
     return {
       id: d.id,
       organizationId: d.organizationId,
@@ -441,7 +485,7 @@ export class OrgStructureController {
     };
   }
 
-  private mapTeam(t: any) {
+  private mapTeam(t: Team) {
     return {
       id: t.id,
       organizationId: t.organizationId,

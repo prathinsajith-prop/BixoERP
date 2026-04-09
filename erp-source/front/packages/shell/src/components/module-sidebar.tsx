@@ -226,7 +226,7 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
       if (!org.logoUrl) return;
       const match = org.logoUrl.match(/\/files\/([0-9a-f-]+)\/download/);
       if (!match) return;
-      filesApi.download(match[1])
+      filesApi.download(match[1], org.id)
         .then((url: string | null) => { if (url) setOrgLogoBlobUrls((prev) => ({ ...prev, [org.id]: url })); })
         .catch(() => { });
     });
@@ -280,7 +280,7 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
         {hasModuleMenu ? (
           /* Module-specific nav items loaded from /{moduleId}/api/menu */
           <div className="contents md:flex md:flex-col md:items-center md:gap-1">
-            {menuItems.map((item) => {
+            {menuItems.filter((item) => item.label?.toLowerCase() !== 'settings' && !item.href?.endsWith('/settings')).map((item) => {
               const itemHasChildren = (item.children?.length ?? 0) > 0;
               // Active when the flyout panel is open (children) OR when the
               // current pathname exactly matches or is a sub-path of this item.
@@ -395,14 +395,13 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
               const isActive = org.id === currentOrgId;
               const isSwitching = switching === org.id;
               const roleColors: Record<string, string> = { OWNER: 'bg-violet-100 text-violet-700', ADMIN: 'bg-blue-100 text-blue-700', MEMBER: 'bg-gray-100 text-gray-600' };
-              const settingsHref = isActive ? '/organization' : `/admin/organizations/${org.id}`;
               return (
-                <div key={org.id || idx} className="group flex items-center gap-1">
+                <div key={org.id || idx} className={`group flex items-center gap-0.5 rounded-lg transition
+                    ${isActive ? '' : 'hover:bg-gray-50 dark:hover:bg-white/5'}
+                    ${isSwitching ? 'opacity-60' : ''}`}
+                  style={isActive ? { backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 8%, transparent)' } : undefined}>
                   <button onClick={() => handleOrgSwitch(org)} disabled={!!switching}
-                    className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2 py-2 text-left transition
-                        ${isActive ? '' : 'hover:bg-gray-50 dark:hover:bg-white/5'}
-                        ${isSwitching ? 'opacity-60' : ''}`}
-                    style={isActive ? { backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 8%, transparent)' } : undefined}>
+                    className="flex min-w-0 flex-1 items-center gap-2.5 px-2 py-2 text-left">
                     {orgLogoBlobUrls[org.id] ? (
                       <img src={orgLogoBlobUrls[org.id]} alt={org.name} className="h-7 w-7 shrink-0 rounded-lg object-cover" />
                     ) : (
@@ -419,11 +418,11 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
                     {isSwitching && <svg className="h-3.5 w-3.5 shrink-0 animate-spin" style={{ color: 'var(--gogo-primary)' }} fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
                   </button>
                   <a
-                    href={settingsHref}
-                    onClick={(e) => { e.stopPropagation(); closePanel(); }}
-                    title={`${org.name} settings`}
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition hover:bg-gray-100 dark:hover:bg-white/10"
-                    style={{ color: 'var(--gogo-text-secondary)' }}
+                    href="/organization"
+                    onClick={() => closePanel()}
+                    title="Organization Settings"
+                    className="mr-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md opacity-0 transition group-hover:opacity-60 hover:opacity-100"
+                    style={{ color: 'var(--gogo-primary)' }}
                   >
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
@@ -435,7 +434,12 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
             })}
             {orgs.length > 0 && (
               <>
-                <div className="my-2 border-t border-gray-100 dark:border-gray-700" />
+                <div className="my-1 border-t border-gray-100 dark:border-gray-700" />
+                <a href="/admin/organizations" onClick={() => closePanel()} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-gray-50 dark:hover:bg-white/5"
+                  style={{ color: 'var(--gogo-primary)' }}>
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" /></svg>
+                  My Organizations
+                </a>
                 <a href="/organization/new" className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-gray-50 dark:hover:bg-white/5"
                   style={{ color: 'var(--gogo-primary)' }}>
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
@@ -498,38 +502,9 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
               icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>} />
             <AdminLink label="Change Password" path="/change-password"
               icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>} />
-            <AdminLink label="Settings" path="/settings"
-              icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>} />
             <AdminLink label="Two-Factor Auth" path="/2fa/setup"
               icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7.864 4.243A7.5 7.5 0 0119.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 004.5 10.5a48.667 48.667 0 00-1.429 8.272M5.742 6.364c.12-.107.244-.21.37-.31m10.246 2.457a1.5 1.5 0 00-2.835.695l.244 2.114a5.995 5.995 0 01-1.708 5.05l-.052.052a6.007 6.007 0 01-5.05 1.707l-.127-.014" /></svg>} />
           </div>
-          {orgs.length > 1 && (
-            <>
-              <div className="mx-2 my-2 border-t border-gray-100 dark:border-gray-700" />
-              <div className="px-2">
-                <p className="mb-1 px-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">Switch Organization</p>
-                {orgs.map((org, idx) => {
-                  const isActive = org.id === currentOrgId;
-                  const isSwitching = switching === org.id;
-                  const roleColors: Record<string, string> = { OWNER: 'bg-violet-100 text-violet-700', ADMIN: 'bg-blue-100 text-blue-700', MEMBER: 'bg-gray-100 text-gray-600' };
-                  return (
-                    <button key={org.id || idx} onClick={() => handleOrgSwitch(org)} disabled={!!switching}
-                      className={`flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition
-                        ${isActive ? 'bg-blue-50/60 dark:bg-blue-900/20' : 'hover:bg-gray-50 dark:hover:bg-white/5'}
-                        ${isSwitching ? 'opacity-60' : ''}`}>
-                      <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${orgGradient(idx)} text-[11px] font-bold text-white`}>
-                        {org.name?.charAt(0)?.toUpperCase() || 'O'}
-                      </div>
-                      <p className={`min-w-0 flex-1 truncate text-sm font-medium ${isActive ? 'text-blue-900 dark:text-blue-200' : 'text-gray-700 dark:text-gray-300'}`}>{org.name}</p>
-                      {org.role && <span className={`shrink-0 rounded-full px-1.5 py-px text-[9px] font-bold uppercase ${roleColors[org.role.toUpperCase()] ?? roleColors.MEMBER}`}>{org.role}</span>}
-                      {isActive && <svg className="h-3.5 w-3.5 shrink-0 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
-                      {isSwitching && <svg className="h-3.5 w-3.5 shrink-0 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
           <div className="mx-2 my-2 border-t border-gray-100 dark:border-gray-700" />
           <div className="px-2 pb-1">
             <button onClick={handleLogout}

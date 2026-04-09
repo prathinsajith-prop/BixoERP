@@ -102,7 +102,7 @@ function EditableField({
                         />
                     )}
                     <div className="flex gap-2">
-                        <button onClick={handleSave} disabled={saving} className="flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-blue-700 disabled:opacity-50">
+                        <button onClick={handleSave} disabled={saving} className="flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-50" style={{ backgroundColor: "var(--gogo-primary)" }}>
                             {saving ? Icons.spinnerSm : Icons.check} Save
                         </button>
                         <button onClick={handleCancel} disabled={saving} className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300">
@@ -165,7 +165,7 @@ function InviteModal({ orgId, onClose, onInvited }: { orgId: string; onClose: ()
                     </div>
                     <div className="flex gap-2 pt-1">
                         <button type="submit" disabled={loading || !email.trim()}
-                            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-blue-600 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50">
+                            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50" style={{ backgroundColor: "var(--gogo-primary)" }}>
                             {loading ? Icons.spinnerSm : Icons.plus} Send invite
                         </button>
                         <button type="button" onClick={onClose}
@@ -247,7 +247,7 @@ export default function OrganizationDetailPage() {
         if (!org?.logoUrl) { setLogoBlobUrl(null); return; }
         const match = org.logoUrl.match(/\/files\/([0-9a-f-]+)\/download/);
         if (!match) { setLogoBlobUrl(org.logoUrl); return; }
-        filesApi.download(match[1]).then((url) => { if (url) setLogoBlobUrl(url); }).catch(() => { });
+        filesApi.download(match[1], orgId).then((url) => { if (url) setLogoBlobUrl(url); }).catch(() => { });
     }, [org?.logoUrl]);
     useEffect(() => { if (activeTab === 'members') fetchMembers(); }, [activeTab, fetchMembers]);
 
@@ -352,7 +352,7 @@ export default function OrganizationDetailPage() {
                         </button>
                         <button
                             onClick={() => setActiveTab('settings')}
-                            className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                            className="flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90" style={{ backgroundColor: "var(--gogo-primary)" }}
                         >
                             {Icons.pencil} Edit
                         </button>
@@ -502,7 +502,7 @@ export default function OrganizationDetailPage() {
                             </p>
                             <button
                                 onClick={() => setShowInvite(true)}
-                                className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                                className="flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90" style={{ backgroundColor: "var(--gogo-primary)" }}
                             >
                                 {Icons.plus} Invite member
                             </button>
@@ -677,7 +677,7 @@ function SettingsTab({
                                             role="switch"
                                             aria-checked={val}
                                             onClick={() => setSettings((s) => ({ ...s, [key]: !val }))}
-                                            className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors ${val ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'}`}
+                                            className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors ${val ? 'bg-[var(--gogo-primary)]' : 'bg-gray-200 dark:bg-gray-600'}`}
                                         >
                                             <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${val ? 'translate-x-5' : 'translate-x-0'}`} />
                                         </button>
@@ -702,7 +702,7 @@ function SettingsTab({
                         <button
                             onClick={handleSaveSettings}
                             disabled={saving}
-                            className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+                            className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50" style={{ backgroundColor: "var(--gogo-primary)" }}
                         >
                             {saving ? <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> : null}
                             Save advanced settings

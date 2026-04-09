@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import PageHeader from '@/components/page-header';
-import { Input, Textarea } from '@erp/ui';
+import { Input, Stats, Textarea } from '@erp/ui';
 import { authApi } from '@/lib/api/auth';
 
 const RESOURCE_COLORS: Record<string, string> = {
@@ -57,25 +57,56 @@ export default function PermissionsPage() {
     return groups;
   }, [permissions, search]);
 
+  const totalResources = useMemo(() => Object.keys(
+    permissions.reduce((acc, p) => { acc[p.resource || 'general'] = true; return acc; }, {} as Record<string, boolean>)
+  ).length, [permissions]);
+
+  const IconPerm = <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" /></svg>;
+  const IconFolder = <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" /></svg>;
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Permissions" subtitle="Manage system permissions and access control" />
+      <PageHeader
+        title="Permissions"
+        subtitle="Manage system permissions and access control"
+        action={
+          <button onClick={() => setModalOpen(true)} className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90" style={{ backgroundColor: 'var(--gogo-primary)' }}>
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+            Create Permission
+          </button>
+        }
+      />
+
+      <Stats
+        columns={2}
+        metrics={[
+          { label: 'Total Permissions', value: permissions.length, icon: IconPerm, color: 'info' },
+          { label: 'Resources', value: totalResources, icon: IconFolder, color: 'secondary' },
+        ]}
+      />
 
       <div className="space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative max-w-md flex-1">
-            <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
-            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search permissions..." className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500" />
+            <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--gogo-text-secondary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by resource, action, or description…"
+              className="w-full rounded-lg border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] py-2 pl-9 pr-8 text-sm text-[var(--gogo-text-primary)] placeholder-[var(--gogo-text-secondary)] shadow-[var(--shadow-card)] outline-none focus:border-[var(--gogo-primary)] focus:ring-1 focus:ring-[var(--gogo-primary)]"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute inset-y-0 right-2 flex items-center p-1 text-[var(--gogo-text-secondary)] hover:text-[var(--gogo-text-primary)]" title="Clear">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            )}
           </div>
-          <button onClick={() => setModalOpen(true)} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-            Create Permission
-          </button>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">{permissions.length} permission{permissions.length !== 1 ? 's' : ''}</span>
-          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">{Object.keys(grouped).length} resource{Object.keys(grouped).length !== 1 ? 's' : ''}</span>
+          {search && (
+            <p className="shrink-0 text-xs text-[var(--gogo-text-secondary)]">
+              <strong>{Object.values(grouped).flat().length}</strong> of {permissions.length} results
+            </p>
+          )}
         </div>
 
         {loading ? (
@@ -85,7 +116,7 @@ export default function PermissionsPage() {
             <svg className="h-12 w-12 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" /></svg>
             <p className="mt-3 text-sm font-medium text-gray-500 dark:text-gray-400">No permissions found</p>
             <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">{search ? 'Try adjusting your search' : 'Create your first permission to get started'}</p>
-            {!search && <button onClick={() => setModalOpen(true)} className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">Create Permission</button>}
+            {!search && <button onClick={() => setModalOpen(true)} className="mt-4 rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90" style={{ backgroundColor: 'var(--gogo-primary)' }}>Create Permission</button>}
           </div>
         ) : (
           <div className="space-y-4">
@@ -130,7 +161,7 @@ export default function PermissionsPage() {
               </div>
               <div className="mt-6 flex items-center justify-end gap-3">
                 <button onClick={() => { setModalOpen(false); setFormResource(''); setFormAction(''); setFormDescription(''); }} className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">Cancel</button>
-                <button onClick={handleCreate} disabled={!formResource.trim() || !formAction.trim() || saving} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+                <button onClick={handleCreate} disabled={!formResource.trim() || !formAction.trim() || saving} className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50" style={{ backgroundColor: 'var(--gogo-primary)' }}>
                   {saving && <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
                   Create Permission
                 </button>

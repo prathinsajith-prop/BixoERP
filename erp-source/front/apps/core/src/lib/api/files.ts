@@ -20,8 +20,10 @@ export const filesApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
   getDownloadPath: (fileId: string) => `/api/v1/files/${fileId}/download`,
-  download: async (fileId: string) => {
-    const response = await api.get(`/files/${fileId}/download`, { responseType: 'blob' });
+  download: async (fileId: string, tenantId?: string) => {
+    const headers: Record<string, string> = {};
+    if (tenantId) headers['X-Tenant-Id'] = tenantId;
+    const response = await api.get(`/files/${fileId}/download`, { responseType: 'blob', headers });
     return URL.createObjectURL(response.data);
   },
 };

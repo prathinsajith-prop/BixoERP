@@ -1,14 +1,28 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserRepository } from '../../../domain/repository/user.repository';
+import { UserRepository, UserFilters, UserSummary } from '../../../domain/repository/user.repository';
 import { User, UserStatus } from '../../../domain/entity/user.entity';
 import { UserOrmEntity } from '../entity/user.orm-entity';
 import { Email } from '../../../domain/value-object/email.vo';
 import { HashedPassword } from '../../../domain/value-object/hashed-password.vo';
+import { FilterBuilder } from '../../filter/filter-builder';
+import { USER_FILTERS, USER_SEARCH_COLUMNS } from '../../filter/filter-definitions';
 
 @Injectable()
 export class PostgresUserRepository implements UserRepository {
+  private readonly logger = new Logger(PostgresUserRepository.name);
+  private readonly filterBuilder = FilterBuilder.for(USER_FILTERS, { logger: this.logger, context: PostgresUserRepository.name });
+
+  /** Whitelisted sort columns to prevent SQL injection via sort_by param. */
+  private readonly ALLOWED_SORT: Record<string, string> = {
+    first_name: 'u.first_name',
+    last_name: 'u.last_name',
+    email: 'u.email',
+    status: 'u.status',
+    created_at: 'u.created_at',
+  };
+
   constructor(
     @InjectRepository(UserOrmEntity)
     private readonly repo: Repository<UserOrmEntity>,
@@ -34,14 +48,53 @@ export class PostgresUserRepository implements UserRepository {
     return row ? this.toDomain(row) : null;
   }
 
-  async findByTenant(tenantId: string, page: number, limit: number): Promise<{ users: User[]; total: number }> {
-    const [rows, total] = await this.repo.findAndCount({
-      where: { tenant_id: tenantId },
-      skip: (page - 1) * limit,
-      take: limit,
-      order: { created_at: 'DESC' },
-    });
-    return { users: rows.map((r) => this.toDomain(r)), total };
+  async findByTenant(
+    tenantId: string,
+    page: number,
+    limit: number,
+    filters?: UserFilters,
+  ): Promise<{ users: User[]; total: number; summary: UserSummary }> {
+    // ── Paginated / filtered query ──────────────────────────────────────────
+    const sortCol = (filters?.sortBy && this.ALLOWED_SORT[filters.sortBy]) ?? 'u.created_at';
+    const sortDir = filters?.sortDir === 'ASC' ? 'ASC' : 'DESC';
+
+    const qb = this.repo
+      .createQueryBuilder('u')
+      .where('u.tenant_id = :tenantId', { tenantId })
+      .orderBy(sortCol, sortDir);
+
+    this.filterBuilder.applySearch(qb, 'u', filters?.search, USER_SEARCH_COLUMNS);
+    this.filterBuilder.applyFilters(qb, 'u', filters?.filter);
+
+    const [rows, total] = await qb
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    // ── Summary counts (unfiltered — always reflects whole tenant) ──────────
+    const summaryRows = await this.repo
+      .createQueryBuilder('s')
+      .select('s.status', 'status')
+      .addSelect('COUNT(*)::int', 'count')
+      .where('s.tenant_id = :tenantId', { tenantId })
+      .groupBy('s.status')
+      .getRawMany<{ status: string; count: number }>();
+
+    let summaryTotal = 0;
+    let summaryActive = 0;
+    let summaryInactive = 0;
+    for (const row of summaryRows) {
+      const c = Number(row.count);
+      summaryTotal += c;
+      if (row.status === 'ACTIVE') summaryActive = c;
+      if (row.status === 'INACTIVE') summaryInactive = c;
+    }
+
+    return {
+      users: rows.map((r) => this.toDomain(r)),
+      total,
+      summary: { total: summaryTotal, active: summaryActive, inactive: summaryInactive },
+    };
   }
 
   async save(user: User): Promise<void> {

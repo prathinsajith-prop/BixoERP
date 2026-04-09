@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { List, TableProperties } from 'lucide-react';
 import { authApi } from '@/lib/api/auth';
 import { showToast, filesApi } from '@erp/shell';
+import { buildSearchParams } from '@erp/shared';
 import {
   ActionButtons,
   Avatar,
@@ -61,9 +62,7 @@ const Icons = {
 /* ── Types ──────────────────────────────────────────────────────── */
 interface User { id: string; email: string; firstName?: string; lastName?: string; status?: string; isActive?: boolean; roles?: Role[]; createdAt?: string; avatarUrl?: string | null; employeeId?: string | null; }
 interface Role { id: string; name: string; description?: string }
-type StatusFilter = 'all' | 'active' | 'inactive';
-type StatusOperator = 'is' | 'is_not';
-type RoleOperator = 'in' | 'not_in';
+interface UserStats { total: number; active: number; inactive: number; }
 
 /* ── Seed / demo data ───────────────────────────────────────────── */
 const DEMO_ROLES: Role[] = [
@@ -189,17 +188,25 @@ export default function UserManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [avatarBlobUrls, setAvatarBlobUrls] = useState<Record<string, string>>({});
   const [roles, setRoles] = useState<Role[]>([]);
-  const [total, setTotal] = useState(0);
+  const [serverTotal, setServerTotal] = useState(0);
+  const [userStats, setUserStats] = useState<UserStats>({ total: 0, active: 0, inactive: 0 });
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
   const [loading, setLoading] = useState(true);
 
-  /* ── Filters ─── */
+  /* ── Filters (controlled by SearchFilterBar) ─── */
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [statusOperator, setStatusOperator] = useState<StatusOperator>('is');
-  const [roleFilter, setRoleFilter] = useState<string[]>([]);
-  const [roleOperator, setRoleOperator] = useState<RoleOperator>('in');
+  const [appliedFilters, setAppliedFilters] = useState<ActiveFilters>({});
+  const [activeOperators, setActiveOperators] = useState<ActiveOperators>({});
+
+  /**
+   * Refs that hold the "pending" filter values so that onSearch callbacks can
+   * read the latest values even before React has committed the state update.
+   */
+  const pendingFiltersRef = useRef<ActiveFilters>({});
+  const pendingOperatorsRef = useRef<ActiveOperators>({});
+  const searchRef = useRef('');
+
   const [view, setView] = useState<ViewMode>('table');
 
   /* ── Selection ─── */
@@ -237,25 +244,40 @@ export default function UserManagementPage() {
       }),
     })), []);
 
-  /* ── Fetch ─── */
-  const fetchUsers = useCallback(async () => {
+  /* ── Server-side fetch ─── */
+  const fetchUsers = useCallback(async (
+    targetPage: number,
+    currentSearch: string,
+    currentFilters: ActiveFilters,
+    currentOperators: ActiveOperators,
+    roleList?: Role[],
+  ) => {
     setLoading(true);
     try {
+      const queryParams = buildSearchParams(
+        currentSearch,
+        currentFilters,
+        currentOperators,
+        { page: targetPage, limit: 20 },
+      );
       const [usersRes, rolesRes] = await Promise.all([
-        authApi.listUsers({ page: 1, limit: 200 }),
-        authApi.listRoles(),
+        authApi.listUsers(queryParams),
+        roleList ? Promise.resolve({ data: { data: roleList } }) : authApi.listRoles(),
       ]);
       const data = usersRes.data?.data || usersRes.data;
-      const rList: Role[] = rolesRes.data?.data || rolesRes.data || [];
+      const rList: Role[] = roleList ?? (rolesRes as { data?: { data?: Role[] } }).data?.data ?? [];
       const resolvedRoles = rList.length > 0 ? rList : [];
       setRoles(resolvedRoles);
       const list: User[] = data.users || [];
       setUsers(mapUsers(list, resolvedRoles));
-      setTotal(list.length);
+      setServerTotal(data.total ?? list.length);
+      if (data.summary) {
+        setUserStats(data.summary);
+      }
     } catch {
       showToast.error('Load failed', 'Could not fetch users.');
       setUsers([]);
-      setTotal(0);
+      setServerTotal(0);
     } finally { setLoading(false); }
   }, [mapUsers]);
 
@@ -267,11 +289,12 @@ export default function UserManagementPage() {
     } catch { setRoles([]); }
   }, []);
 
+  /* ── Initial load ─── */
   useEffect(() => {
     let ignore = false;
     setLoading(true);
     Promise.all([
-      authApi.listUsers({ page: 1, limit: 200 }),
+      authApi.listUsers({ page: 1, limit: 20 }),
       authApi.listRoles(),
     ])
       .then(([usersRes, rolesRes]) => {
@@ -282,58 +305,26 @@ export default function UserManagementPage() {
           setRoles(resolvedRoles);
           const list: User[] = data.users || [];
           setUsers(mapUsers(list, resolvedRoles));
-          setTotal(list.length);
+          setServerTotal(data.total ?? list.length);
+          if (data.summary) setUserStats(data.summary);
         }
       })
       .catch(() => {
         if (!ignore) {
           showToast.error('Load failed', 'Could not fetch users.');
           setUsers([]);
-          setTotal(0);
+          setServerTotal(0);
           setRoles([]);
         }
       })
       .finally(() => { if (!ignore) setLoading(false); });
     return () => { ignore = true; };
-  }, [mapUsers]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  /* ── Filtering ─── */
-  const filteredUsers = useMemo(() => {
-    let list = users;
-    if (search) {
-      const q = search.toLowerCase();
-      list = list.filter((u) => u.email?.toLowerCase().includes(q) || u.firstName?.toLowerCase().includes(q) || u.lastName?.toLowerCase().includes(q));
-    }
-    if (statusFilter !== 'all') {
-      const shouldBeActive = statusFilter === 'active';
-      list = list.filter((u) => statusOperator === 'is'
-        ? (u.isActive !== false) === shouldBeActive
-        : (u.isActive !== false) !== shouldBeActive);
-    }
-    if (roleFilter.length > 0) {
-      list = list.filter((u) => {
-        const hasMatchingRole = (u.roles || []).some((r) => roleFilter.includes(r.id));
-        return roleOperator === 'in' ? hasMatchingRole : !hasMatchingRole;
-      });
-    }
-    return list;
-  }, [users, search, statusFilter, statusOperator, roleFilter, roleOperator]);
-
-  /* ── Client-side pagination ─── */
-  const totalFiltered = filteredUsers.length;
-  const totalPages = Math.ceil(totalFiltered / limit);
-  const paginatedUsers = useMemo(() => {
-    const start = (page - 1) * limit;
-    return filteredUsers.slice(start, start + limit);
-  }, [filteredUsers, page, limit]);
-
-  // Reset to page 1 when filters change (derived state during render — avoids useEffect)
-  const filterKey = `${search}|${statusFilter}|${statusOperator}|${roleFilter}|${roleOperator}`;
-  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
-  if (prevFilterKey !== filterKey) {
-    setPrevFilterKey(filterKey);
-    setPage(1);
-  }
+  /* ── Server-side pagination — `users` is already the current page from the API ─── */
+  const totalPages = Math.ceil(serverTotal / limit);
+  const paginatedUsers = users; // already paged by the backend
 
   /* ── Avatar blob URLs (authenticated download) ─── */
   useEffect(() => {
@@ -348,13 +339,13 @@ export default function UserManagementPage() {
     });
   }, [users]);
 
-  /* ── Stats ─── */
+  /* ── Stats (from server summary — always reflects unfiltered tenant totals) ─── */
   const stats = useMemo(() => ({
-    total: users.length,
-    active: users.filter((u) => u.isActive !== false).length,
-    inactive: users.filter((u) => u.isActive === false).length,
+    total: userStats.total,
+    active: userStats.active,
+    inactive: userStats.inactive,
     roles: roles.length,
-  }), [users, roles]);
+  }), [userStats, roles]);
 
   /* ── Selection helpers ─── */
   const allSelected = paginatedUsers.length > 0 && paginatedUsers.every((u) => selectedIds.has(u.id));
@@ -378,7 +369,7 @@ export default function UserManagementPage() {
     setAssigning(true);
     try {
       await authApi.assignRoleToUser(userId, roleId);
-      await fetchUsers();
+      await fetchUsers(page, searchRef.current, pendingFiltersRef.current, pendingOperatorsRef.current);
       setRoleModalOpen(false);
       setSelectedUser(null);
       showToast.success('Role assigned successfully.');
@@ -391,7 +382,7 @@ export default function UserManagementPage() {
   const handleRemoveRole = async (userId: string, roleId: string) => {
     try {
       await authApi.removeRoleFromUser(userId, roleId);
-      await fetchUsers();
+      await fetchUsers(page, searchRef.current, pendingFiltersRef.current, pendingOperatorsRef.current);
       showToast.success('Role removed successfully.');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to remove role.';
@@ -409,7 +400,7 @@ export default function UserManagementPage() {
       if (addForm.roleId && newUserId) {
         try { await authApi.assignRoleToUser(newUserId, addForm.roleId); } catch { /* non-fatal */ }
       }
-      await fetchUsers();
+      await fetchUsers(page, searchRef.current, pendingFiltersRef.current, pendingOperatorsRef.current);
       setAddModalOpen(false);
       setAddForm({ firstName: '', lastName: '', email: '', password: '', roleId: '' });
       showToast.success(`User ${addForm.email} created successfully.`);
@@ -477,9 +468,9 @@ export default function UserManagementPage() {
   /* ── Export CSV ─── */
   const handleExport = () => {
     const header = 'Name,Email,Roles,Status\n';
-    const rows = filteredUsers.map((u) => {
+    const rows = users.map((u: User) => {
       const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email?.split('@')[0] || '';
-      const roleNames = (u.roles || []).map((r) => r.name).join('; ');
+      const roleNames = (u.roles || []).map((r: Role) => r.name).join('; ');
       const status = u.isActive !== false ? 'Active' : 'Inactive';
       return `"${name}","${u.email}","${roleNames}","${status}"`;
     }).join('\n');
@@ -490,16 +481,36 @@ export default function UserManagementPage() {
     URL.revokeObjectURL(url);
   };
 
+  /* ── Page-change handler (triggers server-side fetch) ─── */
+  const handlePageChange = useCallback((newPage: number) => {
+    setPage(newPage);
+    fetchUsers(newPage, searchRef.current, pendingFiltersRef.current, pendingOperatorsRef.current);
+  }, [fetchUsers]);
+
+  /* ── Search-triggered fetch (called by SearchFilterBar onSearch) ─── */
+  const handleSearch = useCallback(() => {
+    setPage(1);
+    fetchUsers(1, searchRef.current, pendingFiltersRef.current, pendingOperatorsRef.current);
+  }, [fetchUsers]);
+
   /* ── Helpers ─── */
   const getUserRoles = (user: User) => user.roles || [];
-  const activeFilterCount = (statusFilter !== 'all' ? 1 : 0) + (roleFilter.length > 0 ? 1 : 0);
+  const activeFilterCount = Object.keys(appliedFilters).filter((k) => {
+    const v = appliedFilters[k];
+    return Array.isArray(v) ? v.length > 0 : Boolean(v);
+  }).length;
 
   const clearFilters = () => {
-    setStatusFilter('all');
-    setStatusOperator('is');
-    setRoleFilter([]);
-    setRoleOperator('in');
+    const empty: ActiveFilters = {};
+    const emptyOps: ActiveOperators = {};
+    pendingFiltersRef.current = empty;
+    pendingOperatorsRef.current = emptyOps;
+    searchRef.current = '';
+    setAppliedFilters(empty);
+    setActiveOperators(emptyOps);
     setSearch('');
+    setPage(1);
+    fetchUsers(1, '', empty, emptyOps);
   };
 
   const filterConfigs = useMemo<FilterConfig[]>(() => [
@@ -526,56 +537,53 @@ export default function UserManagementPage() {
     },
   ], [roles]);
 
-  const appliedFilters = useMemo<ActiveFilters>(() => {
-    const next: ActiveFilters = {};
-    if (statusFilter !== 'all') next.status = statusFilter;
-    if (roleFilter.length > 0) next.role = roleFilter;
-    return next;
-  }, [statusFilter, roleFilter]);
+  /**
+   * Keep refs in sync so onSearch / handlePageChange can read the latest values
+   * without stale closure issues.
+   */
+  const handleSearchChange = useCallback((value: string) => {
+    searchRef.current = value;
+    setSearch(value);
+  }, []);
 
-  const activeOperators = useMemo<ActiveOperators>(() => {
-    const next: ActiveOperators = {};
-    if (statusFilter !== 'all') next.status = statusOperator;
-    if (roleFilter.length > 0) next.role = roleOperator;
-    return next;
-  }, [statusFilter, statusOperator, roleFilter, roleOperator]);
+  /**
+   * Called by SearchFilterBar when the user commits a filter change via the
+   * popover "Search" button. We update both ref (for timing safety) and state.
+   */
+  const handleToolbarFilterStateChange = useCallback((
+    key: string,
+    state: { value: string | string[]; operator: string },
+  ) => {
+    pendingFiltersRef.current = { ...pendingFiltersRef.current, [key]: state.value };
+    pendingOperatorsRef.current = { ...pendingOperatorsRef.current, [key]: state.operator };
+    setAppliedFilters((prev) => ({ ...prev, [key]: state.value }));
+    setActiveOperators((prev) => ({ ...prev, [key]: state.operator }));
+  }, []);
 
-  const handleToolbarFilterChange = (key: string, value: string | string[]) => {
-    if (key === 'status' && typeof value === 'string') {
-      setStatusFilter(value as StatusFilter);
-      return;
-    }
+  const handleToolbarFilterChange = useCallback((key: string, value: string | string[]) => {
+    pendingFiltersRef.current = { ...pendingFiltersRef.current, [key]: value };
+    setAppliedFilters((prev) => ({ ...prev, [key]: value }));
+  }, []);
 
-    if (key === 'role') {
-      setRoleFilter(Array.isArray(value) ? value : value ? [value] : []);
-    }
-  };
-
-  const handleToolbarFilterStateChange = (key: string, state: { value: string | string[]; operator: string }) => {
-    if (key === 'status' && typeof state.value === 'string') {
-      setStatusFilter(state.value as StatusFilter);
-      setStatusOperator((state.operator as StatusOperator) || 'is');
-      return;
-    }
-
-    if (key === 'role') {
-      setRoleFilter(Array.isArray(state.value) ? state.value : state.value ? [state.value] : []);
-      setRoleOperator((state.operator as RoleOperator) || 'in');
-    }
-  };
-
-  const handleToolbarFilterClear = (key: string) => {
-    if (key === 'status') {
-      setStatusFilter('all');
-      setStatusOperator('is');
-    }
-    if (key === 'role') {
-      setRoleFilter([]);
-      setRoleOperator('in');
-    }
-  };
+  /**
+   * Clearing a single inline chip auto-triggers a fetch so the table updates
+   * immediately without requiring the user to click Search again.
+   */
+  const handleToolbarFilterClear = useCallback((key: string) => {
+    const newFilters = { ...pendingFiltersRef.current };
+    const newOperators = { ...pendingOperatorsRef.current };
+    delete newFilters[key];
+    delete newOperators[key];
+    pendingFiltersRef.current = newFilters;
+    pendingOperatorsRef.current = newOperators;
+    setAppliedFilters(newFilters);
+    setActiveOperators(newOperators);
+    setPage(1);
+    fetchUsers(1, searchRef.current, newFilters, newOperators);
+  }, [fetchUsers]);
 
   const selectedKeys = useMemo(() => Array.from(selectedIds), [selectedIds]);
+  const hasActiveSearch = !!(search || activeFilterCount > 0);
 
   const viewOptions = useMemo(
     () => [
@@ -596,7 +604,7 @@ export default function UserManagementPage() {
             icon: Icons.refresh,
             variant: 'outline',
             onClick: () => {
-              fetchUsers();
+              fetchUsers(page, searchRef.current, pendingFiltersRef.current, pendingOperatorsRef.current);
               fetchRoles();
             },
           },
@@ -767,7 +775,7 @@ export default function UserManagementPage() {
       <SearchFilter
         searchPlaceholder="Search users by name or email"
         searchValue={search}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
         filters={filterConfigs}
         activeFilters={appliedFilters}
         activeOperators={activeOperators}
@@ -775,12 +783,14 @@ export default function UserManagementPage() {
         onFilterStateChange={handleToolbarFilterStateChange}
         onFilterClear={handleToolbarFilterClear}
         onFilterClearAll={clearFilters}
+        onSearch={handleSearch}
+        storageKey="erp.users.searchHistory"
         actions={toolbarActions}
       />
 
-      {(search || activeFilterCount > 0) && (
+      {hasActiveSearch && (
         <p className="text-xs text-[var(--gogo-text-secondary)]">
-          Showing <strong>{totalFiltered}</strong> result{totalFiltered !== 1 ? 's' : ''}
+          Showing <strong>{serverTotal}</strong> result{serverTotal !== 1 ? 's' : ''}
         </p>
       )}
 
@@ -801,8 +811,8 @@ export default function UserManagementPage() {
       ) : paginatedUsers.length === 0 ? (
         <EmptyState
           title="No users found"
-          description={search || activeFilterCount ? 'Try adjusting your search or filters' : 'Get started by creating a new user'}
-          action={!search && !activeFilterCount ? (
+          description={hasActiveSearch ? 'Try adjusting your search or filters' : 'Get started by creating a new user'}
+          action={!hasActiveSearch ? (
             <Button size="sm" onClick={() => setAddModalOpen(true)}>
               {Icons.plus} Create User
             </Button>
@@ -817,14 +827,14 @@ export default function UserManagementPage() {
             selectable
             selectedKeys={selectedKeys}
             onSelectionChange={(keys) => setSelectedIds(new Set(keys))}
-            emptyMessage={search || activeFilterCount ? 'No users match your filters' : 'No users found'}
+            emptyMessage={hasActiveSearch ? 'No users match your filters' : 'No users found'}
           />
           <Pagination
             page={page}
             totalPages={totalPages}
-            totalItems={totalFiltered}
+            totalItems={serverTotal}
             pageSize={limit}
-            onPageChange={setPage}
+            onPageChange={handlePageChange}
           />
         </div>
       ) : (
@@ -852,15 +862,15 @@ export default function UserManagementPage() {
                 onDelete={() => { setSelectedUser(user); setDeleteModalOpen(true); }}
               />
             )}
-            emptyMessage={search || activeFilterCount ? 'No users match your filters' : 'No users found'}
+            emptyMessage={hasActiveSearch ? 'No users match your filters' : 'No users found'}
           />
           <div className="overflow-hidden rounded-[var(--radius-card)] border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] shadow-[var(--shadow-card)]">
             <Pagination
               page={page}
               totalPages={totalPages}
-              totalItems={totalFiltered}
+              totalItems={serverTotal}
               pageSize={limit}
-              onPageChange={setPage}
+              onPageChange={handlePageChange}
             />
           </div>
         </div>

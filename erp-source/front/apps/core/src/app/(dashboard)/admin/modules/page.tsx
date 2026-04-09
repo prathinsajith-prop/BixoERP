@@ -76,7 +76,7 @@ function ModuleCard({ mod, active, activeModules, onToggle }: { mod: Module; act
           </div>
           <button
             onClick={() => onToggle(mod.key)}
-            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${active ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'}`}
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${active ? 'bg-[var(--gogo-primary)]' : 'bg-gray-200 dark:bg-gray-600'}`}
           >
             <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform ${active ? 'translate-x-5' : 'translate-x-0'}`} />
           </button>
@@ -137,7 +137,7 @@ function StatsBar({ activeModules, total }: { activeModules: number; total: numb
         <p className="text-xs font-medium text-gray-400 uppercase mb-1">Utilization</p>
         <div className="flex items-center gap-3">
           <div className="h-2 w-32 rounded-full bg-gray-100 dark:bg-gray-700">
-            <div className="h-2 rounded-full bg-blue-600 transition-all" style={{ width: `${pct}%` }} />
+            <div className="h-2 rounded-full bg-[var(--gogo-primary)] transition-all" style={{ width: `${pct}%` }} />
           </div>
           <span className="text-sm font-bold text-gray-700 dark:text-gray-300">{pct}%</span>
         </div>
@@ -212,7 +212,7 @@ export default function ModulesPage() {
         />
         <div className="flex flex-wrap gap-2">
           {CATEGORIES.map((cat) => (
-            <button key={cat} onClick={() => setCategory(cat)} className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${category === cat ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'}`}>
+            <button key={cat} onClick={() => setCategory(cat)} className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${category === cat ? 'bg-[var(--gogo-primary)] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'}`}>
               {cat}
             </button>
           ))}

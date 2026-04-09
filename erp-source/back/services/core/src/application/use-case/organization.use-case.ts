@@ -80,8 +80,12 @@ export class OrganizationUseCase {
 
   // ─── Superuser: List Organizations ────────────────────────────
 
-  async listOrganizations(page: number, limit: number) {
-    return this.orgRepo.findAll(page, limit);
+  async listOrganizations(
+    page: number,
+    limit: number,
+    filters?: { search?: string; filter?: string; sortBy?: string; sortDir?: 'ASC' | 'DESC' },
+  ) {
+    return this.orgRepo.findAll(page, limit, filters);
   }
 
   // ─── Superuser: Get Organization ──────────────────────────────
