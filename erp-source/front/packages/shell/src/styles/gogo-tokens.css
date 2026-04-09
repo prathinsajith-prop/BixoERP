@@ -42,6 +42,7 @@
 
   /* --- Layout dimensions --- */
   --gogo-header-height: 64px;
+  --gogo-footer-height: 56px;
   --gogo-sidebar-width: 80px;
   --gogo-table-row-height: 48px;
 

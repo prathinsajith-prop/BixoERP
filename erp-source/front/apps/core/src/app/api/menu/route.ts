@@ -23,33 +23,30 @@ const PORTAL_MENU: MenuItem[] = [
     // Always visible
     { label: 'Dashboard', href: '/', icon: 'LayoutDashboard', position: 1 },
     // Org management — visible to admins and owners
-    { label: 'Members', href: '/settings/members', icon: 'Users', permission: 'auth:org-structure:read', position: 2 },
-    { label: 'Departments', href: '/settings/departments', icon: 'Building2', permission: 'auth:org-structure:read', position: 3 },
+    // { label: 'Members', href: '/settings/members', icon: 'Users', permission: 'auth:org-structure:read', position: 2 },
+    // { label: 'Departments', href: '/settings/departments', icon: 'Building2', permission: 'auth:org-structure:read', position: 3 },
     // User self-service — always visible
-    { label: 'Profile', href: '/profile', icon: 'UserCircle', position: 4 },
-    { label: 'Organisations', href: '/profile/organisations', icon: 'Globe', position: 5 },
+    // { label: 'Profile', href: '/profile', icon: 'UserCircle', position: 4 },
+    { label: 'Organisations', href: '/profile/organisations', icon: 'Globe', position: 2 },
     // Settings — visible to admins
-    { label: 'Settings', href: '/settings', icon: 'Settings', permission: 'auth:roles:read', position: 6 },
+    // { label: 'Settings', href: '/settings', icon: 'Settings', permission: 'auth:roles:read', position: 3 },
     // Admin panel sections
     {
         label: 'Users & Roles', href: '/admin/users', icon: 'ShieldCheck',
-        permission: 'auth:users:read', position: 7,
+        permission: 'auth:users:read', position: 3,
         children: [
             { label: 'User Management', href: '/admin/users', icon: 'Users', position: 1 },
             { label: 'Roles & Permissions', href: '/admin/roles', icon: 'Shield', position: 2 },
-            { label: 'Invite Members', href: '/settings/members', icon: 'Key', position: 3 },
         ],
     },
     {
         label: 'Organization', href: '/admin/organizations', icon: 'Building2',
-        permission: 'auth:org-structure:read', position: 8,
+        permission: 'auth:org-structure:read', position: 4,
         children: [
             { label: 'Organizations', href: '/admin/organizations', icon: 'Building2', position: 1 },
             { label: 'Divisions', href: '/admin/divisions', icon: 'Layers', position: 2 },
             { label: 'Departments', href: '/admin/departments', icon: 'Layers', position: 3 },
             { label: 'Teams', href: '/admin/teams', icon: 'Users', position: 4 },
-            { label: 'Roles & Permissions', href: '/admin/roles', icon: 'Shield', permission: 'auth:roles:read', position: 5 },
-            { label: 'Settings', href: '/organization', icon: 'Settings', position: 6 },
         ],
     },
 ];

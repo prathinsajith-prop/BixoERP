@@ -87,7 +87,7 @@ export function AppSelector() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-[340px] rounded-2xl bg-white py-4 shadow-[0_8px_30px_rgba(0,0,0,0.12)] ring-1 ring-black/5 z-50 dark:bg-gray-800 dark:ring-white/10">
+        <div className="absolute right-0 top-full mt-2 w-[340px] rounded-2xl bg-white py-4 shadow-[var(--shadow-card)] ring-1 ring-[var(--gogo-divider)] z-50 dark:bg-[var(--gogo-surface)]">
           <div className="px-3 pb-2 border-b border-gray-100 dark:border-gray-700 mb-2">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">Navigation</p>
             <div className="mt-2 grid grid-cols-2 gap-1">

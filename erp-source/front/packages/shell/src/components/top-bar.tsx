@@ -76,7 +76,7 @@ function OrgBadge() {
         <img
           src={logoBlobUrl}
           alt={currentOrg.name}
-          className="h-8 w-8 shrink-0 rounded-lg object-cover ring-1 ring-gray-200 dark:ring-gray-700"
+          className="h-8 w-8 shrink-0 rounded-lg object-cover ring-1 ring-[var(--gogo-divider)]"
         />
       ) : (
         <div
@@ -86,8 +86,8 @@ function OrgBadge() {
         </div>
       )}
       <div className="hidden flex-col sm:flex">
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Organization</span>
-        <span className="max-w-[180px] truncate text-sm font-semibold text-gray-800 dark:text-gray-100">
+        <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--gogo-text-secondary)' }}>Organization</span>
+        <span className="max-w-[180px] truncate text-sm font-semibold" style={{ color: 'var(--gogo-text-primary)' }}>
           {currentOrg.name}
         </span>
       </div>
@@ -97,18 +97,9 @@ function OrgBadge() {
 
 export function TopBar({ moduleId }: { moduleId?: string }) {
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 flex h-[var(--gogo-header-height)] w-full items-center justify-between border-b border-[var(--gogo-divider)] bg-white px-4 shadow-[var(--shadow-header)] md:px-6 dark:bg-[var(--gogo-surface)]">
-      {/* Left: brand + org */}
-      <div className="flex shrink-0 items-center gap-3">
-        <a
-          href="/"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-sm"
-          style={{ background: 'linear-gradient(135deg, var(--gogo-primary) 0%, var(--gogo-secondary) 100%)' }}
-          title="Home"
-        >
-          <span className="text-sm font-extrabold tracking-wide text-white">B</span>
-        </a>
-        <div className="hidden h-5 w-px bg-[var(--gogo-divider)] md:block" />
+    <header className="fixed left-0 right-0 top-0 z-50 flex h-[var(--gogo-header-height)] w-full items-center justify-between border-b border-[var(--gogo-divider)] bg-white/95 px-4 backdrop-blur-sm md:px-6 dark:bg-[var(--gogo-surface)]/95">
+      {/* Left: org identity */}
+      <div className="flex shrink-0 items-center">
         <OrgBadge />
       </div>
       {/* Right: app switcher + alerts */}
