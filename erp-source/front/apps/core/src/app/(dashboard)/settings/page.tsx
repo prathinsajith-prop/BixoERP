@@ -288,6 +288,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const loadedRef = useRef(false);
+  const initialSettingsRef = useRef<any>(null);
   const [activeSection, setActiveSection] = useState('appearance');
   const [mobileSectionOpen, setMobileSectionOpen] = useState(false);
 
@@ -307,7 +308,6 @@ export default function SettingsPage() {
   const [quietEnd, setQuietEnd] = useState('08:00');
 
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  useEffect(() => { authApi.twoFactorStatus().then(({ data }: { data: any }) => setTwoFactorEnabled(data.data.enabled)).catch(() => { }); }, []);
   const [sessionTimeout, setSessionTimeout] = useState(30);
   const [loginAlerts, setLoginAlerts] = useState(true);
   const [ipWhitelisting, setIpWhitelisting] = useState(false);
@@ -442,7 +442,19 @@ export default function SettingsPage() {
   }
 
   useEffect(() => {
-    authApi.getSettings().then(({ data }: { data: any }) => { if (data.data) applySettings(data.data); }).catch(() => { }).finally(() => { loadedRef.current = true; });
+    Promise.all([
+      authApi.getSettings().then(({ data }: { data: any }) => {
+        if (data.data) {
+          initialSettingsRef.current = data.data;
+          applySettings(data.data);
+        }
+      }).catch(() => { }),
+      authApi.twoFactorStatus().then(({ data }: { data: any }) => setTwoFactorEnabled(data.data.enabled)).catch(() => { }),
+    ]).finally(() => {
+      // Defer until React has flushed all batched setState calls from the above promises,
+      // so the dirty useEffect does not fire on initial load.
+      setTimeout(() => { loadedRef.current = true; }, 0);
+    });
   }, []);
 
   useEffect(() => { if (loadedRef.current) setDirty(true); }, [
@@ -459,7 +471,9 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await authApi.updateSettings(buildPayload());
+      const payload = buildPayload();
+      await authApi.updateSettings(payload);
+      initialSettingsRef.current = payload;
       setDirty(false);
       showToast.success('Settings saved');
     } catch (err: any) {
@@ -1076,7 +1090,15 @@ export default function SettingsPage() {
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <button
-                onClick={() => { setDirty(false); window.location.reload(); }}
+                onClick={() => {
+                  if (initialSettingsRef.current) {
+                    loadedRef.current = false;
+                    applySettings(initialSettingsRef.current);
+                    setTimeout(() => { loadedRef.current = true; setDirty(false); }, 0);
+                  } else {
+                    setDirty(false);
+                  }
+                }}
                 className="rounded-[var(--radius-button)] px-4 py-2 text-sm font-medium transition"
                 style={{ border: '1px solid var(--gogo-divider)', color: 'var(--gogo-text-secondary)', backgroundColor: 'var(--gogo-surface)' }}
                 onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--gogo-grey-100)')}
