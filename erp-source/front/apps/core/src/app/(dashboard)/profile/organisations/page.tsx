@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
 import { useOrgContext } from '@/context/org';
 import { useAuthStore } from '@/store/auth';
 import { showToast } from '@erp/shell';
-import { toast } from 'sonner';
 import PageHeader from '@/components/page-header';
-import { OrgAvatar, RoleBadge } from '@erp/ui';
+import { OrgAvatar, RoleBadge, ConfirmDialog, TablePageSkeleton } from '@erp/ui';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface OrgMembership {
     orgId: string;
@@ -19,20 +21,25 @@ interface OrgMembership {
     joinedAt?: string;
 }
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function OrganisationsPage() {
+    const router = useRouter();
     const { orgId: currentOrgId } = useOrgContext();
     const { switchOrg } = useAuthStore();
 
     const [orgs, setOrgs] = useState<OrgMembership[]>([]);
     const [loading, setLoading] = useState(true);
     const [switching, setSwitching] = useState<string | null>(null);
-    const [leaving, setLeaving] = useState<string | null>(null);
+    const [leaveTarget, setLeaveTarget] = useState<OrgMembership | null>(null);
+    const [leaving, setLeaving] = useState(false);
+
+    // ── Data ──────────────────────────────────────────────────────────────────
 
     const load = useCallback(async () => {
         setLoading(true);
         try {
             const { data } = await authApi.myOrganizations();
-            // Normalise whichever shape the API returns
             const raw: Array<Record<string, unknown>> = data.data ?? [];
             setOrgs(
                 raw.map((o) => ({
@@ -46,13 +53,15 @@ export default function OrganisationsPage() {
                 })),
             );
         } catch {
-            toast.error('Failed to load organisations');
+            showToast.error('Failed to load', 'Could not retrieve your organisations.');
         } finally {
             setLoading(false);
         }
     }, []);
 
     useEffect(() => { load(); }, [load]);
+
+    // ── Actions ───────────────────────────────────────────────────────────────
 
     const handleSwitch = async (orgId: string) => {
         if (orgId === currentOrgId) return;
@@ -61,81 +70,93 @@ export default function OrganisationsPage() {
             await switchOrg(orgId);
             window.location.reload();
         } catch {
-            showToast.error('Something went wrong', 'Failed to switch organisation');
+            showToast.error('Something went wrong', 'Failed to switch organisation.');
             setSwitching(null);
         }
     };
 
-    const handleLeave = async (orgId: string, role: string) => {
-        if (role === 'OWNER') {
-            alert('You cannot leave an organisation you own. Transfer ownership first, or delete the organisation.');
-            return;
-        }
-        if (!confirm('Leave this organisation? You will lose access and cannot undo this without a new invitation.')) return;
-        setLeaving(orgId);
+    const handleLeaveConfirm = async () => {
+        if (!leaveTarget) return;
+        setLeaving(true);
         try {
-            // Soft-deactivate membership via the members endpoint
-            await authApi.removeMemberFromOrganization(orgId, 'me');
+            await authApi.removeMemberFromOrganization(leaveTarget.orgId, 'me');
+            showToast.success('Left organisation', `You have left ${leaveTarget.orgName}.`);
+            setLeaveTarget(null);
             await load();
         } catch {
-            showToast.error('Something went wrong', 'Failed to leave organisation');
+            showToast.error('Something went wrong', 'Failed to leave organisation.');
         } finally {
-            setLeaving(null);
+            setLeaving(false);
         }
     };
 
+    // ── Render ────────────────────────────────────────────────────────────────
+
+    if (loading) return <TablePageSkeleton rows={4} />;
+
     return (
-        <div className="mx-auto max-w-3xl p-6">
+        <div className="space-y-6">
             <PageHeader
                 title="My Organisations"
                 subtitle="All organisations you belong to. Switch context or manage your membership."
             />
 
-            {loading ? (
-                <div className="flex items-center justify-center py-16 text-gray-400">
-                    <svg className="mr-2 h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                    </svg>
-                    Loading…
+            {orgs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-[var(--radius-card)] border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] py-16 shadow-[var(--shadow-card)]">
+                    <div
+                        className="mb-4 flex h-14 w-14 items-center justify-center rounded-full"
+                        style={{ backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 10%, transparent)' }}
+                    >
+                        <svg className="h-7 w-7" style={{ color: 'var(--gogo-primary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+                        </svg>
+                    </div>
+                    <p className="text-sm font-medium" style={{ color: 'var(--gogo-text-primary)' }}>No organisations yet</p>
+                    <p className="mt-1 text-xs" style={{ color: 'var(--gogo-text-secondary)' }}>You are not a member of any organisations.</p>
                 </div>
-            ) : orgs.length === 0 ? (
-                <p className="py-10 text-center text-sm text-gray-400">You are not a member of any organisations.</p>
             ) : (
-                <div className="space-y-3">
+                <div className="overflow-hidden rounded-[var(--radius-card)] border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] shadow-[var(--shadow-card)]">
                     {orgs.map((org, idx) => {
-                        const isActive = org.orgId === currentOrgId;
+                        const isCurrent = org.orgId === currentOrgId;
                         const isSwitching = switching === org.orgId;
-                        const isLeaving = leaving === org.orgId;
+                        const isOwner = org.role === 'OWNER';
 
                         return (
                             <div
                                 key={org.orgId}
-                                className={`flex items-center gap-4 rounded-2xl border p-4 transition ${isActive
-                                    ? 'border-indigo-300 bg-indigo-50 dark:border-indigo-700 dark:bg-indigo-900/20'
-                                    : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800'
-                                    }`}
+                                className="flex items-center gap-4 border-b border-[var(--gogo-divider)] px-5 py-4 last:border-0"
+                                style={isCurrent ? { backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 6%, transparent)' } : undefined}
                             >
                                 {/* Avatar */}
-                                <OrgAvatar name={org.orgName} size="xl" shape="rounded-xl" />
+                                <OrgAvatar name={org.orgName} size="lg" shape="rounded-xl" />
 
+                                {/* Info */}
                                 <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-2">
-                                        <p className="truncate font-semibold text-gray-900 dark:text-white">{org.orgName}</p>
-                                        {isActive && (
-                                            <span className="flex-shrink-0 rounded-full bg-indigo-600 px-2 py-0.5 text-xs font-medium text-white">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <p className="truncate text-sm font-semibold" style={{ color: 'var(--gogo-text-primary)' }}>
+                                            {org.orgName}
+                                        </p>
+                                        {isCurrent && (
+                                            <span
+                                                className="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold text-white"
+                                                style={{ backgroundColor: 'var(--gogo-primary)' }}
+                                            >
                                                 Current
                                             </span>
                                         )}
                                     </div>
-                                    <p className="truncate text-xs text-gray-400 dark:text-gray-500">/{org.orgSlug}</p>
+                                    <p className="mt-0.5 truncate text-xs" style={{ color: 'var(--gogo-text-secondary)' }}>
+                                        /{org.orgSlug}
+                                    </p>
                                     <div className="mt-1.5 flex flex-wrap items-center gap-2">
                                         <RoleBadge role={org.role} />
                                         {org.membershipType && org.membershipType !== 'REGULAR' && (
-                                            <span className="text-xs text-gray-400 dark:text-gray-500">{org.membershipType}</span>
+                                            <span className="text-xs" style={{ color: 'var(--gogo-text-secondary)' }}>
+                                                {org.membershipType}
+                                            </span>
                                         )}
                                         {org.joinedAt && (
-                                            <span className="text-xs text-gray-400 dark:text-gray-500">
+                                            <span className="text-xs" style={{ color: 'var(--gogo-text-secondary)' }}>
                                                 Joined {new Date(org.joinedAt).toLocaleDateString()}
                                             </span>
                                         )}
@@ -143,12 +164,26 @@ export default function OrganisationsPage() {
                                 </div>
 
                                 {/* Actions */}
-                                <div className="flex flex-shrink-0 flex-col items-end gap-2">
-                                    {!isActive && (
+                                <div className="flex shrink-0 items-center gap-2">
+                                    {isCurrent ? (
+                                        <button
+                                            onClick={() => router.push('/organization')}
+                                            title="Organisation settings"
+                                            className="flex items-center justify-center rounded-lg p-1.5 transition"
+                                            style={{ color: 'var(--gogo-text-secondary)' }}
+                                            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--gogo-divider)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--gogo-text-primary)'; }}
+                                            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = ''; (e.currentTarget as HTMLButtonElement).style.color = 'var(--gogo-text-secondary)'; }}
+                                        >
+                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.332.183-.581.495-.644.869l-.214 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                        </button>
+                                    ) : (
                                         <button
                                             onClick={() => handleSwitch(org.orgId)}
                                             disabled={!!switching}
-                                            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                                            style={{ backgroundColor: 'var(--gogo-primary)' }}
                                         >
                                             {isSwitching ? (
                                                 <>
@@ -168,13 +203,12 @@ export default function OrganisationsPage() {
                                             )}
                                         </button>
                                     )}
-                                    {org.role !== 'OWNER' && (
+                                    {!isOwner && (
                                         <button
-                                            onClick={() => handleLeave(org.orgId, org.role)}
-                                            disabled={isLeaving}
-                                            className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50 dark:text-red-400 dark:hover:text-red-300"
+                                            onClick={() => setLeaveTarget(org)}
+                                            className="rounded-lg px-3 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20 dark:hover:text-red-400"
                                         >
-                                            {isLeaving ? 'Leaving…' : 'Leave'}
+                                            Leave
                                         </button>
                                     )}
                                 </div>
@@ -183,6 +217,19 @@ export default function OrganisationsPage() {
                     })}
                 </div>
             )}
+
+            {/* Leave confirmation dialog */}
+            <ConfirmDialog
+                open={!!leaveTarget}
+                onClose={() => setLeaveTarget(null)}
+                onConfirm={handleLeaveConfirm}
+                variant="danger"
+                title={`Leave ${leaveTarget?.orgName ?? 'organisation'}?`}
+                message="You will lose access immediately. You cannot undo this without a new invitation."
+                confirmLabel="Leave organisation"
+                cancelLabel="Cancel"
+                loading={leaving}
+            />
         </div>
     );
 }

@@ -375,13 +375,6 @@ export default function AdminOrganizationsPage() {
             align: 'right' as const,
             render: (org) => (
                 <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                    <button
-                        title="Organization settings"
-                        onClick={() => router.push(`/admin/organizations/${org.id}?tab=settings`)}
-                        className="flex items-center justify-center rounded-md p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                    >
-                        {Icons.gear}
-                    </button>
                     <OrgRowActions
                         org={org}
                         onView={() => router.push(`/admin/organizations/${org.id}`)}
@@ -560,13 +553,6 @@ export default function AdminOrganizationsPage() {
                         leading={(org) => <OrgAvatar name={org.name} src={orgLogoBlobUrls[org.id]} size="md" shape="rounded-lg" />}
                         trailing={(org) => (
                             <div className="flex items-center gap-1">
-                                <button
-                                    title="Organization settings"
-                                    onClick={(e) => { e.stopPropagation(); router.push(`/admin/organizations/${org.id}?tab=settings`); }}
-                                    className="flex items-center justify-center rounded-md p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                >
-                                    {Icons.gear}
-                                </button>
                                 <OrgRowActions
                                     org={org}
                                     onView={() => router.push(`/admin/organizations/${org.id}`)}
