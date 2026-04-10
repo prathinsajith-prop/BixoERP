@@ -26,10 +26,19 @@ export function ViewSwitcher({
   buttonClassName = '',
 }: ViewSwitcherProps) {
   const [open, setOpen] = useState(false);
+  const [alignRight, setAlignRight] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
+
+    // Determine alignment so popup doesn't overflow viewport
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const dropdownWidth = 192; // min-w-48
+      const spaceRight = window.innerWidth - rect.right;
+      setAlignRight(spaceRight < dropdownWidth ? false : true);
+    }
 
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -63,7 +72,7 @@ export function ViewSwitcher({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 min-w-48 overflow-hidden rounded-[var(--radius-modal)] border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] shadow-[var(--shadow-hover)]">
+        <div className={`absolute top-full z-50 mt-2 min-w-48 overflow-hidden rounded-[var(--radius-modal)] border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] shadow-[var(--shadow-hover)] ${alignRight ? 'right-0' : 'left-0'}`}>
           <div className="py-2">
             {options.map((option) => {
               const selected = option.value === view;

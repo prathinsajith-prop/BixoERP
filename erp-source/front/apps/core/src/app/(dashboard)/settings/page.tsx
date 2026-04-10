@@ -171,7 +171,7 @@ function SettingSection({
         border: variant === 'danger' ? '1px solid rgba(220,38,38,0.2)' : '1px solid var(--gogo-divider)',
       }}
     >
-      <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: '1px solid var(--gogo-divider)' }}>
+      <div className="flex items-center gap-3 px-4 py-3 sm:px-6 sm:py-4" style={{ borderBottom: '1px solid var(--gogo-divider)' }}>
         {icon && (
           <span
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-chip)]"
@@ -190,7 +190,7 @@ function SettingSection({
           <p className="mt-0.5 text-xs" style={{ color: 'var(--gogo-text-secondary)' }}>{description}</p>
         </div>
       </div>
-      <div className="px-6 py-5">{children}</div>
+      <div className="px-4 py-4 sm:px-6 sm:py-5">{children}</div>
     </div>
   );
 }
@@ -468,16 +468,16 @@ export default function SettingsPage() {
   };
 
   const ACCENT_COLORS = [
-    { key: 'blue',    label: 'Blue',    hex: '#3b82f6', tw: 'bg-blue-500' },
-    { key: 'indigo',  label: 'Indigo',  hex: '#6366f1', tw: 'bg-indigo-500' },
-    { key: 'purple',  label: 'Purple',  hex: '#922c88', tw: 'bg-purple-500' },
-    { key: 'pink',    label: 'Pink',    hex: '#ec4899', tw: 'bg-pink-500' },
-    { key: 'red',     label: 'Red',     hex: '#ef4444', tw: 'bg-red-500' },
-    { key: 'orange',  label: 'Orange',  hex: '#f97316', tw: 'bg-orange-500' },
-    { key: 'amber',   label: 'Amber',   hex: '#f59e0b', tw: 'bg-amber-500' },
-    { key: 'emerald', label: 'Green',   hex: '#10b981', tw: 'bg-emerald-500' },
-    { key: 'teal',    label: 'Teal',    hex: '#14b8a6', tw: 'bg-teal-500' },
-    { key: 'cyan',    label: 'Cyan',    hex: '#06b6d4', tw: 'bg-cyan-500' },
+    { key: 'blue', label: 'Blue', hex: '#3b82f6', tw: 'bg-blue-500' },
+    { key: 'indigo', label: 'Indigo', hex: '#6366f1', tw: 'bg-indigo-500' },
+    { key: 'purple', label: 'Purple', hex: '#922c88', tw: 'bg-purple-500' },
+    { key: 'pink', label: 'Pink', hex: '#ec4899', tw: 'bg-pink-500' },
+    { key: 'red', label: 'Red', hex: '#ef4444', tw: 'bg-red-500' },
+    { key: 'orange', label: 'Orange', hex: '#f97316', tw: 'bg-orange-500' },
+    { key: 'amber', label: 'Amber', hex: '#f59e0b', tw: 'bg-amber-500' },
+    { key: 'emerald', label: 'Green', hex: '#10b981', tw: 'bg-emerald-500' },
+    { key: 'teal', label: 'Teal', hex: '#14b8a6', tw: 'bg-teal-500' },
+    { key: 'cyan', label: 'Cyan', hex: '#06b6d4', tw: 'bg-cyan-500' },
   ];
 
   const THEMES = [
@@ -517,11 +517,11 @@ export default function SettingsPage() {
   };
 
   const sectionCounts: Record<string, number> = {
-    appearance:    [accentColor !== 'purple', compactMode, !animationsEnabled].filter(Boolean).length,
+    appearance: [accentColor !== 'purple', compactMode, !animationsEnabled].filter(Boolean).length,
     notifications: [!emailNotifs, !pushNotifs, quietHoursEnabled].filter(Boolean).length,
-    security:      [twoFactorEnabled, loginAlerts, ipWhitelisting].filter(Boolean).length,
-    privacy:       [!showEmail, !searchable, !activityStatus, !readReceipts].filter(Boolean).length,
-    integrations:  [slackConnected, googleConnected, microsoftConnected, jiraConnected, githubConnected].filter(Boolean).length,
+    security: [twoFactorEnabled, loginAlerts, ipWhitelisting].filter(Boolean).length,
+    privacy: [!showEmail, !searchable, !activityStatus, !readReceipts].filter(Boolean).length,
+    integrations: [slackConnected, googleConnected, microsoftConnected, jiraConnected, githubConnected].filter(Boolean).length,
   };
 
   return (
@@ -933,7 +933,7 @@ export default function SettingsPage() {
                   ].map((app) => (
                     <div
                       key={app.name}
-                      className="flex flex-col gap-3 rounded-[var(--radius-button)] p-4 transition sm:flex-row sm:items-center sm:justify-between"
+                      className="flex items-center justify-between gap-3 rounded-[var(--radius-button)] p-3 sm:p-4 transition"
                       style={{ border: '1px solid var(--gogo-divider)' }}
                       onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--gogo-grey-100)')}
                       onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
@@ -947,7 +947,7 @@ export default function SettingsPage() {
                       </div>
                       <button
                         onClick={() => app.toggle(!app.connected)}
-                        className="shrink-0 self-start rounded-[var(--radius-button)] px-3 py-1.5 text-xs font-semibold transition sm:self-auto"
+                        className="shrink-0 rounded-[var(--radius-button)] px-3 py-1.5 text-xs font-semibold transition"
                         style={app.connected
                           ? { border: '1px solid rgba(220,38,38,0.3)', color: '#dc2626', backgroundColor: 'rgba(220,38,38,0.05)' }
                           : { border: '1px solid var(--gogo-primary)', color: 'var(--gogo-primary)', backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 8%, transparent)' }}
@@ -964,10 +964,10 @@ export default function SettingsPage() {
                 {apiAccess && (
                   <div className="mt-4 rounded-[var(--radius-button)] p-4" style={{ border: '1px solid var(--gogo-divider)', backgroundColor: 'var(--gogo-grey-100)' }}>
                     <p className="mb-1 text-xs font-medium" style={{ color: 'var(--gogo-text-secondary)' }}>API Key</p>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                      <code className="flex-1 truncate rounded-[var(--radius-input)] px-3 py-2 font-mono text-xs" style={{ backgroundColor: 'var(--gogo-surface)', color: 'var(--gogo-text-primary)', border: '1px solid var(--gogo-divider)' }}>sk-••••••••••••••••••••••••••••4f2a</code>
+                    <div className="flex items-center gap-2">
+                      <code className="min-w-0 flex-1 truncate rounded-[var(--radius-input)] px-3 py-2 font-mono text-xs" style={{ backgroundColor: 'var(--gogo-surface)', color: 'var(--gogo-text-primary)', border: '1px solid var(--gogo-divider)' }}>sk-••••••••••••••••••••••••••••4f2a</code>
                       <button
-                        className="shrink-0 self-start rounded-[var(--radius-button)] px-3 py-2 text-xs font-semibold transition sm:self-auto"
+                        className="shrink-0 rounded-[var(--radius-button)] px-3 py-2 text-xs font-semibold transition"
                         style={{ border: '1px solid var(--gogo-divider)', backgroundColor: 'var(--gogo-surface)', color: 'var(--gogo-text-secondary)' }}
                         onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--gogo-grey-100)')}
                         onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--gogo-surface)')}

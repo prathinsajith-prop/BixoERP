@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { authApi } from '@/lib/api/auth';
 import { filesApi } from '@/lib/api/files';
 import { Input, Select, Textarea, Switch, OrgSettingsSkeleton } from '@erp/ui';
@@ -46,24 +46,34 @@ function Field({ label, children, hint }: { label: string; children: ReactNode; 
 }
 
 /* ─── Save footer ────────────────────────────────────────── */
-function SaveFooter({ saving, onSave, hint }: { saving: boolean; onSave: () => void; hint?: string }) {
+function SaveFooter({ saving, dirty, onSave, onDiscard, hint }: { saving: boolean; dirty: boolean; onSave: () => void; onDiscard: () => void; hint?: string }) {
+  if (!dirty) return null;
   return (
     <div className="mt-6 flex items-center justify-between border-t border-[var(--gogo-divider)] pt-5">
-      <p className="text-xs text-[var(--gogo-text-secondary)]">{hint ?? 'Changes will take effect immediately.'}</p>
-      <button
-        onClick={onSave}
-        disabled={saving}
-        className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:opacity-50"
-        style={{ backgroundColor: 'var(--gogo-primary)' }}
-      >
-        {saving && (
-          <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-        )}
-        Save Changes
-      </button>
+      <p className="text-xs text-[var(--gogo-text-secondary)]">{hint ?? 'You have unsaved changes.'}</p>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onDiscard}
+          disabled={saving}
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--gogo-divider)] px-4 py-2.5 text-sm font-semibold text-[var(--gogo-text-primary)] transition hover:bg-[var(--gogo-divider)] disabled:opacity-50"
+        >
+          Discard
+        </button>
+        <button
+          onClick={onSave}
+          disabled={saving}
+          className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:opacity-50"
+          style={{ backgroundColor: 'var(--gogo-primary)' }}
+        >
+          {saving && (
+            <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          )}
+          Save Changes
+        </button>
+      </div>
     </div>
   );
 }
@@ -73,10 +83,10 @@ interface OrgData { name: string; slug: string; description: string }
 interface SettingsData { general?: Record<string, string>; security?: Record<string, unknown>; notifications?: Record<string, unknown> }
 
 /* ─── General Section ────────────────────────────── */
-function GeneralSection({ org, setOrg, settings, setSettings, saving, onSave }: {
+function GeneralSection({ org, setOrg, settings, setSettings, saving, dirty, onSave, onDiscard }: {
   org: OrgData; setOrg: (o: OrgData) => void;
   settings: SettingsData; setSettings: (s: SettingsData) => void;
-  saving: boolean; onSave: () => void;
+  saving: boolean; dirty: boolean; onSave: () => void; onDiscard: () => void;
 }) {
   const InfoIcon = <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" /></svg>;
   const GlobeIcon = <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" /></svg>;
@@ -97,7 +107,7 @@ function GeneralSection({ org, setOrg, settings, setSettings, saving, onSave }: 
             </Field>
           </div>
         </div>
-        <SaveFooter saving={saving} onSave={onSave} />
+        <SaveFooter saving={saving} dirty={dirty} onSave={onSave} onDiscard={onDiscard} />
       </SCard>
 
       <SCard title="Regional Settings" description="Localization and contact details for your organization" icon={GlobeIcon}>
@@ -115,7 +125,7 @@ function GeneralSection({ org, setOrg, settings, setSettings, saving, onSave }: 
             <Select value={settings.general?.timezone || 'UTC'} onChange={(e) => setSettings({ ...settings, general: { ...settings.general, timezone: e.target.value } })} options={[{ value: 'UTC', label: 'UTC' }, { value: 'America/New_York', label: 'Eastern Time (US)' }, { value: 'America/Chicago', label: 'Central Time (US)' }, { value: 'America/Denver', label: 'Mountain Time (US)' }, { value: 'America/Los_Angeles', label: 'Pacific Time (US)' }, { value: 'Europe/London', label: 'London (GMT)' }, { value: 'Europe/Berlin', label: 'Berlin (CET)' }, { value: 'Asia/Tokyo', label: 'Tokyo (JST)' }, { value: 'Asia/Kolkata', label: 'India (IST)' }, { value: 'Australia/Sydney', label: 'Sydney (AEST)' }]} />
           </Field>
         </div>
-        <SaveFooter saving={saving} onSave={onSave} />
+        <SaveFooter saving={saving} dirty={dirty} onSave={onSave} onDiscard={onDiscard} />
       </SCard>
     </div>
   );
@@ -126,11 +136,21 @@ function BrandingSection({ orgId }: { orgId: string }) {
   const [branding, setBranding] = useState({ primaryColor: '#2563eb', secondaryColor: '#1e40af', accentColor: '#3b82f6', logoUrl: '' });
   const [saving, setSaving] = useState(false);
   const [logoBlobUrl, setLogoBlobUrl] = useState<string | null>(null);
+  const originalBranding = useRef({ primaryColor: '#2563eb', secondaryColor: '#1e40af', accentColor: '#3b82f6', logoUrl: '' });
+  const brandingDirty = JSON.stringify(branding) !== JSON.stringify(originalBranding.current);
 
   useEffect(() => {
     if (!orgId) return;
     authApi.getOrganizationBranding(orgId)
-      .then((res: any) => res.data?.data && setBranding((prev) => ({ ...prev, ...res.data.data })))
+      .then((res: any) => {
+        if (res.data?.data) {
+          setBranding((prev) => {
+            const loaded = { ...prev, ...res.data.data };
+            originalBranding.current = { ...loaded };
+            return loaded;
+          });
+        }
+      })
       .catch(() => { });
   }, [orgId]);
 
@@ -145,8 +165,15 @@ function BrandingSection({ orgId }: { orgId: string }) {
 
   const handleSave = async () => {
     setSaving(true);
-    try { await authApi.updateOrganizationBranding(orgId, branding); } catch { /* noop */ }
+    try {
+      await authApi.updateOrganizationBranding(orgId, branding);
+      originalBranding.current = { ...branding };
+    } catch { /* noop */ }
     setSaving(false);
+  };
+
+  const handleBrandingDiscard = () => {
+    setBranding({ ...originalBranding.current });
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -199,13 +226,7 @@ function BrandingSection({ orgId }: { orgId: string }) {
             ))}
           </div>
         </div>
-        <div className="mt-5 flex items-center justify-between border-t border-[var(--gogo-divider)] pt-5">
-          <p className="text-xs text-[var(--gogo-text-secondary)]">Colors apply across your organization&apos;s interface.</p>
-          <button onClick={handleSave} disabled={saving} className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:opacity-50" style={{ backgroundColor: 'var(--gogo-primary)' }}>
-            {saving && <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
-            Save Colors
-          </button>
-        </div>
+        <SaveFooter saving={saving} dirty={brandingDirty} onSave={handleSave} onDiscard={handleBrandingDiscard} hint="Colors apply across your organization's interface." />
       </SCard>
 
       <SCard title="Organization Logo" description="Displayed across the platform to identify your organization" icon={PhotoIcon}>
@@ -233,7 +254,7 @@ function BrandingSection({ orgId }: { orgId: string }) {
 }
 
 /* ─── Security Section ───────────────────────────── */
-function SecuritySection({ settings, setSettings, saving, onSave }: { settings: SettingsData; setSettings: (s: SettingsData) => void; saving: boolean; onSave: () => void }) {
+function SecuritySection({ settings, setSettings, saving, dirty, onSave, onDiscard }: { settings: SettingsData; setSettings: (s: SettingsData) => void; saving: boolean; dirty: boolean; onSave: () => void; onDiscard: () => void }) {
   const security = (settings.security || {}) as Record<string, unknown>;
   const policy = (security.passwordPolicy || {}) as Record<string, unknown>;
 
@@ -259,7 +280,7 @@ function SecuritySection({ settings, setSettings, saving, onSave }: { settings: 
             <Input type="number" value={String(Math.floor(((security.sessionTimeout as number) || 3600) / 60))} onChange={(e) => update('sessionTimeout', parseInt(e.target.value) * 60 || 3600)} min={5} max={1440} />
           </Field>
         </div>
-        <SaveFooter saving={saving} onSave={onSave} />
+        <SaveFooter saving={saving} dirty={dirty} onSave={onSave} onDiscard={onDiscard} />
       </SCard>
 
       <SCard title="Password Policy" description="Set minimum security requirements for member passwords" icon={KeyIcon}>
@@ -282,14 +303,14 @@ function SecuritySection({ settings, setSettings, saving, onSave }: { settings: 
             </div>
           </div>
         </div>
-        <SaveFooter saving={saving} onSave={onSave} />
+        <SaveFooter saving={saving} dirty={dirty} onSave={onSave} onDiscard={onDiscard} />
       </SCard>
 
       <SCard title="IP Restrictions" description="Limit access to specific IP addresses or networks" icon={LockIcon}>
         <Field label="Allowed IP Addresses" hint="Enter comma-separated IPs or CIDR ranges (e.g. 192.168.1.0/24). Leave empty to allow all.">
           <Input value={((security.ipWhitelist as string[]) || []).join(', ')} onChange={(e) => update('ipWhitelist', e.target.value.split(',').map((s) => s.trim()).filter(Boolean))} placeholder="192.168.1.0/24, 10.0.0.1" className="font-mono" />
         </Field>
-        <SaveFooter saving={saving} onSave={onSave} hint="Restrictions apply immediately to all subsequent sign-ins." />
+        <SaveFooter saving={saving} dirty={dirty} onSave={onSave} onDiscard={onDiscard} hint="Restrictions apply immediately to all subsequent sign-ins." />
       </SCard>
     </div>
   );
@@ -492,6 +513,10 @@ export default function OrganizationSettingsPage() {
   const [settings, setSettings] = useState<SettingsData>({ general: {}, security: {}, notifications: {} });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const originalOrg = useRef<OrgData>({ name: '', slug: '', description: '' });
+  const originalSettings = useRef<SettingsData>({ general: {}, security: {}, notifications: {} });
+  const isDirty = JSON.stringify(org) !== JSON.stringify(originalOrg.current) ||
+    JSON.stringify(settings) !== JSON.stringify(originalSettings.current);
 
   useEffect(() => {
     const storedOrgId = localStorage.getItem('organizationId');
@@ -509,12 +534,20 @@ export default function OrganizationSettingsPage() {
             authApi.getOrganizationSettings(currentId),
           ]);
           const orgData = orgRes.data?.data || {};
-          setOrg({ name: orgData.name || '', slug: orgData.slug || '', description: orgData.description || '' });
-          setSettings(settingsRes.data?.data || { general: {}, security: {}, notifications: {} });
+          const loadedOrg = { name: orgData.name || '', slug: orgData.slug || '', description: orgData.description || '' };
+          const loadedSettings: SettingsData = settingsRes.data?.data || { general: {}, security: {}, notifications: {} };
+          setOrg(loadedOrg);
+          setSettings(loadedSettings);
+          originalOrg.current = JSON.parse(JSON.stringify(loadedOrg));
+          originalSettings.current = JSON.parse(JSON.stringify(loadedSettings));
         }
       } catch {
-        setOrg({ name: 'Acme Corporation', slug: 'acme-corp', description: 'A multi-product technology company.' });
-        setSettings({ general: { website: 'https://acme.com', industry: 'Technology', size: '51-200', timezone: 'America/New_York' }, security: { enforceTwoFactor: false, sessionTimeout: 3600, ipWhitelist: [], passwordPolicy: { minLength: 8, requireUppercase: true, requireNumbers: true, requireSpecialChars: false } }, notifications: { emailNotifications: true } });
+        const fallbackOrg = { name: 'Acme Corporation', slug: 'acme-corp', description: 'A multi-product technology company.' };
+        const fallbackSettings: SettingsData = { general: { website: 'https://acme.com', industry: 'Technology', size: '51-200', timezone: 'America/New_York' }, security: { enforceTwoFactor: false, sessionTimeout: 3600, ipWhitelist: [], passwordPolicy: { minLength: 8, requireUppercase: true, requireNumbers: true, requireSpecialChars: false } }, notifications: { emailNotifications: true } };
+        setOrg(fallbackOrg);
+        setSettings(fallbackSettings);
+        originalOrg.current = JSON.parse(JSON.stringify(fallbackOrg));
+        originalSettings.current = JSON.parse(JSON.stringify(fallbackSettings));
         setOrgId('demo');
       }
       setLoading(false);
@@ -531,8 +564,15 @@ export default function OrganizationSettingsPage() {
         authApi.updateOrganization(orgId, org as unknown as Record<string, unknown>),
         authApi.updateOrganizationSettings(orgId, settings as unknown as Record<string, unknown>),
       ]);
+      originalOrg.current = JSON.parse(JSON.stringify(org));
+      originalSettings.current = JSON.parse(JSON.stringify(settings));
     } catch { /* demo mode */ }
     setSaving(false);
+  };
+
+  const handleDiscard = () => {
+    setOrg(JSON.parse(JSON.stringify(originalOrg.current)));
+    setSettings(JSON.parse(JSON.stringify(originalSettings.current)));
   };
 
   if (loading) {
@@ -636,9 +676,9 @@ export default function OrganizationSettingsPage() {
 
         {/* Content */}
         <div className="min-w-0 flex-1">
-          {activeSection === 'general' && <GeneralSection org={org} setOrg={setOrg} settings={settings} setSettings={setSettings} saving={saving} onSave={handleSave} />}
+          {activeSection === 'general' && <GeneralSection org={org} setOrg={setOrg} settings={settings} setSettings={setSettings} saving={saving} dirty={isDirty} onSave={handleSave} onDiscard={handleDiscard} />}
           {activeSection === 'branding' && orgId && <BrandingSection orgId={orgId} />}
-          {activeSection === 'security' && <SecuritySection settings={settings} setSettings={setSettings} saving={saving} onSave={handleSave} />}
+          {activeSection === 'security' && <SecuritySection settings={settings} setSettings={setSettings} saving={saving} dirty={isDirty} onSave={handleSave} onDiscard={handleDiscard} />}
           {activeSection === 'audit' && orgId && <AuditSection orgId={orgId} />}
           {activeSection === 'danger' && orgId && <DangerSection orgId={orgId} orgName={org.name} />}
         </div>

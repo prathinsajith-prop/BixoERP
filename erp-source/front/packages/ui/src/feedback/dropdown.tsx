@@ -21,16 +21,28 @@ interface DropdownProps {
 
 export function Dropdown({ trigger, items, align = 'right', className = '' }: DropdownProps) {
     const [open, setOpen] = useState(false);
+    const [computedAlign, setComputedAlign] = useState<'left' | 'right'>(align);
     const ref = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (!open) return;
+        // Auto-flip alignment if the preferred side would overflow the viewport
+        if (ref.current) {
+            const rect = ref.current.getBoundingClientRect();
+            const dropdownWidth = 192;
+            if (align === 'right') {
+                setComputedAlign(rect.left < dropdownWidth ? 'left' : 'right');
+            } else {
+                const spaceRight = window.innerWidth - rect.right;
+                setComputedAlign(spaceRight < dropdownWidth ? 'right' : 'left');
+            }
+        }
         const handler = (e: MouseEvent) => {
             if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
         };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
-    }, [open]);
+    }, [open, align]);
 
     return (
         <div className={`relative inline-block ${className}`} ref={ref}>
@@ -40,7 +52,7 @@ export function Dropdown({ trigger, items, align = 'right', className = '' }: Dr
                     className={`absolute top-full z-50 mt-1 min-w-48 overflow-hidden py-1
             border border-[var(--gogo-divider)] bg-[var(--gogo-surface)]
             shadow-[var(--shadow-hover)]
-            ${align === 'right' ? 'right-0' : 'left-0'}`}
+            ${computedAlign === 'right' ? 'right-0' : 'left-0'}`}
                     style={{ borderRadius: 'var(--radius-modal)' }}
                 >
                     {items.map((item, i) => {
