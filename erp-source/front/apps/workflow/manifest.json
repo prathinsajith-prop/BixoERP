@@ -1,0 +1,699 @@
+{
+  "manifest_version": "1.0.0",
+
+  "module": {
+    "id": "workflow_module",
+    "name": "Workflow",
+    "version": "1.0.0",
+    "description": "Visual workflow automation engine — define approval chains, conditional rules, event triggers, and automated actions across all ERP modules.",
+    "author": "Bixo",
+    "license": "proprietary",
+    "namespace": "erp.modules.workflow"
+  },
+
+  "compatibility": {
+    "core_min_version": "1.0.0",
+    "core_max_version": "2.x",
+    "api_version": "v1",
+    "dependencies": [
+      { "module": "core", "version": ">=1.0.0", "optional": false },
+      { "module": "auth_module", "version": ">=1.0.0", "optional": false },
+      {
+        "module": "notifications_module",
+        "version": ">=1.0.0",
+        "optional": true
+      }
+    ]
+  },
+
+  "sync": {
+    "strategy": "full",
+    "direction": "pull",
+    "trigger": "manual",
+    "polling_interval_seconds": 600,
+    "retry_policy": {
+      "max_attempts": 3,
+      "backoff_strategy": "exponential",
+      "initial_delay_ms": 1000
+    },
+    "conflict_resolution": "server_wins",
+    "batch_size": 50
+  },
+
+  "ui": {
+    "icon": "GitBranch",
+    "color": "violet",
+    "basePath": "/workflow",
+    "position": 9,
+    "menu": [
+      {
+        "label": "Dashboard",
+        "href": "/workflow",
+        "icon": "LayoutDashboard",
+        "permission": "workflow:dashboard.view",
+        "visibleTo": [
+          "workflow_admin",
+          "workflow_manager",
+          "workflow_designer",
+          "workflow_viewer"
+        ],
+        "position": 1
+      },
+      {
+        "label": "Workflows",
+        "href": "/workflow/list",
+        "icon": "GitBranch",
+        "permission": "workflow:workflow.read",
+        "visibleTo": [
+          "workflow_admin",
+          "workflow_manager",
+          "workflow_designer",
+          "workflow_viewer"
+        ],
+        "position": 2
+      },
+      {
+        "label": "Templates",
+        "href": "/workflow/templates",
+        "icon": "Layout",
+        "permission": "workflow:template.read",
+        "visibleTo": [
+          "workflow_admin",
+          "workflow_manager",
+          "workflow_designer"
+        ],
+        "position": 3
+      },
+      {
+        "label": "Approvals Inbox",
+        "href": "/workflow/approvals",
+        "icon": "Inbox",
+        "permission": "workflow:approval.read",
+        "visibleTo": [
+          "workflow_admin",
+          "workflow_manager",
+          "workflow_designer",
+          "workflow_viewer"
+        ],
+        "position": 4
+      },
+      {
+        "label": "Triggers",
+        "href": "/workflow/triggers",
+        "icon": "Zap",
+        "permission": "workflow:trigger.read",
+        "visibleTo": [
+          "workflow_admin",
+          "workflow_manager",
+          "workflow_designer"
+        ],
+        "position": 5
+      },
+      {
+        "label": "Rules",
+        "href": "/workflow/rules",
+        "icon": "SlidersHorizontal",
+        "permission": "workflow:rule.read",
+        "visibleTo": ["workflow_admin", "workflow_manager"],
+        "position": 6
+      },
+      {
+        "label": "Execution Logs",
+        "href": "/workflow/logs",
+        "icon": "ScrollText",
+        "permission": "workflow:log.read",
+        "visibleTo": ["workflow_admin", "workflow_manager", "workflow_viewer"],
+        "position": 7
+      },
+      {
+        "label": "Settings",
+        "href": "/workflow/settings",
+        "icon": "Settings",
+        "permission": "workflow:settings.manage",
+        "visibleTo": ["workflow_admin"],
+        "position": 8
+      }
+    ],
+    "widgets": [
+      {
+        "id": "workflow_pending_approvals",
+        "label": "Pending Approvals",
+        "dashboard": true,
+        "size": "small"
+      },
+      {
+        "id": "workflow_active_instances",
+        "label": "Active Workflow Instances",
+        "dashboard": true,
+        "size": "medium"
+      },
+      {
+        "id": "workflow_failed_runs",
+        "label": "Failed Runs (24h)",
+        "dashboard": true,
+        "size": "small"
+      },
+      {
+        "id": "workflow_approval_sla",
+        "label": "Approval SLA Status",
+        "dashboard": true,
+        "size": "medium"
+      }
+    ]
+  },
+
+  "ports": {
+    "frontend": 4010,
+    "backend": 3009
+  },
+
+  "tier": "standard",
+
+  "roles": [
+    {
+      "id": "workflow_admin",
+      "name": "Workflow Administrator",
+      "description": "Full access to all workflow configuration and execution",
+      "scopes": [
+        "workflow:dashboard.view",
+        "workflow:workflow.read",
+        "workflow:workflow.create",
+        "workflow:workflow.update",
+        "workflow:workflow.delete",
+        "workflow:workflow.deploy",
+        "workflow:template.read",
+        "workflow:template.create",
+        "workflow:template.update",
+        "workflow:approval.read",
+        "workflow:approval.act",
+        "workflow:trigger.read",
+        "workflow:trigger.create",
+        "workflow:trigger.update",
+        "workflow:rule.read",
+        "workflow:rule.create",
+        "workflow:rule.update",
+        "workflow:log.read",
+        "workflow:settings.manage",
+        "workflow:sync.pull"
+      ]
+    },
+    {
+      "id": "workflow_manager",
+      "name": "Workflow Manager",
+      "description": "Manage and monitor workflow executions and approvals",
+      "scopes": [
+        "workflow:dashboard.view",
+        "workflow:workflow.read",
+        "workflow:workflow.create",
+        "workflow:workflow.update",
+        "workflow:workflow.deploy",
+        "workflow:template.read",
+        "workflow:approval.read",
+        "workflow:approval.act",
+        "workflow:trigger.read",
+        "workflow:trigger.create",
+        "workflow:rule.read",
+        "workflow:rule.create",
+        "workflow:log.read"
+      ]
+    },
+    {
+      "id": "workflow_designer",
+      "name": "Workflow Designer",
+      "description": "Design workflows and templates",
+      "scopes": [
+        "workflow:dashboard.view",
+        "workflow:workflow.read",
+        "workflow:workflow.create",
+        "workflow:workflow.update",
+        "workflow:template.read",
+        "workflow:template.create",
+        "workflow:template.update",
+        "workflow:approval.read",
+        "workflow:trigger.read"
+      ]
+    },
+    {
+      "id": "workflow_viewer",
+      "name": "Workflow Viewer",
+      "description": "View workflows, approvals, and execution logs",
+      "scopes": [
+        "workflow:dashboard.view",
+        "workflow:workflow.read",
+        "workflow:approval.read",
+        "workflow:log.read"
+      ]
+    }
+  ],
+
+  "permissions": [
+    {
+      "resource": "dashboard",
+      "actions": [
+        {
+          "id": "workflow:dashboard.view",
+          "name": "View Dashboard",
+          "description": "View workflow KPIs"
+        }
+      ]
+    },
+    {
+      "resource": "workflow",
+      "actions": [
+        {
+          "id": "workflow:workflow.read",
+          "name": "View Workflows",
+          "description": "View all workflow definitions"
+        },
+        {
+          "id": "workflow:workflow.create",
+          "name": "Create Workflow",
+          "description": "Design new workflows"
+        },
+        {
+          "id": "workflow:workflow.update",
+          "name": "Update Workflow",
+          "description": "Edit existing workflows"
+        },
+        {
+          "id": "workflow:workflow.delete",
+          "name": "Delete Workflow",
+          "description": "Remove workflow definitions"
+        },
+        {
+          "id": "workflow:workflow.deploy",
+          "name": "Deploy Workflow",
+          "description": "Publish and activate workflows"
+        }
+      ]
+    },
+    {
+      "resource": "template",
+      "actions": [
+        {
+          "id": "workflow:template.read",
+          "name": "View Templates",
+          "description": "Browse workflow templates"
+        },
+        {
+          "id": "workflow:template.create",
+          "name": "Create Template",
+          "description": "Save workflows as templates"
+        },
+        {
+          "id": "workflow:template.update",
+          "name": "Update Template",
+          "description": "Edit templates"
+        }
+      ]
+    },
+    {
+      "resource": "approval",
+      "actions": [
+        {
+          "id": "workflow:approval.read",
+          "name": "View Approvals",
+          "description": "View approval requests in inbox"
+        },
+        {
+          "id": "workflow:approval.act",
+          "name": "Act on Approval",
+          "description": "Approve or reject requests"
+        }
+      ]
+    },
+    {
+      "resource": "trigger",
+      "actions": [
+        {
+          "id": "workflow:trigger.read",
+          "name": "View Triggers",
+          "description": "View workflow triggers"
+        },
+        {
+          "id": "workflow:trigger.create",
+          "name": "Create Trigger",
+          "description": "Define event triggers"
+        },
+        {
+          "id": "workflow:trigger.update",
+          "name": "Update Trigger",
+          "description": "Edit triggers"
+        }
+      ]
+    },
+    {
+      "resource": "rule",
+      "actions": [
+        {
+          "id": "workflow:rule.read",
+          "name": "View Rules",
+          "description": "View conditional rules"
+        },
+        {
+          "id": "workflow:rule.create",
+          "name": "Create Rule",
+          "description": "Define rules"
+        },
+        {
+          "id": "workflow:rule.update",
+          "name": "Update Rule",
+          "description": "Edit rules"
+        }
+      ]
+    },
+    {
+      "resource": "log",
+      "actions": [
+        {
+          "id": "workflow:log.read",
+          "name": "View Logs",
+          "description": "Access execution history and audit logs"
+        }
+      ]
+    },
+    {
+      "resource": "settings",
+      "actions": [
+        {
+          "id": "workflow:settings.manage",
+          "name": "Manage Settings",
+          "description": "Configure workflow engine settings"
+        }
+      ]
+    },
+    {
+      "resource": "sync",
+      "actions": [
+        {
+          "id": "workflow:sync.pull",
+          "name": "Sync Pull",
+          "description": "Pull workflow state from core"
+        }
+      ]
+    }
+  ],
+
+  "entities": [
+    {
+      "name": "WorkflowDefinition",
+      "plural": "Workflows",
+      "icon": "GitBranch",
+      "table": "workflow_definitions",
+      "primary_key": "workflow_id",
+      "apiPath": "/api/v1/workflow",
+      "sync_enabled": false,
+      "fields": [
+        {
+          "name": "workflow_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "trigger_module",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "trigger_event",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": ["draft", "active", "inactive", "archived"]
+        },
+        {
+          "name": "version",
+          "type": "integer",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "definition_json",
+          "type": "json",
+          "required": true,
+          "readonly": false
+        }
+      ],
+      "indexes": ["name", "trigger_module", "status"],
+      "soft_delete": true,
+      "deleted_at_field": "deleted_at"
+    },
+    {
+      "name": "WorkflowInstance",
+      "plural": "Workflow Instances",
+      "icon": "Activity",
+      "table": "workflow_instances",
+      "primary_key": "instance_id",
+      "apiPath": "/api/v1/workflow/instances",
+      "sync_enabled": false,
+      "fields": [
+        {
+          "name": "instance_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "workflow_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "triggered_by_event",
+          "type": "string",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "context_module",
+          "type": "string",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "context_record_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": [
+            "running",
+            "waiting",
+            "completed",
+            "failed",
+            "cancelled"
+          ]
+        },
+        {
+          "name": "current_step",
+          "type": "string",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "started_at",
+          "type": "timestamp",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "completed_at",
+          "type": "timestamp",
+          "required": false,
+          "readonly": true
+        }
+      ],
+      "indexes": ["workflow_id", "status", "context_module"],
+      "soft_delete": false
+    },
+    {
+      "name": "ApprovalRequest",
+      "plural": "Approval Requests",
+      "icon": "Inbox",
+      "table": "workflow_approvals",
+      "primary_key": "approval_id",
+      "apiPath": "/api/v1/workflow/approvals",
+      "sync_enabled": false,
+      "fields": [
+        {
+          "name": "approval_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "instance_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "assignee_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "due_date",
+          "type": "timestamp",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": [
+            "pending",
+            "approved",
+            "rejected",
+            "escalated",
+            "expired"
+          ]
+        },
+        {
+          "name": "comment",
+          "type": "text",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "acted_at",
+          "type": "timestamp",
+          "required": false,
+          "readonly": true
+        }
+      ],
+      "indexes": ["instance_id", "assignee_id", "status"],
+      "soft_delete": false
+    }
+  ],
+
+  "events": {
+    "published": [
+      {
+        "name": "workflow:approval.requested",
+        "description": "Fired when a new approval request is raised"
+      },
+      {
+        "name": "workflow:approval.completed",
+        "description": "Fired when an approval is approved or rejected"
+      },
+      {
+        "name": "workflow:instance.completed",
+        "description": "Fired when a workflow run finishes"
+      },
+      {
+        "name": "workflow:instance.failed",
+        "description": "Fired when a workflow run fails"
+      }
+    ],
+    "subscribed": [
+      {
+        "name": "procurement:request.submitted",
+        "handler": "workflow:trigger.evaluate_approval_rules"
+      },
+      {
+        "name": "finance:journal.submitted",
+        "handler": "workflow:trigger.evaluate_approval_rules"
+      },
+      {
+        "name": "hr:leave.requested",
+        "handler": "workflow:trigger.evaluate_approval_rules"
+      }
+    ]
+  },
+
+  "api": {
+    "base_path": "/api/v1/workflow",
+    "auth": "bearer_token",
+    "rate_limit": { "requests_per_minute": 300, "burst": 50 },
+    "endpoints": [
+      { "method": "GET", "path": "/", "scope": "workflow:workflow.read" },
+      { "method": "POST", "path": "/", "scope": "workflow:workflow.create" },
+      { "method": "PUT", "path": "/:id", "scope": "workflow:workflow.update" },
+      {
+        "method": "DELETE",
+        "path": "/:id",
+        "scope": "workflow:workflow.delete"
+      },
+      {
+        "method": "POST",
+        "path": "/:id/deploy",
+        "scope": "workflow:workflow.deploy"
+      },
+      {
+        "method": "GET",
+        "path": "/templates",
+        "scope": "workflow:template.read"
+      },
+      {
+        "method": "POST",
+        "path": "/templates",
+        "scope": "workflow:template.create"
+      },
+      {
+        "method": "GET",
+        "path": "/approvals",
+        "scope": "workflow:approval.read"
+      },
+      {
+        "method": "POST",
+        "path": "/approvals/:id/approve",
+        "scope": "workflow:approval.act"
+      },
+      {
+        "method": "POST",
+        "path": "/approvals/:id/reject",
+        "scope": "workflow:approval.act"
+      },
+      {
+        "method": "GET",
+        "path": "/triggers",
+        "scope": "workflow:trigger.read"
+      },
+      { "method": "GET", "path": "/rules", "scope": "workflow:rule.read" },
+      { "method": "GET", "path": "/logs", "scope": "workflow:log.read" },
+      { "method": "POST", "path": "/sync/pull", "scope": "workflow:sync.pull" }
+    ]
+  },
+
+  "health_check": {
+    "endpoint": "/api/v1/workflow/health",
+    "interval_seconds": 60,
+    "timeout_seconds": 5
+  },
+
+  "logging": {
+    "level": "info",
+    "audit_trail": true,
+    "sensitive_fields_masked": ["definition_json"]
+  }
+}

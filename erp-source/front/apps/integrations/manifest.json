@@ -1,0 +1,384 @@
+{
+  "manifest_version": "1.0.0",
+
+  "module": {
+    "id": "integrations_module",
+    "name": "Integrations",
+    "version": "1.0.0",
+    "description": "REST API connectors, webhooks, OAuth integrations, data import/export pipelines, and third-party platform connectivity.",
+    "author": "Bixo",
+    "license": "proprietary",
+    "namespace": "erp.modules.integrations"
+  },
+
+  "compatibility": {
+    "core_min_version": "1.0.0",
+    "core_max_version": "2.x",
+    "api_version": "v1",
+    "dependencies": [
+      { "module": "core", "version": ">=1.0.0", "optional": false },
+      { "module": "auth_module", "version": ">=1.0.0", "optional": false },
+      { "module": "workflow_module", "version": ">=1.0.0", "optional": true },
+      {
+        "module": "notifications_module",
+        "version": ">=1.0.0",
+        "optional": true
+      }
+    ]
+  },
+
+  "sync": {
+    "strategy": "event_based",
+    "direction": "bidirectional",
+    "trigger": "event_driven",
+    "polling_interval_seconds": 60,
+    "retry_policy": {
+      "max_attempts": 5,
+      "backoff_strategy": "exponential",
+      "initial_delay_ms": 1000
+    },
+    "conflict_resolution": "source_wins",
+    "batch_size": 100
+  },
+
+  "ui": {
+    "menu": [
+      {
+        "key": "integrations",
+        "label": "Integrations",
+        "icon": "link",
+        "basePath": "/integrations",
+        "position": 14,
+        "color": "lime",
+        "children": [
+          {
+            "key": "integrations.connected",
+            "label": "Connected Apps",
+            "path": "/integrations"
+          },
+          {
+            "key": "integrations.webhooks",
+            "label": "Webhooks",
+            "path": "/integrations/webhooks"
+          },
+          {
+            "key": "integrations.api-keys",
+            "label": "API Keys",
+            "path": "/integrations/api-keys"
+          },
+          {
+            "key": "integrations.import-export",
+            "label": "Import / Export",
+            "path": "/integrations/import-export"
+          },
+          {
+            "key": "integrations.logs",
+            "label": "Integration Logs",
+            "path": "/integrations/logs"
+          }
+        ]
+      }
+    ]
+  },
+
+  "ports": {
+    "frontend": 4014,
+    "backend": 3012
+  },
+
+  "tier": "platform",
+
+  "roles": [
+    {
+      "key": "integrations_admin",
+      "label": "Integrations Admin",
+      "description": "Full access including connector management, API key issuance, and webhook configuration.",
+      "permissions": ["integrations.*"]
+    },
+    {
+      "key": "integrations_developer",
+      "label": "Integrations Developer",
+      "description": "Set up connectors, configure webhooks, and manage API keys.",
+      "permissions": [
+        "integrations.connector.manage",
+        "integrations.webhook.manage",
+        "integrations.apikey.manage",
+        "integrations.import",
+        "integrations.export",
+        "integrations.logs.view"
+      ]
+    },
+    {
+      "key": "integrations_viewer",
+      "label": "Integrations Viewer",
+      "description": "View connected apps and integration logs.",
+      "permissions": ["integrations.connector.view", "integrations.logs.view"]
+    }
+  ],
+
+  "permissions": [
+    {
+      "key": "integrations.connector.view",
+      "label": "View Connectors",
+      "description": "View configured integration connectors"
+    },
+    {
+      "key": "integrations.connector.manage",
+      "label": "Manage Connectors",
+      "description": "Add, configure, and remove connectors"
+    },
+    {
+      "key": "integrations.webhook.manage",
+      "label": "Manage Webhooks",
+      "description": "Create, test, and delete webhooks"
+    },
+    {
+      "key": "integrations.apikey.manage",
+      "label": "Manage API Keys",
+      "description": "Issue and revoke API keys"
+    },
+    {
+      "key": "integrations.import",
+      "label": "Import Data",
+      "description": "Run CSV/JSON data imports"
+    },
+    {
+      "key": "integrations.export",
+      "label": "Export Data",
+      "description": "Export ERP data via pipelines"
+    },
+    {
+      "key": "integrations.logs.view",
+      "label": "View Integration Logs",
+      "description": "Browse integration run history and error logs"
+    }
+  ],
+
+  "entities": [
+    {
+      "name": "Integration",
+      "table": "integrations",
+      "description": "A configured connection to a third-party service or data source.",
+      "fields": [
+        "id",
+        "name",
+        "provider",
+        "status",
+        "auth_type",
+        "config_encrypted",
+        "last_synced_at",
+        "created_by",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "Webhook",
+      "table": "integration_webhooks",
+      "description": "An outbound HTTP webhook triggered by ERP events.",
+      "fields": [
+        "id",
+        "name",
+        "url",
+        "events",
+        "secret_hash",
+        "is_active",
+        "last_triggered_at",
+        "failure_count",
+        "created_by",
+        "created_at"
+      ]
+    },
+    {
+      "name": "APIKey",
+      "table": "integration_api_keys",
+      "description": "An API key granting programmatic access to the ERP REST API.",
+      "fields": [
+        "id",
+        "name",
+        "key_prefix",
+        "key_hash",
+        "scopes",
+        "expires_at",
+        "last_used_at",
+        "issued_by",
+        "revoked_at",
+        "created_at"
+      ]
+    },
+    {
+      "name": "Connector",
+      "table": "integration_connectors",
+      "description": "A registered integration connector definition (e.g. Zapier, Xero, Salesforce).",
+      "fields": [
+        "id",
+        "name",
+        "slug",
+        "category",
+        "auth_type",
+        "config_schema",
+        "logo_url",
+        "is_enabled",
+        "created_at"
+      ]
+    },
+    {
+      "name": "IntegrationLog",
+      "table": "integration_logs",
+      "description": "A log entry for an integration run, webhook delivery, or import/export operation.",
+      "fields": [
+        "id",
+        "integration_id",
+        "event_type",
+        "direction",
+        "status",
+        "request_summary",
+        "response_summary",
+        "error_message",
+        "duration_ms",
+        "created_at"
+      ]
+    }
+  ],
+
+  "events": {
+    "publishes": [
+      "integrations.webhook.delivered",
+      "integrations.webhook.failed",
+      "integrations.import.completed",
+      "integrations.export.completed",
+      "integrations.apikey.issued",
+      "integrations.apikey.revoked"
+    ],
+    "subscribes": [
+      "*.*.created",
+      "*.*.updated",
+      "*.*.deleted",
+      "auth.user.created",
+      "finance.ledger.period_closed"
+    ]
+  },
+
+  "api": {
+    "base_path": "/api/v1/integrations",
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/",
+        "description": "List configured integrations",
+        "auth": true
+      },
+      {
+        "method": "POST",
+        "path": "/",
+        "description": "Create an integration",
+        "auth": true
+      },
+      {
+        "method": "GET",
+        "path": "/{id}",
+        "description": "Get integration detail",
+        "auth": true
+      },
+      {
+        "method": "PUT",
+        "path": "/{id}",
+        "description": "Update integration config",
+        "auth": true
+      },
+      {
+        "method": "DELETE",
+        "path": "/{id}",
+        "description": "Remove an integration",
+        "auth": true
+      },
+      {
+        "method": "GET",
+        "path": "/connectors",
+        "description": "List available connectors",
+        "auth": true
+      },
+      {
+        "method": "GET",
+        "path": "/webhooks",
+        "description": "List webhooks",
+        "auth": true
+      },
+      {
+        "method": "POST",
+        "path": "/webhooks",
+        "description": "Create a webhook",
+        "auth": true
+      },
+      {
+        "method": "PUT",
+        "path": "/webhooks/{id}",
+        "description": "Update a webhook",
+        "auth": true
+      },
+      {
+        "method": "DELETE",
+        "path": "/webhooks/{id}",
+        "description": "Delete a webhook",
+        "auth": true
+      },
+      {
+        "method": "POST",
+        "path": "/webhooks/{id}/test",
+        "description": "Send a test webhook payload",
+        "auth": true
+      },
+      {
+        "method": "GET",
+        "path": "/api-keys",
+        "description": "List API keys",
+        "auth": true
+      },
+      {
+        "method": "POST",
+        "path": "/api-keys",
+        "description": "Issue a new API key",
+        "auth": true
+      },
+      {
+        "method": "DELETE",
+        "path": "/api-keys/{id}",
+        "description": "Revoke an API key",
+        "auth": true
+      },
+      {
+        "method": "POST",
+        "path": "/import",
+        "description": "Run a data import",
+        "auth": true
+      },
+      {
+        "method": "POST",
+        "path": "/export",
+        "description": "Run a data export",
+        "auth": true
+      },
+      {
+        "method": "GET",
+        "path": "/logs",
+        "description": "Browse integration logs",
+        "auth": true
+      }
+    ]
+  },
+
+  "health_check": {
+    "path": "/api/v1/integrations/health",
+    "interval_seconds": 30,
+    "timeout_seconds": 5,
+    "healthy_threshold": 2,
+    "unhealthy_threshold": 3
+  },
+
+  "logging": {
+    "level": "info",
+    "structured": true,
+    "include_request_id": true,
+    "sensitive_fields": ["config_encrypted", "key_hash", "secret_hash"]
+  }
+}

@@ -1,0 +1,1018 @@
+{
+  "manifest_version": "1.0.0",
+
+  "module": {
+    "id": "finance_module",
+    "name": "Finance",
+    "version": "1.0.0",
+    "description": "Core financial management covering general ledger, journal entries, bank reconciliation, multi-currency, period close, and financial reporting.",
+    "author": "Bixo",
+    "license": "proprietary",
+    "namespace": "erp.modules.finance"
+  },
+
+  "compatibility": {
+    "core_min_version": "1.0.0",
+    "core_max_version": "2.x",
+    "api_version": "v1",
+    "dependencies": [
+      { "module": "core", "version": ">=1.0.0", "optional": false },
+      { "module": "auth_module", "version": ">=1.0.0", "optional": false },
+      {
+        "module": "notifications_module",
+        "version": ">=1.0.0",
+        "optional": true
+      }
+    ]
+  },
+
+  "sync": {
+    "strategy": "incremental",
+    "direction": "bidirectional",
+    "trigger": "event_driven",
+    "polling_interval_seconds": 300,
+    "retry_policy": {
+      "max_attempts": 3,
+      "backoff_strategy": "exponential",
+      "initial_delay_ms": 1000
+    },
+    "conflict_resolution": "last_write_wins",
+    "batch_size": 200
+  },
+
+  "ui": {
+    "icon": "DollarSign",
+    "color": "emerald",
+    "basePath": "/finance",
+    "position": 1,
+    "menu": [
+      {
+        "label": "Dashboard",
+        "href": "/finance",
+        "icon": "LayoutDashboard",
+        "permission": "finance:dashboard.view",
+        "visibleTo": [
+          "finance_admin",
+          "finance_manager",
+          "finance_officer",
+          "finance_approver",
+          "finance_viewer"
+        ],
+        "position": 1
+      },
+      {
+        "label": "Chart of Accounts",
+        "href": "/finance/accounts",
+        "icon": "List",
+        "permission": "finance:accounts.read",
+        "visibleTo": [
+          "finance_admin",
+          "finance_manager",
+          "finance_officer",
+          "finance_viewer"
+        ],
+        "position": 2
+      },
+      {
+        "label": "Journal Entries",
+        "href": "/finance/journals",
+        "icon": "BookOpen",
+        "permission": "finance:journal.read",
+        "visibleTo": [
+          "finance_admin",
+          "finance_manager",
+          "finance_officer",
+          "finance_approver",
+          "finance_viewer"
+        ],
+        "position": 3
+      },
+      {
+        "label": "General Ledger",
+        "href": "/finance/ledger",
+        "icon": "FileText",
+        "permission": "finance:ledger.read",
+        "visibleTo": [
+          "finance_admin",
+          "finance_manager",
+          "finance_officer",
+          "finance_viewer"
+        ],
+        "position": 4
+      },
+      {
+        "label": "Bank Accounts",
+        "href": "/finance/bank-accounts",
+        "icon": "CreditCard",
+        "permission": "finance:bank.read",
+        "visibleTo": [
+          "finance_admin",
+          "finance_manager",
+          "finance_officer",
+          "finance_viewer"
+        ],
+        "position": 5
+      },
+      {
+        "label": "Reconciliation",
+        "href": "/finance/reconciliation",
+        "icon": "CheckSquare",
+        "permission": "finance:reconciliation.manage",
+        "visibleTo": ["finance_admin", "finance_manager", "finance_officer"],
+        "position": 6
+      },
+      {
+        "label": "Period Close",
+        "href": "/finance/period-close",
+        "icon": "Lock",
+        "permission": "finance:period.manage",
+        "visibleTo": ["finance_admin", "finance_manager"],
+        "position": 7
+      },
+      {
+        "label": "Financial Statements",
+        "href": "/finance/statements",
+        "icon": "BarChart3",
+        "permission": "finance:statements.view",
+        "visibleTo": ["finance_admin", "finance_manager", "finance_viewer"],
+        "position": 8
+      },
+      {
+        "label": "Budgets",
+        "href": "/finance/budgets",
+        "icon": "Target",
+        "permission": "finance:budget.read",
+        "visibleTo": ["finance_admin", "finance_manager"],
+        "position": 9
+      },
+      {
+        "label": "Reports",
+        "href": "/finance/reports",
+        "icon": "FileBarChart",
+        "permission": "finance:reports.view",
+        "visibleTo": ["finance_admin", "finance_manager", "finance_viewer"],
+        "position": 10
+      },
+      {
+        "label": "Settings",
+        "href": "/finance/settings",
+        "icon": "Settings",
+        "permission": "finance:settings.manage",
+        "visibleTo": ["finance_admin"],
+        "position": 11
+      }
+    ],
+    "widgets": [
+      {
+        "id": "finance_cash_position",
+        "label": "Cash Position",
+        "dashboard": true,
+        "size": "medium"
+      },
+      {
+        "id": "finance_pnl_summary",
+        "label": "P&L Summary",
+        "dashboard": true,
+        "size": "large"
+      },
+      {
+        "id": "finance_trial_balance",
+        "label": "Trial Balance Snapshot",
+        "dashboard": true,
+        "size": "small"
+      },
+      {
+        "id": "finance_open_periods",
+        "label": "Open Periods",
+        "dashboard": true,
+        "size": "small"
+      },
+      {
+        "id": "finance_expense_breakdown",
+        "label": "Expense Breakdown",
+        "dashboard": true,
+        "size": "medium"
+      }
+    ]
+  },
+
+  "ports": {
+    "frontend": 4001,
+    "backend": 3001
+  },
+
+  "tier": "standard",
+
+  "roles": [
+    {
+      "id": "finance_admin",
+      "name": "Finance Administrator",
+      "description": "Full access to all finance module features including settings and period close",
+      "scopes": [
+        "finance:dashboard.view",
+        "finance:accounts.read",
+        "finance:accounts.create",
+        "finance:accounts.update",
+        "finance:accounts.delete",
+        "finance:journal.read",
+        "finance:journal.create",
+        "finance:journal.update",
+        "finance:journal.delete",
+        "finance:journal.post",
+        "finance:ledger.read",
+        "finance:bank.read",
+        "finance:bank.create",
+        "finance:bank.update",
+        "finance:reconciliation.manage",
+        "finance:period.manage",
+        "finance:statements.view",
+        "finance:budget.read",
+        "finance:budget.create",
+        "finance:budget.update",
+        "finance:reports.view",
+        "finance:settings.manage",
+        "finance:currency.manage",
+        "finance:tax.manage",
+        "finance:sync.pull",
+        "finance:sync.push"
+      ]
+    },
+    {
+      "id": "finance_manager",
+      "name": "Finance Manager",
+      "description": "Manage journal entries, approve transactions, and view all financial reports",
+      "scopes": [
+        "finance:dashboard.view",
+        "finance:accounts.read",
+        "finance:journal.read",
+        "finance:journal.create",
+        "finance:journal.update",
+        "finance:journal.post",
+        "finance:ledger.read",
+        "finance:bank.read",
+        "finance:reconciliation.manage",
+        "finance:period.manage",
+        "finance:statements.view",
+        "finance:budget.read",
+        "finance:budget.create",
+        "finance:reports.view"
+      ]
+    },
+    {
+      "id": "finance_officer",
+      "name": "Finance Officer",
+      "description": "Create and manage journal entries and bank transactions",
+      "scopes": [
+        "finance:dashboard.view",
+        "finance:accounts.read",
+        "finance:journal.read",
+        "finance:journal.create",
+        "finance:journal.update",
+        "finance:ledger.read",
+        "finance:bank.read",
+        "finance:reconciliation.manage",
+        "finance:statements.view"
+      ]
+    },
+    {
+      "id": "finance_approver",
+      "name": "Finance Approver",
+      "description": "Approve and post journal entries",
+      "scopes": [
+        "finance:dashboard.view",
+        "finance:journal.read",
+        "finance:journal.post",
+        "finance:ledger.read",
+        "finance:statements.view"
+      ]
+    },
+    {
+      "id": "finance_viewer",
+      "name": "Finance Viewer",
+      "description": "Read-only access to financial data",
+      "scopes": [
+        "finance:dashboard.view",
+        "finance:accounts.read",
+        "finance:journal.read",
+        "finance:ledger.read",
+        "finance:bank.read",
+        "finance:statements.view",
+        "finance:reports.view"
+      ]
+    }
+  ],
+
+  "permissions": [
+    {
+      "resource": "dashboard",
+      "actions": [
+        {
+          "id": "finance:dashboard.view",
+          "name": "View Dashboard",
+          "description": "View finance KPIs and dashboard"
+        }
+      ]
+    },
+    {
+      "resource": "accounts",
+      "actions": [
+        {
+          "id": "finance:accounts.read",
+          "name": "View Accounts",
+          "description": "View chart of accounts"
+        },
+        {
+          "id": "finance:accounts.create",
+          "name": "Create Account",
+          "description": "Add new GL accounts"
+        },
+        {
+          "id": "finance:accounts.update",
+          "name": "Update Account",
+          "description": "Edit account details"
+        },
+        {
+          "id": "finance:accounts.delete",
+          "name": "Delete Account",
+          "description": "Remove GL accounts"
+        }
+      ]
+    },
+    {
+      "resource": "journal",
+      "actions": [
+        {
+          "id": "finance:journal.read",
+          "name": "View Journal Entries",
+          "description": "View all journal entries"
+        },
+        {
+          "id": "finance:journal.create",
+          "name": "Create Journal Entry",
+          "description": "Create draft journal entries"
+        },
+        {
+          "id": "finance:journal.update",
+          "name": "Update Journal Entry",
+          "description": "Edit unposted journal entries"
+        },
+        {
+          "id": "finance:journal.delete",
+          "name": "Delete Journal Entry",
+          "description": "Delete unposted entries"
+        },
+        {
+          "id": "finance:journal.post",
+          "name": "Post Journal Entry",
+          "description": "Post entries to the ledger"
+        }
+      ]
+    },
+    {
+      "resource": "ledger",
+      "actions": [
+        {
+          "id": "finance:ledger.read",
+          "name": "View General Ledger",
+          "description": "View ledger transactions and balances"
+        }
+      ]
+    },
+    {
+      "resource": "bank",
+      "actions": [
+        {
+          "id": "finance:bank.read",
+          "name": "View Bank Accounts",
+          "description": "View bank accounts and transactions"
+        },
+        {
+          "id": "finance:bank.create",
+          "name": "Create Bank Account",
+          "description": "Add new bank accounts"
+        },
+        {
+          "id": "finance:bank.update",
+          "name": "Update Bank Account",
+          "description": "Edit bank account details"
+        }
+      ]
+    },
+    {
+      "resource": "reconciliation",
+      "actions": [
+        {
+          "id": "finance:reconciliation.manage",
+          "name": "Manage Reconciliation",
+          "description": "Reconcile bank statements"
+        }
+      ]
+    },
+    {
+      "resource": "period",
+      "actions": [
+        {
+          "id": "finance:period.manage",
+          "name": "Manage Periods",
+          "description": "Open, close, and lock accounting periods"
+        }
+      ]
+    },
+    {
+      "resource": "statements",
+      "actions": [
+        {
+          "id": "finance:statements.view",
+          "name": "View Financial Statements",
+          "description": "View P&L, balance sheet, and cash flow"
+        }
+      ]
+    },
+    {
+      "resource": "budget",
+      "actions": [
+        {
+          "id": "finance:budget.read",
+          "name": "View Budgets",
+          "description": "View budget allocations"
+        },
+        {
+          "id": "finance:budget.create",
+          "name": "Create Budget",
+          "description": "Create new budget periods"
+        },
+        {
+          "id": "finance:budget.update",
+          "name": "Update Budget",
+          "description": "Edit budget allocations"
+        }
+      ]
+    },
+    {
+      "resource": "reports",
+      "actions": [
+        {
+          "id": "finance:reports.view",
+          "name": "View Reports",
+          "description": "Access financial analytics and reports"
+        }
+      ]
+    },
+    {
+      "resource": "settings",
+      "actions": [
+        {
+          "id": "finance:settings.manage",
+          "name": "Manage Settings",
+          "description": "Configure finance settings, fiscal year, and defaults"
+        },
+        {
+          "id": "finance:currency.manage",
+          "name": "Manage Currencies",
+          "description": "Configure currencies and exchange rates"
+        },
+        {
+          "id": "finance:tax.manage",
+          "name": "Manage Tax Codes",
+          "description": "Configure tax rules and codes"
+        }
+      ]
+    },
+    {
+      "resource": "sync",
+      "actions": [
+        {
+          "id": "finance:sync.pull",
+          "name": "Sync Pull",
+          "description": "Pull data from core"
+        },
+        {
+          "id": "finance:sync.push",
+          "name": "Sync Push",
+          "description": "Push data to core"
+        }
+      ]
+    }
+  ],
+
+  "entities": [
+    {
+      "name": "Account",
+      "plural": "Accounts",
+      "icon": "List",
+      "table": "finance_accounts",
+      "primary_key": "account_id",
+      "apiPath": "/api/v1/finance/accounts",
+      "sync_enabled": true,
+      "sync_direction": "push_to_core",
+      "fields": [
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "code",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "type",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": ["asset", "liability", "equity", "revenue", "expense"]
+        },
+        {
+          "name": "parent_id",
+          "type": "uuid",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": true,
+          "readonly": true
+        }
+      ],
+      "indexes": ["code", "type", "parent_id"]
+    },
+    {
+      "name": "JournalEntry",
+      "plural": "Journal Entries",
+      "icon": "BookOpen",
+      "table": "finance_journal_entries",
+      "primary_key": "journal_id",
+      "apiPath": "/api/v1/finance/journals",
+      "sync_enabled": true,
+      "sync_direction": "bidirectional",
+      "fields": [
+        {
+          "name": "journal_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "entry_number",
+          "type": "string",
+          "required": true,
+          "readonly": true
+        },
+        { "name": "date", "type": "date", "required": true, "readonly": false },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": ["draft", "posted", "voided"]
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "exchange_rate",
+          "type": "decimal",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "total_debit",
+          "type": "decimal",
+          "required": false,
+          "readonly": true,
+          "sensitive": true
+        },
+        {
+          "name": "total_credit",
+          "type": "decimal",
+          "required": false,
+          "readonly": true,
+          "sensitive": true
+        },
+        {
+          "name": "period_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "created_by",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "posted_by",
+          "type": "uuid",
+          "required": false,
+          "readonly": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": true,
+          "readonly": true
+        }
+      ],
+      "indexes": ["entry_number", "date", "status", "period_id"],
+      "soft_delete": true,
+      "deleted_at_field": "deleted_at"
+    },
+    {
+      "name": "JournalLine",
+      "plural": "Journal Lines",
+      "icon": "Minus",
+      "table": "finance_journal_lines",
+      "primary_key": "line_id",
+      "apiPath": "/api/v1/finance/journals/:id/lines",
+      "sync_enabled": false,
+      "fields": [
+        {
+          "name": "line_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "journal_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "debit",
+          "type": "decimal",
+          "required": false,
+          "readonly": false,
+          "sensitive": true
+        },
+        {
+          "name": "credit",
+          "type": "decimal",
+          "required": false,
+          "readonly": false,
+          "sensitive": true
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "cost_center",
+          "type": "string",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "line_number",
+          "type": "integer",
+          "required": true,
+          "readonly": false
+        }
+      ],
+      "indexes": ["journal_id", "account_id"]
+    },
+    {
+      "name": "Period",
+      "plural": "Periods",
+      "icon": "Calendar",
+      "table": "finance_periods",
+      "primary_key": "period_id",
+      "apiPath": "/api/v1/finance/periods",
+      "sync_enabled": false,
+      "fields": [
+        {
+          "name": "period_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "fiscal_year",
+          "type": "integer",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": ["open", "closed", "locked"]
+        }
+      ],
+      "indexes": ["fiscal_year", "status"]
+    },
+    {
+      "name": "BankAccount",
+      "plural": "Bank Accounts",
+      "icon": "CreditCard",
+      "table": "finance_bank_accounts",
+      "primary_key": "bank_account_id",
+      "apiPath": "/api/v1/finance/bank-accounts",
+      "sync_enabled": false,
+      "fields": [
+        {
+          "name": "bank_account_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "account_name",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "account_number",
+          "type": "string",
+          "required": true,
+          "readonly": false,
+          "sensitive": true
+        },
+        {
+          "name": "bank_name",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "gl_account_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "current_balance",
+          "type": "decimal",
+          "required": false,
+          "readonly": true,
+          "sensitive": true
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": true,
+          "readonly": false
+        }
+      ],
+      "indexes": ["account_number", "gl_account_id"]
+    }
+  ],
+
+  "events": {
+    "published": [
+      {
+        "name": "finance:journal.posted",
+        "description": "Fired when a journal entry is posted"
+      },
+      {
+        "name": "finance:period.closed",
+        "description": "Fired when an accounting period is closed"
+      },
+      {
+        "name": "finance:period.locked",
+        "description": "Fired when an accounting period is locked"
+      },
+      {
+        "name": "finance:payment.made",
+        "description": "Fired when a payment is recorded"
+      },
+      {
+        "name": "finance:budget.exceeded",
+        "description": "Fired when a budget limit is exceeded"
+      },
+      {
+        "name": "finance:reconciliation.completed",
+        "description": "Fired when bank reconciliation is completed"
+      }
+    ],
+    "subscribed": [
+      {
+        "name": "apar:invoice.approved",
+        "handler": "finance:sync.post_invoice_journal"
+      },
+      {
+        "name": "apar:payment.processed",
+        "handler": "finance:sync.post_payment_journal"
+      },
+      {
+        "name": "hr:payroll.processed",
+        "handler": "finance:sync.post_payroll_journal"
+      },
+      {
+        "name": "procurement:invoice.approved",
+        "handler": "finance:sync.post_vendor_journal"
+      },
+      { "name": "core:org.updated", "handler": "finance:sync.org_structure" }
+    ]
+  },
+
+  "api": {
+    "base_path": "/api/v1/finance",
+    "auth": "bearer_token",
+    "rate_limit": {
+      "requests_per_minute": 400,
+      "burst": 60
+    },
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/accounts",
+        "scope": "finance:accounts.read"
+      },
+      {
+        "method": "POST",
+        "path": "/accounts",
+        "scope": "finance:accounts.create"
+      },
+      {
+        "method": "GET",
+        "path": "/accounts/:id",
+        "scope": "finance:accounts.read"
+      },
+      {
+        "method": "PUT",
+        "path": "/accounts/:id",
+        "scope": "finance:accounts.update"
+      },
+      {
+        "method": "DELETE",
+        "path": "/accounts/:id",
+        "scope": "finance:accounts.delete"
+      },
+      { "method": "GET", "path": "/journals", "scope": "finance:journal.read" },
+      {
+        "method": "POST",
+        "path": "/journals",
+        "scope": "finance:journal.create"
+      },
+      {
+        "method": "GET",
+        "path": "/journals/:id",
+        "scope": "finance:journal.read"
+      },
+      {
+        "method": "PUT",
+        "path": "/journals/:id",
+        "scope": "finance:journal.update"
+      },
+      {
+        "method": "DELETE",
+        "path": "/journals/:id",
+        "scope": "finance:journal.delete"
+      },
+      {
+        "method": "POST",
+        "path": "/journals/:id/post",
+        "scope": "finance:journal.post"
+      },
+      {
+        "method": "POST",
+        "path": "/journals/:id/void",
+        "scope": "finance:journal.delete"
+      },
+      { "method": "GET", "path": "/ledger", "scope": "finance:ledger.read" },
+      {
+        "method": "GET",
+        "path": "/bank-accounts",
+        "scope": "finance:bank.read"
+      },
+      {
+        "method": "POST",
+        "path": "/bank-accounts",
+        "scope": "finance:bank.create"
+      },
+      { "method": "GET", "path": "/periods", "scope": "finance:accounts.read" },
+      {
+        "method": "POST",
+        "path": "/periods/:id/close",
+        "scope": "finance:period.manage"
+      },
+      {
+        "method": "POST",
+        "path": "/periods/:id/lock",
+        "scope": "finance:period.manage"
+      },
+      {
+        "method": "GET",
+        "path": "/statements/pnl",
+        "scope": "finance:statements.view"
+      },
+      {
+        "method": "GET",
+        "path": "/statements/balance-sheet",
+        "scope": "finance:statements.view"
+      },
+      {
+        "method": "GET",
+        "path": "/statements/cash-flow",
+        "scope": "finance:statements.view"
+      },
+      { "method": "GET", "path": "/budgets", "scope": "finance:budget.read" },
+      {
+        "method": "POST",
+        "path": "/budgets",
+        "scope": "finance:budget.create"
+      },
+      { "method": "GET", "path": "/reports", "scope": "finance:reports.view" },
+      { "method": "POST", "path": "/sync/pull", "scope": "finance:sync.pull" },
+      { "method": "POST", "path": "/sync/push", "scope": "finance:sync.push" }
+    ]
+  },
+
+  "health_check": {
+    "endpoint": "/api/v1/finance/health",
+    "interval_seconds": 60,
+    "timeout_seconds": 5
+  },
+
+  "logging": {
+    "level": "info",
+    "audit_trail": true,
+    "sensitive_fields_masked": [
+      "total_debit",
+      "total_credit",
+      "current_balance",
+      "account_number",
+      "debit",
+      "credit"
+    ]
+  }
+}

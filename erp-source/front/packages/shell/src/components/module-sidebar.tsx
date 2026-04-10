@@ -88,12 +88,15 @@ function Flyout({ open, onClose, title, children, anchorRef }: {
     const headerHeight = parseInt(
       getComputedStyle(document.documentElement).getPropertyValue('--gogo-header-height') || '64', 10
     );
+    const footerHeight = parseInt(
+      getComputedStyle(document.documentElement).getPropertyValue('--gogo-footer-height') || '0', 10
+    );
     if (!anchorRef?.current) {
       setPanelPos({ top: '0px' });
       return;
     }
     const btn = anchorRef.current.getBoundingClientRect();
-    const sidebarHeight = window.innerHeight - headerHeight;
+    const sidebarHeight = window.innerHeight - headerHeight - footerHeight;
     const btnTopRelative = btn.top - headerHeight; // distance from sidebar top
 
     // If button is in the lower 55 % of the sidebar, open the panel upward
@@ -114,7 +117,7 @@ function Flyout({ open, onClose, title, children, anchorRef }: {
         ref={ref}
         className="fixed bottom-[68px] left-3 right-3 z-[60] flex flex-col rounded-2xl bg-white shadow-xl ring-1 ring-gray-200/60 dark:bg-gray-800 dark:ring-gray-700 md:absolute md:bottom-auto md:left-full md:right-auto md:ml-2 md:w-72"
         style={{
-          maxHeight: 'calc(100vh - var(--gogo-header-height) - 80px)',
+          maxHeight: 'calc(100vh - var(--gogo-header-height) - var(--gogo-footer-height) - 16px)',
           ...panelPos,
         }}
       >
@@ -290,8 +293,9 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
     return hasAdminSystem || hasAdminOrg;
   }, [user, orgs]);
 
-  // Ref for the org-switcher button so the flyout can anchor to it
+  // Refs for flyout anchoring
   const orgSwitcherRef = useRef<HTMLButtonElement>(null);
+  const profileAvatarRef = useRef<HTMLButtonElement>(null);
 
   return (
     <aside className="fixed bottom-0 left-0 right-0 z-40 flex md:bottom-[var(--gogo-footer-height)] md:left-0 md:right-auto md:top-[var(--gogo-header-height)]">
@@ -371,7 +375,7 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
         </div>
 
         {/* Profile avatar */}
-        <button onClick={() => toggle('profile')} title="Profile" className="md:mt-2 md:mb-1">
+        <button ref={profileAvatarRef} onClick={() => toggle('profile')} title="Profile" className="md:mt-2 md:mb-1">
           {avatarUrl ? (
             <img src={avatarUrl} alt={displayName} className={`h-9 w-9 rounded-full object-cover ring-2 transition ${activePanel === 'profile' ? '' : 'ring-transparent hover:ring-gray-300 dark:hover:ring-gray-600'}`}
               style={activePanel === 'profile' ? { '--tw-ring-color': 'var(--gogo-primary)' } as React.CSSProperties : undefined} />
@@ -504,7 +508,7 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
         )}
 
         {/* Profile */}
-        <Flyout open={activePanel === 'profile'} onClose={closePanel} title="Account">
+        <Flyout open={activePanel === 'profile'} onClose={closePanel} title="Account" anchorRef={profileAvatarRef}>
           {/* Identity card */}
           <div className="px-4 pb-3">
             <div className="flex items-center gap-3">
@@ -530,10 +534,9 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
               icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>} />
             <AdminLink label="Two-Factor Auth" path="/2fa/setup"
               icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7.864 4.243A7.5 7.5 0 0119.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 004.5 10.5a48.667 48.667 0 00-1.429 8.272M5.742 6.364c.12-.107.244-.21.37-.31m10.246 2.457a1.5 1.5 0 00-2.835.695l.244 2.114a5.995 5.995 0 01-1.708 5.05l-.052.052a6.007 6.007 0 01-5.05 1.707l-.127-.014" /></svg>} />
+            <AdminLink label="My Organizations" path="/profile/organisations"
+              icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" /></svg>} />
           </div>
-
-          <AdminLink label="My Organizations" path="/profile/organisations"
-            icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" /></svg>} />
 
           <div className="mx-2 my-2 border-t border-gray-100 dark:border-gray-700" />
           <div className="px-2 pb-1">

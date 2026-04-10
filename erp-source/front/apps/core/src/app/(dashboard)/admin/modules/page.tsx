@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { PageHeader, Stats, Modal, Button, Input, EmptyState, Card } from '@erp/ui';
+import { useState, useMemo, useEffect } from 'react';
+import { PageHeader, Stats, Modal, Button, Input, EmptyState, Card, Chip, StatusBadge, Skeleton } from '@erp/ui';
 
 interface Module {
   key: string;
@@ -69,16 +69,34 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
   );
 }
 
-/* ── Category pill ── */
-function CategoryPill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+/* ── Module card skeleton ── */
+function ModuleCardSkeleton() {
   return (
-    <button
-      onClick={onClick}
-      className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${active ? 'text-white shadow-sm' : 'bg-[var(--gogo-grey-100)] text-[var(--gogo-text-secondary)] hover:bg-[var(--gogo-divider)]'}`}
-      style={active ? { backgroundColor: 'var(--gogo-primary)' } : undefined}
-    >
-      {label}
-    </button>
+    <div className="overflow-hidden rounded-[var(--radius-card)] border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] p-4 shadow-[var(--shadow-card)]">
+      {/* header */}
+      <div className="flex items-start gap-3">
+        <Skeleton className="h-10 w-10 shrink-0 rounded-xl" />
+        <div className="flex-1 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <Skeleton className="h-3.5 w-32" />
+            <Skeleton className="h-5 w-16 rounded-full" />
+          </div>
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-4/5" />
+        </div>
+      </div>
+      {/* divider + tags */}
+      <div className="mt-4 flex gap-1.5 border-t pt-3" style={{ borderColor: 'var(--gogo-divider)' }}>
+        <Skeleton className="h-5 w-14 rounded-full" />
+        <Skeleton className="h-5 w-16 rounded-full" />
+        <Skeleton className="h-5 w-12 rounded-full" />
+      </div>
+      {/* footer */}
+      <div className="mt-3 flex items-center justify-between">
+        <Skeleton className="h-3 w-20" />
+        <Skeleton className="h-5 w-9 rounded-full" />
+      </div>
+    </div>
   );
 }
 
@@ -90,11 +108,11 @@ function ModuleCard({ mod, active, activeModules, onToggle }: {
   const missingDeps = mod.dependencies.filter((d) => !activeModules.has(d));
 
   return (
-    <Card className={`transition-shadow ${active ? 'shadow-[var(--shadow-hover)]' : ''}`}>
+    <Card className={`transition-all duration-200 ${active ? 'shadow-[var(--shadow-hover)]' : 'opacity-90 hover:opacity-100'}`}>
       <div className="p-4">
         {/* Header row */}
         <div className="flex items-start gap-3">
-          <ModuleIcon path={mod.iconPath} gradient={mod.gradient} />
+          <ModuleIcon path={mod.iconPath} gradient={active ? mod.gradient : 'from-gray-400 to-gray-500'} />
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
@@ -102,14 +120,9 @@ function ModuleCard({ mod, active, activeModules, onToggle }: {
                   <p className="text-sm font-semibold truncate" style={{ color: 'var(--gogo-text-primary)' }}>
                     {mod.label}
                   </p>
-                  <span
-                    className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                    style={{ backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 10%, transparent)', color: 'var(--gogo-primary-dark)' }}
-                  >
-                    {mod.category}
-                  </span>
+                  <Chip label={mod.category} size="small" variant="filled" color="default" />
                 </div>
-                <p className="mt-0.5 text-xs leading-relaxed" style={{ color: 'var(--gogo-text-secondary)' }}>
+                <p className="mt-0.5 text-xs leading-relaxed line-clamp-2" style={{ color: 'var(--gogo-text-secondary)' }}>
                   {mod.description}
                 </p>
               </div>
@@ -126,17 +139,20 @@ function ModuleCard({ mod, active, activeModules, onToggle }: {
               const depMod = MODULE_CATALOG.find((m) => m.key === d);
               const depActive = activeModules.has(d);
               return (
-                <span
+                <Chip
                   key={d}
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${depActive ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-[var(--gogo-grey-100)] text-[var(--gogo-text-secondary)]'}`}
-                >
-                  {depActive ? (
-                    <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-                  ) : (
-                    <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
-                  )}
-                  {depMod?.label ?? d}
-                </span>
+                  label={depMod?.label ?? d}
+                  size="small"
+                  variant={depActive ? 'filled' : 'outlined'}
+                  color={depActive ? 'success' : 'default'}
+                  icon={
+                    depActive ? (
+                      <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                    ) : (
+                      <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+                    )
+                  }
+                />
               );
             })}
           </div>
@@ -150,15 +166,18 @@ function ModuleCard({ mod, active, activeModules, onToggle }: {
           </p>
         )}
 
-        {/* Feature toggle */}
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="mt-3 flex items-center gap-1 text-[11px] font-medium transition-colors hover:opacity-80"
-          style={{ color: 'var(--gogo-primary)' }}
-        >
-          <svg className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
-          {expanded ? 'Hide features' : `${mod.features.length} features`}
-        </button>
+        {/* Footer row: feature count + status badge */}
+        <div className="mt-3 flex items-center justify-between border-t pt-3" style={{ borderColor: 'var(--gogo-divider)' }}>
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="flex items-center gap-1 text-[11px] font-medium transition-colors hover:opacity-80"
+            style={{ color: 'var(--gogo-primary)' }}
+          >
+            <svg className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+            {expanded ? 'Hide features' : `${mod.features.length} features`}
+          </button>
+          <StatusBadge status={active ? 'active' : 'inactive'} />
+        </div>
 
         {expanded && (
           <ul className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
@@ -176,10 +195,16 @@ function ModuleCard({ mod, active, activeModules, onToggle }: {
 }
 
 export default function ModulesPage() {
+  const [isLoading, setIsLoading] = useState(true);
   const [activeModules, setActiveModules] = useState<Set<string>>(new Set(DEFAULT_ACTIVE));
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   const [confirmAction, setConfirmAction] = useState<{ key: string; action: 'activate' | 'deactivate' } | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setIsLoading(false), 900);
+    return () => clearTimeout(t);
+  }, []);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -274,13 +299,26 @@ export default function ModulesPage() {
         </div>
         <div className="flex flex-wrap gap-1.5">
           {CATEGORIES.map((cat) => (
-            <CategoryPill key={cat} label={cat} active={category === cat} onClick={() => setCategory(cat)} />
+            <Chip
+              key={cat}
+              label={cat}
+              size="small"
+              variant={category === cat ? 'filled' : 'outlined'}
+              color={category === cat ? 'primary' : 'default'}
+              onClick={() => setCategory(cat)}
+            />
           ))}
         </div>
       </div>
 
-      {/* Grid */}
-      {filtered.length > 0 ? (
+      {/* Grid — skeleton while loading, real cards when ready */}
+      {isLoading ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <ModuleCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : filtered.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((mod) => (
             <ModuleCard key={mod.key} mod={mod} active={activeModules.has(mod.key)} activeModules={activeModules} onToggle={handleToggle} />
