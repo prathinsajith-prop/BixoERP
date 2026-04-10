@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, type ReactNode } from 'react';
+import React, { useState, useEffect, useRef, useMemo, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '../store/auth';
@@ -276,6 +276,20 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
 
   const initial = displayName.charAt(0).toUpperCase();
 
+  // Users with admin/developer roles (system-level OR org-level) can create organizations
+  const canCreateOrg = useMemo(() => {
+    const systemRoles: string[] = Array.isArray((user as { roles?: string[] } | null)?.roles)
+      ? (user as { roles: string[] }).roles
+      : [];
+    const hasAdminSystem = systemRoles.some((r) =>
+      ['admin', 'developer', 'super_admin', 'superadmin'].includes(r.toLowerCase()),
+    );
+    const hasAdminOrg = orgs.some((o) =>
+      ['ADMIN', 'OWNER', 'DEVELOPER'].includes((o.role ?? '').toUpperCase()),
+    );
+    return hasAdminSystem || hasAdminOrg;
+  }, [user, orgs]);
+
   // Ref for the org-switcher button so the flyout can anchor to it
   const orgSwitcherRef = useRef<HTMLButtonElement>(null);
 
@@ -353,15 +367,6 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
             currentOrg={orgs.find((o) => o.id === currentOrgId) ?? null}
             gradientIdx={orgs.findIndex((o) => o.id === currentOrgId)}
             logoBlobUrl={currentOrgId ? (orgLogoBlobUrls[currentOrgId] ?? null) : null}
-          />
-        </div>
-
-        {/* Settings */}
-        <div className="">
-          <SidebarIcon
-            icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>}
-            label="Settings"
-            onClick={() => goTo('/settings')}
           />
         </div>
 
@@ -500,6 +505,7 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
 
         {/* Profile */}
         <Flyout open={activePanel === 'profile'} onClose={closePanel} title="Account">
+          {/* Identity card */}
           <div className="px-4 pb-3">
             <div className="flex items-center gap-3">
               {avatarUrl ? (
@@ -509,18 +515,26 @@ export function ModuleSidebar({ moduleId }: { moduleId?: string }) {
               )}
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-gray-900 truncate dark:text-white">{displayName}</p>
-                <p className="text-xs text-gray-500 truncate dark:text-gray-400">{user?.email ?? ''}</p>
+                <p className="text-xs text-gray-500 truncate dark:text-gray-400">{(user as { email?: string } | null)?.email ?? ''}</p>
                 {orgName && <span className="mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 10%, transparent)', color: 'var(--gogo-primary-dark)' }}>{orgName}</span>}
               </div>
             </div>
           </div>
+
+          {/* Account links (Settings moved from sidebar) */}
           <div className="border-t border-gray-100 dark:border-gray-700" />
           <div className="space-y-0.5 px-2 pt-2">
+            <AdminLink label="Settings" path="/settings"
+              icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>} />
             <AdminLink label="Change Password" path="/change-password"
               icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>} />
             <AdminLink label="Two-Factor Auth" path="/2fa/setup"
               icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7.864 4.243A7.5 7.5 0 0119.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 004.5 10.5a48.667 48.667 0 00-1.429 8.272M5.742 6.364c.12-.107.244-.21.37-.31m10.246 2.457a1.5 1.5 0 00-2.835.695l.244 2.114a5.995 5.995 0 01-1.708 5.05l-.052.052a6.007 6.007 0 01-5.05 1.707l-.127-.014" /></svg>} />
           </div>
+
+          <AdminLink label="My Organizations" path="/profile/organisations"
+            icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" /></svg>} />
+
           <div className="mx-2 my-2 border-t border-gray-100 dark:border-gray-700" />
           <div className="px-2 pb-1">
             <button onClick={handleLogout}

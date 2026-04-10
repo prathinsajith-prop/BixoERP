@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Input, Stats, Textarea, PageHeader, RolesCardSkeleton } from '@erp/ui';
+import { Input, Stats, Textarea, PageHeader, RolesCardSkeleton, Tooltip } from '@erp/ui';
 import { authApi } from '@/lib/api/auth';
 import { showToast } from '@erp/shell';
 
@@ -146,13 +146,14 @@ export default function RolesPage() {
             className="w-full rounded-lg border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] py-2 pl-9 pr-9 text-sm text-[var(--gogo-text-primary)] placeholder-[var(--gogo-text-secondary)] shadow-[var(--shadow-card)] outline-none focus:border-[var(--gogo-primary)] focus:ring-1 focus:ring-[var(--gogo-primary)]"
           />
           {roleSearch && (
-            <button
-              onClick={() => setRoleSearch('')}
-              className="absolute inset-y-0 right-2 flex items-center p-1 text-[var(--gogo-text-secondary)] hover:text-[var(--gogo-text-primary)]"
-              title="Clear search"
-            >
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
+            <Tooltip content="Clear search">
+              <button
+                onClick={() => setRoleSearch('')}
+                className="absolute inset-y-0 right-2 flex items-center p-1 text-[var(--gogo-text-secondary)] hover:text-[var(--gogo-text-primary)]"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </Tooltip>
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -161,13 +162,14 @@ export default function RolesPage() {
               <strong>{filteredRoles.length}</strong> of {roles.length} role{roles.length !== 1 ? 's' : ''}
             </p>
           )}
-          <button
-            onClick={() => { fetchRoles(); fetchPermissions(); }}
-            title="Refresh"
-            className="flex items-center justify-center rounded-lg border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] p-2 text-[var(--gogo-text-secondary)] transition hover:bg-[var(--gogo-surface-hover)] shadow-[var(--shadow-card)]"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /></svg>
-          </button>
+          <Tooltip content="Refresh">
+            <button
+              onClick={() => { fetchRoles(); fetchPermissions(); }}
+              className="flex items-center justify-center rounded-lg border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] p-2 text-[var(--gogo-text-secondary)] transition hover:bg-[var(--gogo-surface-hover)] shadow-[var(--shadow-card)]"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /></svg>
+            </button>
+          </Tooltip>
         </div>
       </div>
 
@@ -200,12 +202,12 @@ export default function RolesPage() {
                         </div>
                       </div>
                       <div className="ml-2 flex shrink-0 items-center gap-1 md:opacity-0 md:transition md:group-hover:opacity-100">
-                        <button onClick={() => openEditModal(role)} className="rounded-lg p-1.5 text-[var(--gogo-text-secondary)] transition hover:bg-[var(--gogo-divider)] hover:text-[var(--gogo-text-primary)]" title="Edit role">
+                        <Tooltip content="Edit role"><button onClick={() => openEditModal(role)} className="rounded-lg p-1.5 text-[var(--gogo-text-secondary)] transition hover:bg-[var(--gogo-divider)] hover:text-[var(--gogo-text-primary)]">
                           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
-                        </button>
-                        <button onClick={() => setConfirmDelete(role)} className="rounded-lg p-1.5 text-[var(--gogo-text-secondary)] transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20" title="Delete role">
+                        </button></Tooltip>
+                        <Tooltip content="Delete role"><button onClick={() => setConfirmDelete(role)} className="rounded-lg p-1.5 text-[var(--gogo-text-secondary)] transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20">
                           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
-                        </button>
+                        </button></Tooltip>
                       </div>
                     </div>
                     <div className="mt-3 flex items-center justify-between">

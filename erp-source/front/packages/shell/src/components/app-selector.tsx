@@ -90,46 +90,32 @@ export function AppSelector() {
         <div className="absolute right-0 top-full mt-2 w-[340px] rounded-2xl bg-white py-4 shadow-[var(--shadow-card)] ring-1 ring-[var(--gogo-divider)] z-50 dark:bg-[var(--gogo-surface)]">
           <div className="px-3 pb-2 border-b border-gray-100 dark:border-gray-700 mb-2">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">Navigation</p>
-            <div className="mt-2 grid grid-cols-2 gap-1">
+            <div className="mt-2">
               <button
                 onClick={() => {
                   if (fullToken) {
                     useAuthStore.setState({ accessToken: fullToken, activeModule: undefined });
                   }
                   setOpen(false);
-                  window.location.href = '/';
+                  window.location.href = '/admin/modules';
                 }}
-                className="group flex items-center gap-2 rounded-xl px-3 py-2 hover:bg-gray-100/80 dark:hover:bg-white/10 cursor-pointer transition"
+                className="group flex w-full items-center gap-2 rounded-xl px-3 py-2 hover:bg-gray-100/80 dark:hover:bg-white/10 cursor-pointer transition"
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm transition group-hover:shadow-md group-hover:scale-105 shrink-0">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full text-white shadow-sm transition group-hover:shadow-md group-hover:scale-105 shrink-0" style={{ background: 'linear-gradient(135deg, var(--gogo-primary) 0%, var(--gogo-secondary) 100%)' }}>
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
+                    <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
+                    <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
                   </svg>
                 </span>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Home</span>
-              </button>
-              <button
-                onClick={() => {
-                  if (fullToken) {
-                    useAuthStore.setState({ accessToken: fullToken, activeModule: undefined });
-                  }
-                  setOpen(false);
-                  window.location.href = '/admin';
-                }}
-                className="group flex items-center gap-2 rounded-xl px-3 py-2 hover:bg-gray-100/80 dark:hover:bg-white/10 cursor-pointer transition"
-              >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-700 text-white shadow-sm transition group-hover:shadow-md group-hover:scale-105 shrink-0">
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="3" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14" />
-                    <path d="M12 2v2M12 20v2M2 12h2M20 12h2" />
-                  </svg>
-                </span>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Admin</span>
+                <div className="flex flex-col text-left">
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">Modules</span>
+                  <span className="text-[11px] text-gray-400 dark:text-gray-500">Configure available modules</span>
+                </div>
               </button>
             </div>
           </div>
           <div className="px-3 mb-1">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">Modules</p>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">Switch to</p>
           </div>
           <div className="grid grid-cols-4 gap-1 px-3">
             {modules.map((mod) => {

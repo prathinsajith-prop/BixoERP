@@ -24,6 +24,7 @@ import {
   SearchFilter,
   Stats,
   StatusBadge,
+  Tooltip,
   ViewSwitcher,
   type ActiveFilters,
   type ActiveOperators,
@@ -346,16 +347,17 @@ export default function DivisionsPage() {
       align: 'right' as const,
       render: (item) => (
         <div className="flex items-center justify-end gap-1">
+          <Tooltip content="Edit">
           <button
             onClick={(e) => { e.stopPropagation(); openEdit(item); }}
-            title="Edit"
             className="rounded-lg p-1.5 text-[var(--gogo-text-secondary)] transition hover:bg-[var(--gogo-grey-100)] hover:text-[var(--gogo-text-primary)]"
           >
             <EditIcon />
           </button>
+          </Tooltip>
+          <Tooltip content={item.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}>
           <button
             onClick={(e) => { e.stopPropagation(); setToggleTarget(item); }}
-            title={item.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
             className="rounded-lg p-1.5 text-[var(--gogo-text-secondary)] transition hover:bg-[var(--gogo-grey-100)] hover:text-[var(--gogo-text-primary)]"
           >
             {item.status === 'ACTIVE'
@@ -363,13 +365,15 @@ export default function DivisionsPage() {
               : <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             }
           </button>
+          </Tooltip>
+          <Tooltip content="Delete">
           <button
             onClick={(e) => { e.stopPropagation(); setDeleteTarget(item); }}
-            title="Delete"
             className="rounded-lg p-1.5 text-[var(--gogo-text-secondary)] transition hover:bg-red-50 hover:text-red-600"
           >
             <TrashIcon />
           </button>
+          </Tooltip>
         </div>
       ),
     },
@@ -496,20 +500,22 @@ export default function DivisionsPage() {
             leading={(item) => <OrgAvatar name={item.name} size="md" shape="rounded-xl" />}
             trailing={(item) => (
               <div className="flex items-center gap-1">
+                <Tooltip content="Edit">
                 <button
                   onClick={(e) => { e.stopPropagation(); openEdit(item); }}
-                  title="Edit"
                   className="rounded-lg p-1.5 text-[var(--gogo-text-secondary)] transition hover:bg-[var(--gogo-grey-100)] hover:text-[var(--gogo-text-primary)]"
                 >
                   <EditIcon />
                 </button>
+                </Tooltip>
+                <Tooltip content="Delete">
                 <button
                   onClick={(e) => { e.stopPropagation(); setDeleteTarget(item); }}
-                  title="Delete"
                   className="rounded-lg p-1.5 text-[var(--gogo-text-secondary)] transition hover:bg-red-50 hover:text-red-600"
                 >
                   <TrashIcon />
                 </button>
+                </Tooltip>
               </div>
             )}
           />

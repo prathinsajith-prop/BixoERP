@@ -17,6 +17,8 @@ export { EmptyState, LoadingSpinner } from "./feedback/empty-state";
 export type { EmptyStateProps } from "./feedback/empty-state";
 export { Modal } from "./feedback/modal";
 export type { ModalProps } from "./feedback/modal";
+export { Tooltip } from "./feedback/tooltip";
+export type { TooltipProps } from "./feedback/tooltip";
 
 // Forms
 export { Button } from "./forms/button";
