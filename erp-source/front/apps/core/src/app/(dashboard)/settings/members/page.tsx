@@ -6,7 +6,7 @@ import { useOrgContext } from '@/context/org';
 import { showToast } from '@erp/shell';
 import CanDo from '@/components/can-do';
 import PageHeader from '@/components/page-header';
-import Button from '@/components/ui/button';
+import { Button, DataTable, RoleBadge, type TableColumn } from '@erp/ui';
 
 interface Member {
     userId: string;
@@ -28,15 +28,6 @@ interface PendingInvite {
     invitedBy?: string;
 }
 
-const ROLE_COLOURS: Record<string, string> = {
-    OWNER: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-    ADMIN: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-    MANAGER: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300',
-    MEMBER: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
-};
-function roleBadge(role: string) {
-    return ROLE_COLOURS[role?.toUpperCase()] ?? ROLE_COLOURS['MEMBER'];
-}
 
 // ── Invite Modal ──────────────────────────────────────────────────────────────
 interface InviteModalProps {
@@ -228,112 +219,116 @@ export default function MembersPage() {
                     Loading…
                 </div>
             ) : tab === 'members' ? (
-                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                    {members.length === 0 ? (
-                        <p className="p-6 text-center text-sm text-gray-400">No members found.</p>
-                    ) : (
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-900">
-                                    <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Member</th>
-                                    <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Role</th>
-                                    <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Type</th>
-                                    <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Joined</th>
+                members.length === 0 ? (
+                    <p className="p-6 text-center text-sm text-gray-400">No members found.</p>
+                ) : (
+                    <DataTable<Member>
+                        columns={[
+                            {
+                                key: 'userId',
+                                header: 'Member',
+                                render: (m) => (
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                                            {(m.firstName?.[0] ?? m.email[0]).toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-gray-900 dark:text-white">
+                                                {m.firstName || m.lastName ? `${m.firstName ?? ''} ${m.lastName ?? ''}`.trim() : m.email}
+                                            </p>
+                                            {(m.firstName || m.lastName) && (
+                                                <p className="text-xs text-gray-400">{m.email}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                ),
+                            },
+                            {
+                                key: 'role',
+                                header: 'Role',
+                                render: (m) => <RoleBadge role={m.role} />,
+                            },
+                            { key: 'membershipType', header: 'Type' },
+                            {
+                                key: 'joinedAt',
+                                header: 'Joined',
+                                render: (m) => (
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        {m.joinedAt ? new Date(m.joinedAt).toLocaleDateString() : '—'}
+                                    </span>
+                                ),
+                            },
+                            {
+                                key: 'actions',
+                                header: '',
+                                align: 'right' as const,
+                                render: (m) => (
                                     <CanDo resource="member" action="remove">
-                                        <th className="px-4 py-3" />
-                                    </CanDo>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                                {members.map((m) => (
-                                    <tr key={m.userId} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
-                                                    {(m.firstName?.[0] ?? m.email[0]).toUpperCase()}
-                                                </div>
-                                                <div>
-                                                    <p className="font-medium text-gray-900 dark:text-white">
-                                                        {m.firstName || m.lastName ? `${m.firstName ?? ''} ${m.lastName ?? ''}`.trim() : m.email}
-                                                    </p>
-                                                    {(m.firstName || m.lastName) && (
-                                                        <p className="text-xs text-gray-400">{m.email}</p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${roleBadge(m.role)}`}>
-                                                {m.role}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{m.membershipType}</td>
-                                        <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
-                                            {m.joinedAt ? new Date(m.joinedAt).toLocaleDateString() : '—'}
-                                        </td>
-                                        <CanDo resource="member" action="remove">
-                                            <td className="px-4 py-3 text-right">
-                                                {m.role !== 'OWNER' && (
-                                                    <button
-                                                        onClick={() => handleRemoveMember(m.userId)}
-                                                        className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                                                    >
-                                                        Remove
-                                                    </button>
-                                                )}
-                                            </td>
-                                        </CanDo>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-                </div>
-            ) : (
-                /* Pending invites tab */
-                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                    {pendingInvites.length === 0 ? (
-                        <p className="p-6 text-center text-sm text-gray-400">No pending invitations.</p>
-                    ) : (
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-900">
-                                    <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Email</th>
-                                    <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Role</th>
-                                    <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Sent</th>
-                                    <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Expires</th>
-                                    <th className="px-4 py-3" />
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                                {pendingInvites.map((inv) => (
-                                    <tr key={inv.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{inv.email}</td>
-                                        <td className="px-4 py-3">
-                                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${roleBadge(inv.roleName)}`}>
-                                                {inv.roleName}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
-                                            {inv.createdAt ? new Date(inv.createdAt).toLocaleDateString() : '—'}
-                                        </td>
-                                        <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
-                                            {inv.expiresAt ? new Date(inv.expiresAt).toLocaleDateString() : '—'}
-                                        </td>
-                                        <td className="px-4 py-3 text-right">
+                                        {m.role !== 'OWNER' && (
                                             <button
-                                                onClick={() => handleRevoke(inv.id)}
+                                                onClick={(e) => { e.stopPropagation(); handleRemoveMember(m.userId); }}
                                                 className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                                             >
-                                                Revoke
+                                                Remove
                                             </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-                </div>
+                                        )}
+                                    </CanDo>
+                                ),
+                            },
+                        ] as TableColumn<Member>[]}
+                        data={members}
+                        keyExtractor={(m) => m.userId}
+                    />
+                )
+            ) : (
+                /* Pending invites tab */
+                pendingInvites.length === 0 ? (
+                    <p className="p-6 text-center text-sm text-gray-400">No pending invitations.</p>
+                ) : (
+                    <DataTable<PendingInvite>
+                        columns={[
+                            { key: 'email', header: 'Email' },
+                            {
+                                key: 'roleName',
+                                header: 'Role',
+                                render: (inv) => <RoleBadge role={inv.roleName} />,
+                            },
+                            {
+                                key: 'createdAt',
+                                header: 'Sent',
+                                render: (inv) => (
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        {inv.createdAt ? new Date(inv.createdAt).toLocaleDateString() : '—'}
+                                    </span>
+                                ),
+                            },
+                            {
+                                key: 'expiresAt',
+                                header: 'Expires',
+                                render: (inv) => (
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        {inv.expiresAt ? new Date(inv.expiresAt).toLocaleDateString() : '—'}
+                                    </span>
+                                ),
+                            },
+                            {
+                                key: 'actions',
+                                header: '',
+                                align: 'right' as const,
+                                render: (inv) => (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleRevoke(inv.id); }}
+                                        className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                    >
+                                        Revoke
+                                    </button>
+                                ),
+                            },
+                        ] as TableColumn<PendingInvite>[]}
+                        data={pendingInvites}
+                        keyExtractor={(inv) => inv.id}
+                    />
+                )
             )}
 
             {showInviteModal && orgId && (

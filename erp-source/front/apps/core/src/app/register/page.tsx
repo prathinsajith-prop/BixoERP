@@ -9,9 +9,7 @@ import { z } from 'zod';
 import { useAuthStore } from '@/store/auth';
 import { GOOGLE_CLIENT_ID, MICROSOFT_CLIENT_ID, MICROSOFT_TENANT, GITHUB_CLIENT_ID, APPLE_CLIENT_ID, getOAuthRedirectUri } from '@/lib/config';
 import AuthLayout from '@/components/layout/auth-layout';
-import Input from '@/components/ui/input';
-import Button from '@/components/ui/button';
-import Alert from '@/components/ui/alert';
+import { Button, Input, Alert } from '@erp/ui';
 
 const registerSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -66,7 +64,7 @@ export default function RegisterPage() {
     <AuthLayout>
       <h2 className="mb-6 text-xl font-semibold text-gray-900 dark:text-white">Create your account</h2>
 
-      {error && <div className="mb-4"><Alert>{error}</Alert></div>}
+      {error && <div className="mb-4"><Alert variant="error">{error}</Alert></div>}
 
       <div className="mb-6 space-y-3">
         {(['google', 'microsoft', 'github', 'apple'] as const).map((provider) => (

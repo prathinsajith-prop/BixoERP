@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Plus } from "lucide-react";
-import { LoadingSpinner, EmptyState } from "@erp/ui";
+import { Alert, LoadingSpinner, EmptyState, PageHeader, StatusBadge, ActionButtons, type ActionButtonItem } from "@erp/ui";
 import { api, type Warehouse } from "../../lib/api";
 
 export default function WarehousesPage() {
@@ -25,21 +25,20 @@ export default function WarehousesPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  const pageActions: ActionButtonItem[] = [
+    { key: "create", label: "New Warehouse", icon: <Plus className="h-3.5 w-3.5" />, variant: "primary", size: "sm", onClick: () => { } },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Warehouses</h1>
-          <p className="text-sm text-gray-500 mt-1">{warehouses.length} warehouses</p>
-        </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2 bg-accent-600 text-white text-sm font-medium rounded-lg hover:bg-accent-700">
-          <Plus className="w-4 h-4" />
-          New Warehouse
-        </button>
-      </div>
+      <PageHeader
+        title="Warehouses"
+        description={`${warehouses.length} warehouses`}
+        actions={<ActionButtons actions={pageActions} />}
+      />
 
       {loading && <LoadingSpinner />}
-      {error && <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+      {error && <Alert variant="error">{error}</Alert>}
 
       {!loading && !error && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -51,9 +50,7 @@ export default function WarehousesPage() {
                 <h3 className="text-sm font-semibold text-gray-900">{w.name}</h3>
                 <p className="text-xs text-gray-500 mt-1">{w.code}</p>
                 {w.address && <p className="text-xs text-gray-400 mt-2">{w.address}</p>}
-                <span className={`mt-3 inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${w.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-500"}`}>
-                  {w.isActive ? "Active" : "Inactive"}
-                </span>
+                <StatusBadge status={w.isActive ? "Active" : "Inactive"} />
               </div>
             ))
           )}

@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
-import { LoadingSpinner } from "@erp/ui";
+import { DataTable, LoadingSpinner, PageHeader, KPICard, StatusBadge, PageErrorState, type TableColumn } from "@erp/ui";
 import { api } from "../lib/api";
 
 type RecentJournal = { entryNumber: string; description: string; debit: number; currency: string; status: string };
@@ -48,7 +47,7 @@ export default function FinanceDashboardPage() {
   useEffect(() => { load(); }, [load]);
 
   if (loading) return <LoadingSpinner />;
-  if (error) return <div className="p-6 text-sm text-red-600">{error}</div>;
+  if (error) return <PageErrorState error={error} onRetry={load} />;
 
   const kpis = [
     { title: "Total Accounts", value: stats.accounts.toString(), trend: "up" },
@@ -59,24 +58,11 @@ export default function FinanceDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Finance Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">General Ledger overview and financial KPIs</p>
-      </div>
+      <PageHeader title="Finance Dashboard" description="General Ledger overview and financial KPIs" />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map((kpi) => (
-          <div key={kpi.title} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-            <p className="text-sm font-medium text-gray-500">{kpi.title}</p>
-            <p className="mt-1 text-xl font-bold text-gray-900">{kpi.value}</p>
-            <div className="flex items-center gap-1 mt-1">
-              {kpi.trend === "up" ? (
-                <ArrowUpRight className="w-4 h-4 text-green-500" />
-              ) : (
-                <ArrowDownRight className="w-4 h-4 text-red-500" />
-              )}
-            </div>
-          </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {kpis.map((k) => (
+          <KPICard key={k.title} title={k.title} value={String(k.value)} trend={k.trend as "up" | "down"} />
         ))}
       </div>
 
@@ -84,30 +70,23 @@ export default function FinanceDashboardPage() {
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Recent Journal Entries</h2>
         </div>
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entry</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Debit</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {recentJournals.map((j) => (
-              <tr key={j.entryNumber}>
-                <td className="px-4 py-3 text-sm font-medium text-accent-600">{j.entryNumber}</td>
-                <td className="px-4 py-3 text-sm text-gray-700">{j.description}</td>
-                <td className="px-4 py-3 text-sm text-right text-gray-900">{j.debit.toLocaleString("en-US", { style: "currency", currency: j.currency })}</td>
-                <td className="px-4 py-3">
-                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${j.status === "posted" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}>
-                    {j.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {(() => {
+          const recentJournalColumns: TableColumn<RecentJournal>[] = [
+            { key: 'entryNumber', header: 'Entry', render: (j) => <span className="text-sm font-medium text-accent-600">{j.entryNumber}</span> },
+            { key: 'description', header: 'Description', render: (j) => <span className="text-sm text-gray-700">{j.description}</span> },
+            {
+              key: 'debit', header: 'Debit', align: 'right' as const, render: (j) => (
+                <span className="text-sm text-gray-900">{j.debit.toLocaleString('en-US', { style: 'currency', currency: j.currency })}</span>
+              )
+            },
+            {
+              key: 'status', header: 'Status', render: (j) => (
+                <StatusBadge status={j.status} />
+              )
+            },
+          ];
+          return <DataTable<RecentJournal> columns={recentJournalColumns} data={recentJournals} keyExtractor={(j) => j.entryNumber} />;
+        })()}
       </div>
     </div>
   );

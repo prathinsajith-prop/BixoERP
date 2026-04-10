@@ -1,4 +1,7 @@
+"use client";
+
 import { Upload, Folder, FileText, FileSpreadsheet, FileImage, File } from "lucide-react";
+import { PageHeader, ActionButtons, type ActionButtonItem } from "@erp/ui";
 
 const folders = [
   { name: "Finance", files: 142, size: "2.8 GB" },
@@ -27,18 +30,18 @@ function FileIcon({ type }: { type: string }) {
   }
 }
 
+const fileActions: ActionButtonItem[] = [
+  { key: "upload", label: "Upload", icon: <Upload className="h-3.5 w-3.5" />, variant: "primary", size: "sm", onClick: () => { } },
+];
+
 export default function FilesPage() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Document Manager</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage files & attachments across all modules</p>
-        </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
-          <Upload className="w-4 h-4" /> Upload
-        </button>
-      </div>
+      <PageHeader
+        title="Document Manager"
+        description="Manage files & attachments across all modules"
+        actions={<ActionButtons actions={fileActions} />}
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {folders.map((f) => (

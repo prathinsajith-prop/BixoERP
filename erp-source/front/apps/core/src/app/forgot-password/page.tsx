@@ -7,9 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { authApi } from '@/lib/api/auth';
 import AuthLayout from '@/components/layout/auth-layout';
-import Input from '@/components/ui/input';
-import Button from '@/components/ui/button';
-import Alert from '@/components/ui/alert';
+import { Button, Input, Alert } from '@erp/ui';
 
 const schema = z.object({
     email: z.string().email('Enter a valid email address'),
@@ -96,7 +94,7 @@ function ForgotPasswordContent() {
 
             {serverError && (
                 <div className="mb-4">
-                    <Alert>{serverError}</Alert>
+                    <Alert variant="error">{serverError}</Alert>
                 </div>
             )}
 

@@ -4,8 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import AuthLayout from '@/components/layout/auth-layout';
-import Button from '@/components/ui/button';
-import Alert from '@/components/ui/alert';
+import { Button, Alert } from '@erp/ui';
 
 function OTPInput({ length = 6, value, onChange, autoFocus = true }: { length?: number; value: string; onChange: (v: string) => void; autoFocus?: boolean }) {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -120,7 +119,7 @@ export default function TwoFactorVerifyPage() {
         </p>
       </div>
 
-      {message && <div className="mb-5"><Alert type={message.type}>{message.text}</Alert></div>}
+      {message && <div className="mb-5"><Alert variant={message.type}>{message.text}</Alert></div>}
 
       {!useBackupCode && (
         <div className="mb-6 flex gap-1.5 rounded-xl bg-gray-100 dark:bg-gray-700 p-1">

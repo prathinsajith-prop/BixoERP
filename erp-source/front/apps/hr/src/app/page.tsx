@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Users, Building2, CalendarOff, DollarSign, Bug } from "lucide-react";
-import { KPICard, LoadingSpinner, EmptyState, Button } from "@erp/ui";
+import { KPICard, LoadingSpinner, EmptyState, Button, PageHeader } from "@erp/ui";
 import { useAuthStore, useCurrentUser } from "@erp/shell";
 import { api, type EmployeeResponse, type DepartmentResponse, type LeaveRequestResponse, type PayrollRunResponse } from "../lib/api";
 
@@ -65,10 +65,7 @@ export default function HRDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">HR Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">Workforce overview & upcoming events</p>
-      </div>
+      <PageHeader title="HR Dashboard" description="Workforce overview & upcoming events" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard title="Total Employees" value={String(activeEmployees.length)} icon={<Users className="w-5 h-5" />} />

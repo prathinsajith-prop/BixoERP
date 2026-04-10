@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM node:20-alpine AS builder
 
 WORKDIR /app
@@ -25,7 +26,13 @@ COPY packages/shared/package.json ./packages/shared/
 COPY packages/shell/package.json ./packages/shell/
 COPY packages/ui/package.json ./packages/ui/
 
-RUN npm ci && npm install --no-save lightningcss-linux-arm64-musl lightningcss-linux-x64-musl @tailwindcss/oxide-linux-arm64-musl @tailwindcss/oxide-linux-x64-musl
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci && \
+    npm install --no-save \
+      lightningcss-linux-arm64-musl \
+      lightningcss-linux-x64-musl \
+      @tailwindcss/oxide-linux-arm64-musl \
+      @tailwindcss/oxide-linux-x64-musl
 
 COPY apps/ ./apps/
 COPY packages/ ./packages/

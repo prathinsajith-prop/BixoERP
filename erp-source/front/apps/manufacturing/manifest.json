@@ -1,0 +1,912 @@
+{
+  "manifest_version": "1.0.0",
+
+  "module": {
+    "id": "manufacturing_module",
+    "name": "Manufacturing",
+    "version": "1.0.0",
+    "description": "Full production lifecycle — bill of materials, work orders, production planning, quality control, machine management, and shop-floor analytics.",
+    "author": "Bixo",
+    "license": "proprietary",
+    "namespace": "erp.modules.manufacturing"
+  },
+
+  "compatibility": {
+    "core_min_version": "1.0.0",
+    "core_max_version": "2.x",
+    "api_version": "v1",
+    "dependencies": [
+      { "module": "core", "version": ">=1.0.0", "optional": false },
+      { "module": "auth_module", "version": ">=1.0.0", "optional": false },
+      { "module": "inventory_module", "version": ">=1.0.0", "optional": false },
+      { "module": "finance_module", "version": ">=1.0.0", "optional": true },
+      {
+        "module": "procurement_module",
+        "version": ">=1.0.0",
+        "optional": true
+      },
+      { "module": "workflow_module", "version": ">=1.0.0", "optional": true }
+    ]
+  },
+
+  "sync": {
+    "strategy": "incremental",
+    "direction": "bidirectional",
+    "trigger": "event_driven",
+    "polling_interval_seconds": 300,
+    "retry_policy": {
+      "max_attempts": 3,
+      "backoff_strategy": "exponential",
+      "initial_delay_ms": 1000
+    },
+    "conflict_resolution": "last_write_wins",
+    "batch_size": 100
+  },
+
+  "ui": {
+    "icon": "Factory",
+    "color": "orange",
+    "basePath": "/manufacturing",
+    "position": 7,
+    "menu": [
+      {
+        "label": "Dashboard",
+        "href": "/manufacturing",
+        "icon": "LayoutDashboard",
+        "permission": "manufacturing:dashboard.view",
+        "visibleTo": [
+          "manufacturing_admin",
+          "manufacturing_manager",
+          "manufacturing_officer",
+          "manufacturing_viewer"
+        ],
+        "position": 1
+      },
+      {
+        "label": "Bill of Materials",
+        "href": "/manufacturing/bom",
+        "icon": "Layers",
+        "permission": "manufacturing:bom.read",
+        "visibleTo": [
+          "manufacturing_admin",
+          "manufacturing_manager",
+          "manufacturing_officer"
+        ],
+        "position": 2
+      },
+      {
+        "label": "Work Orders",
+        "href": "/manufacturing/work-orders",
+        "icon": "ClipboardList",
+        "permission": "manufacturing:workorder.read",
+        "visibleTo": [
+          "manufacturing_admin",
+          "manufacturing_manager",
+          "manufacturing_officer",
+          "manufacturing_viewer"
+        ],
+        "position": 3
+      },
+      {
+        "label": "Production Plans",
+        "href": "/manufacturing/plans",
+        "icon": "CalendarRange",
+        "permission": "manufacturing:plan.read",
+        "visibleTo": ["manufacturing_admin", "manufacturing_manager"],
+        "position": 4
+      },
+      {
+        "label": "Quality Control",
+        "href": "/manufacturing/quality",
+        "icon": "BadgeCheck",
+        "permission": "manufacturing:quality.read",
+        "visibleTo": [
+          "manufacturing_admin",
+          "manufacturing_manager",
+          "manufacturing_officer"
+        ],
+        "position": 5
+      },
+      {
+        "label": "Machines",
+        "href": "/manufacturing/machines",
+        "icon": "Cpu",
+        "permission": "manufacturing:machine.read",
+        "visibleTo": [
+          "manufacturing_admin",
+          "manufacturing_manager",
+          "manufacturing_officer"
+        ],
+        "position": 6
+      },
+      {
+        "label": "Routings",
+        "href": "/manufacturing/routings",
+        "icon": "GitBranch",
+        "permission": "manufacturing:routing.read",
+        "visibleTo": ["manufacturing_admin", "manufacturing_manager"],
+        "position": 7
+      },
+      {
+        "label": "Waste & By-products",
+        "href": "/manufacturing/waste",
+        "icon": "Recycle",
+        "permission": "manufacturing:waste.read",
+        "visibleTo": [
+          "manufacturing_admin",
+          "manufacturing_manager",
+          "manufacturing_officer"
+        ],
+        "position": 8
+      },
+      {
+        "label": "Reports",
+        "href": "/manufacturing/reports",
+        "icon": "BarChart2",
+        "permission": "manufacturing:reports.view",
+        "visibleTo": [
+          "manufacturing_admin",
+          "manufacturing_manager",
+          "manufacturing_viewer"
+        ],
+        "position": 9
+      },
+      {
+        "label": "Settings",
+        "href": "/manufacturing/settings",
+        "icon": "Settings",
+        "permission": "manufacturing:settings.manage",
+        "visibleTo": ["manufacturing_admin"],
+        "position": 10
+      }
+    ],
+    "widgets": [
+      {
+        "id": "mfg_active_work_orders",
+        "label": "Active Work Orders",
+        "dashboard": true,
+        "size": "small"
+      },
+      {
+        "id": "mfg_production_efficiency",
+        "label": "Production Efficiency",
+        "dashboard": true,
+        "size": "medium"
+      },
+      {
+        "id": "mfg_quality_rate",
+        "label": "Quality Pass Rate",
+        "dashboard": true,
+        "size": "small"
+      },
+      {
+        "id": "mfg_machine_utilization",
+        "label": "Machine Utilization",
+        "dashboard": true,
+        "size": "medium"
+      },
+      {
+        "id": "mfg_output_trend",
+        "label": "Production Output Trend",
+        "dashboard": true,
+        "size": "large"
+      }
+    ]
+  },
+
+  "ports": {
+    "frontend": 4006,
+    "backend": 3007
+  },
+
+  "tier": "standard",
+
+  "roles": [
+    {
+      "id": "manufacturing_admin",
+      "name": "Manufacturing Administrator",
+      "description": "Full access to all manufacturing features",
+      "scopes": [
+        "manufacturing:dashboard.view",
+        "manufacturing:bom.read",
+        "manufacturing:bom.create",
+        "manufacturing:bom.update",
+        "manufacturing:bom.delete",
+        "manufacturing:workorder.read",
+        "manufacturing:workorder.create",
+        "manufacturing:workorder.update",
+        "manufacturing:workorder.close",
+        "manufacturing:plan.read",
+        "manufacturing:plan.create",
+        "manufacturing:plan.update",
+        "manufacturing:quality.read",
+        "manufacturing:quality.create",
+        "manufacturing:quality.approve",
+        "manufacturing:machine.read",
+        "manufacturing:machine.create",
+        "manufacturing:machine.update",
+        "manufacturing:routing.read",
+        "manufacturing:routing.create",
+        "manufacturing:routing.update",
+        "manufacturing:waste.read",
+        "manufacturing:waste.create",
+        "manufacturing:reports.view",
+        "manufacturing:settings.manage",
+        "manufacturing:sync.pull",
+        "manufacturing:sync.push"
+      ]
+    },
+    {
+      "id": "manufacturing_manager",
+      "name": "Manufacturing Manager",
+      "description": "Manage production plans, work orders, and quality checks",
+      "scopes": [
+        "manufacturing:dashboard.view",
+        "manufacturing:bom.read",
+        "manufacturing:bom.create",
+        "manufacturing:bom.update",
+        "manufacturing:workorder.read",
+        "manufacturing:workorder.create",
+        "manufacturing:workorder.update",
+        "manufacturing:workorder.close",
+        "manufacturing:plan.read",
+        "manufacturing:plan.create",
+        "manufacturing:plan.update",
+        "manufacturing:quality.read",
+        "manufacturing:quality.create",
+        "manufacturing:quality.approve",
+        "manufacturing:machine.read",
+        "manufacturing:machine.update",
+        "manufacturing:routing.read",
+        "manufacturing:waste.read",
+        "manufacturing:waste.create",
+        "manufacturing:reports.view"
+      ]
+    },
+    {
+      "id": "manufacturing_officer",
+      "name": "Manufacturing Officer",
+      "description": "Execute work orders and record production activity",
+      "scopes": [
+        "manufacturing:dashboard.view",
+        "manufacturing:bom.read",
+        "manufacturing:workorder.read",
+        "manufacturing:workorder.update",
+        "manufacturing:quality.read",
+        "manufacturing:quality.create",
+        "manufacturing:machine.read",
+        "manufacturing:routing.read",
+        "manufacturing:waste.read",
+        "manufacturing:waste.create"
+      ]
+    },
+    {
+      "id": "manufacturing_viewer",
+      "name": "Manufacturing Viewer",
+      "description": "Read-only access to manufacturing data",
+      "scopes": [
+        "manufacturing:dashboard.view",
+        "manufacturing:bom.read",
+        "manufacturing:workorder.read",
+        "manufacturing:plan.read",
+        "manufacturing:quality.read",
+        "manufacturing:machine.read",
+        "manufacturing:reports.view"
+      ]
+    }
+  ],
+
+  "permissions": [
+    {
+      "resource": "dashboard",
+      "actions": [
+        {
+          "id": "manufacturing:dashboard.view",
+          "name": "View Dashboard",
+          "description": "View production KPIs"
+        }
+      ]
+    },
+    {
+      "resource": "bom",
+      "actions": [
+        {
+          "id": "manufacturing:bom.read",
+          "name": "View Bill of Materials",
+          "description": "View BOM records"
+        },
+        {
+          "id": "manufacturing:bom.create",
+          "name": "Create BOM",
+          "description": "Create new BOMs"
+        },
+        {
+          "id": "manufacturing:bom.update",
+          "name": "Update BOM",
+          "description": "Edit BOM details"
+        },
+        {
+          "id": "manufacturing:bom.delete",
+          "name": "Delete BOM",
+          "description": "Remove BOMs"
+        }
+      ]
+    },
+    {
+      "resource": "workorder",
+      "actions": [
+        {
+          "id": "manufacturing:workorder.read",
+          "name": "View Work Orders",
+          "description": "View all work orders"
+        },
+        {
+          "id": "manufacturing:workorder.create",
+          "name": "Create Work Order",
+          "description": "Create work orders"
+        },
+        {
+          "id": "manufacturing:workorder.update",
+          "name": "Update Work Order",
+          "description": "Edit and progress work orders"
+        },
+        {
+          "id": "manufacturing:workorder.close",
+          "name": "Close Work Order",
+          "description": "Mark work orders as completed"
+        }
+      ]
+    },
+    {
+      "resource": "plan",
+      "actions": [
+        {
+          "id": "manufacturing:plan.read",
+          "name": "View Production Plans",
+          "description": "View production schedules"
+        },
+        {
+          "id": "manufacturing:plan.create",
+          "name": "Create Production Plan",
+          "description": "Create production plans"
+        },
+        {
+          "id": "manufacturing:plan.update",
+          "name": "Update Production Plan",
+          "description": "Edit plans"
+        }
+      ]
+    },
+    {
+      "resource": "quality",
+      "actions": [
+        {
+          "id": "manufacturing:quality.read",
+          "name": "View Quality Checks",
+          "description": "View QC records"
+        },
+        {
+          "id": "manufacturing:quality.create",
+          "name": "Record Quality Check",
+          "description": "Log QC results"
+        },
+        {
+          "id": "manufacturing:quality.approve",
+          "name": "Approve Quality Check",
+          "description": "Pass or fail QC lots"
+        }
+      ]
+    },
+    {
+      "resource": "machine",
+      "actions": [
+        {
+          "id": "manufacturing:machine.read",
+          "name": "View Machines",
+          "description": "View machine records"
+        },
+        {
+          "id": "manufacturing:machine.create",
+          "name": "Create Machine",
+          "description": "Register machines"
+        },
+        {
+          "id": "manufacturing:machine.update",
+          "name": "Update Machine",
+          "description": "Edit machine data"
+        }
+      ]
+    },
+    {
+      "resource": "routing",
+      "actions": [
+        {
+          "id": "manufacturing:routing.read",
+          "name": "View Routings",
+          "description": "View production routings"
+        },
+        {
+          "id": "manufacturing:routing.create",
+          "name": "Create Routing",
+          "description": "Define production routings"
+        },
+        {
+          "id": "manufacturing:routing.update",
+          "name": "Update Routing",
+          "description": "Edit routings"
+        }
+      ]
+    },
+    {
+      "resource": "waste",
+      "actions": [
+        {
+          "id": "manufacturing:waste.read",
+          "name": "View Waste Records",
+          "description": "View waste/by-products"
+        },
+        {
+          "id": "manufacturing:waste.create",
+          "name": "Record Waste",
+          "description": "Log waste and by-products"
+        }
+      ]
+    },
+    {
+      "resource": "reports",
+      "actions": [
+        {
+          "id": "manufacturing:reports.view",
+          "name": "View Reports",
+          "description": "Access production reports"
+        }
+      ]
+    },
+    {
+      "resource": "settings",
+      "actions": [
+        {
+          "id": "manufacturing:settings.manage",
+          "name": "Manage Settings",
+          "description": "Configure manufacturing settings"
+        }
+      ]
+    },
+    {
+      "resource": "sync",
+      "actions": [
+        {
+          "id": "manufacturing:sync.pull",
+          "name": "Sync Pull",
+          "description": "Pull data from core"
+        },
+        {
+          "id": "manufacturing:sync.push",
+          "name": "Sync Push",
+          "description": "Push data to core"
+        }
+      ]
+    }
+  ],
+
+  "entities": [
+    {
+      "name": "BillOfMaterials",
+      "plural": "Bills of Materials",
+      "icon": "Layers",
+      "table": "mfg_bom",
+      "primary_key": "bom_id",
+      "apiPath": "/api/v1/manufacturing/bom",
+      "sync_enabled": false,
+      "fields": [
+        {
+          "name": "bom_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "bom_code",
+          "type": "string",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "product_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "version",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "uom",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "quantity",
+          "type": "decimal",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "routing_id",
+          "type": "uuid",
+          "required": false,
+          "readonly": false
+        }
+      ],
+      "indexes": ["bom_code", "product_id"],
+      "soft_delete": true,
+      "deleted_at_field": "deleted_at"
+    },
+    {
+      "name": "WorkOrder",
+      "plural": "Work Orders",
+      "icon": "ClipboardList",
+      "table": "mfg_work_orders",
+      "primary_key": "wo_id",
+      "apiPath": "/api/v1/manufacturing/work-orders",
+      "sync_enabled": true,
+      "sync_direction": "bidirectional",
+      "fields": [
+        { "name": "wo_id", "type": "uuid", "required": true, "readonly": true },
+        {
+          "name": "wo_number",
+          "type": "string",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "bom_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "product_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "planned_quantity",
+          "type": "decimal",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "produced_quantity",
+          "type": "decimal",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "scheduled_start",
+          "type": "timestamp",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "scheduled_end",
+          "type": "timestamp",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "actual_start",
+          "type": "timestamp",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "actual_end",
+          "type": "timestamp",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": [
+            "draft",
+            "confirmed",
+            "in_progress",
+            "paused",
+            "completed",
+            "cancelled"
+          ]
+        },
+        {
+          "name": "assigned_to",
+          "type": "uuid",
+          "required": false,
+          "readonly": false
+        }
+      ],
+      "indexes": ["wo_number", "product_id", "status"],
+      "soft_delete": false
+    },
+    {
+      "name": "QualityCheck",
+      "plural": "Quality Checks",
+      "icon": "BadgeCheck",
+      "table": "mfg_quality_checks",
+      "primary_key": "qc_id",
+      "apiPath": "/api/v1/manufacturing/quality",
+      "sync_enabled": false,
+      "fields": [
+        { "name": "qc_id", "type": "uuid", "required": true, "readonly": true },
+        {
+          "name": "wo_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "check_date",
+          "type": "timestamp",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "inspector_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "sample_size",
+          "type": "integer",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "passed_count",
+          "type": "integer",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "failed_count",
+          "type": "integer",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "result",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": ["pass", "fail", "conditional"]
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "readonly": false
+        }
+      ],
+      "indexes": ["wo_id", "result"],
+      "soft_delete": false
+    },
+    {
+      "name": "Machine",
+      "plural": "Machines",
+      "icon": "Cpu",
+      "table": "mfg_machines",
+      "primary_key": "machine_id",
+      "apiPath": "/api/v1/manufacturing/machines",
+      "sync_enabled": false,
+      "fields": [
+        {
+          "name": "machine_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "machine_code",
+          "type": "string",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "category",
+          "type": "string",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "workcenter",
+          "type": "string",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "capacity_per_hour",
+          "type": "decimal",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "last_maintenance_date",
+          "type": "date",
+          "required": false,
+          "readonly": false
+        }
+      ],
+      "indexes": ["machine_code"],
+      "soft_delete": true,
+      "deleted_at_field": "deleted_at"
+    }
+  ],
+
+  "events": {
+    "published": [
+      {
+        "name": "manufacturing:wo.created",
+        "description": "Fired when a work order is created"
+      },
+      {
+        "name": "manufacturing:wo.started",
+        "description": "Fired when production starts on a work order"
+      },
+      {
+        "name": "manufacturing:wo.completed",
+        "description": "Fired when a work order is finished"
+      },
+      {
+        "name": "manufacturing:qc.passed",
+        "description": "Fired when a QC check passes"
+      },
+      {
+        "name": "manufacturing:qc.failed",
+        "description": "Fired when a QC check fails"
+      },
+      {
+        "name": "manufacturing:materials.issued",
+        "description": "Fired when raw materials are consumed"
+      }
+    ],
+    "subscribed": [
+      {
+        "name": "inventory:stock.adjusted",
+        "handler": "manufacturing:sync.recheck_material_availability"
+      },
+      {
+        "name": "procurement:grn.completed",
+        "handler": "manufacturing:sync.update_material_availability"
+      }
+    ]
+  },
+
+  "api": {
+    "base_path": "/api/v1/manufacturing",
+    "auth": "bearer_token",
+    "rate_limit": { "requests_per_minute": 300, "burst": 50 },
+    "endpoints": [
+      { "method": "GET", "path": "/bom", "scope": "manufacturing:bom.read" },
+      { "method": "POST", "path": "/bom", "scope": "manufacturing:bom.create" },
+      {
+        "method": "PUT",
+        "path": "/bom/:id",
+        "scope": "manufacturing:bom.update"
+      },
+      {
+        "method": "DELETE",
+        "path": "/bom/:id",
+        "scope": "manufacturing:bom.delete"
+      },
+      {
+        "method": "GET",
+        "path": "/work-orders",
+        "scope": "manufacturing:workorder.read"
+      },
+      {
+        "method": "POST",
+        "path": "/work-orders",
+        "scope": "manufacturing:workorder.create"
+      },
+      {
+        "method": "PUT",
+        "path": "/work-orders/:id",
+        "scope": "manufacturing:workorder.update"
+      },
+      {
+        "method": "POST",
+        "path": "/work-orders/:id/close",
+        "scope": "manufacturing:workorder.close"
+      },
+      { "method": "GET", "path": "/plans", "scope": "manufacturing:plan.read" },
+      {
+        "method": "POST",
+        "path": "/plans",
+        "scope": "manufacturing:plan.create"
+      },
+      {
+        "method": "GET",
+        "path": "/quality",
+        "scope": "manufacturing:quality.read"
+      },
+      {
+        "method": "POST",
+        "path": "/quality",
+        "scope": "manufacturing:quality.create"
+      },
+      {
+        "method": "POST",
+        "path": "/quality/:id/approve",
+        "scope": "manufacturing:quality.approve"
+      },
+      {
+        "method": "GET",
+        "path": "/machines",
+        "scope": "manufacturing:machine.read"
+      },
+      {
+        "method": "POST",
+        "path": "/machines",
+        "scope": "manufacturing:machine.create"
+      },
+      {
+        "method": "GET",
+        "path": "/routings",
+        "scope": "manufacturing:routing.read"
+      },
+      {
+        "method": "GET",
+        "path": "/reports",
+        "scope": "manufacturing:reports.view"
+      },
+      {
+        "method": "POST",
+        "path": "/sync/pull",
+        "scope": "manufacturing:sync.pull"
+      },
+      {
+        "method": "POST",
+        "path": "/sync/push",
+        "scope": "manufacturing:sync.push"
+      }
+    ]
+  },
+
+  "health_check": {
+    "endpoint": "/api/v1/manufacturing/health",
+    "interval_seconds": 60,
+    "timeout_seconds": 5
+  },
+
+  "logging": {
+    "level": "info",
+    "audit_trail": true,
+    "sensitive_fields_masked": []
+  }
+}

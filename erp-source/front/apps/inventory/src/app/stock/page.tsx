@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { AlertTriangle } from "lucide-react";
-import { LoadingSpinner, EmptyState } from "@erp/ui";
+import { Alert, DataTable, LoadingSpinner, EmptyState, PageHeader, type TableColumn } from "@erp/ui";
 import { api, type StockLevel } from "../../lib/api";
 
 export default function StockLevelsPage() {
@@ -27,50 +27,29 @@ export default function StockLevelsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Stock Levels</h1>
-        <p className="text-sm text-gray-500 mt-1">Current inventory quantities by warehouse</p>
-      </div>
+      <PageHeader title="Stock Levels" description="Current inventory quantities by warehouse" />
 
       {loading && <LoadingSpinner />}
-      {error && <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+      {error && <Alert variant="error">{error}</Alert>}
 
-      {!loading && !error && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          {levels.length === 0 ? (
-            <EmptyState title="No stock data" description="No stock levels found." />
-          ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Item</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Warehouse</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">On Hand</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Reserved</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Available</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Alert</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {levels.map((s, i) => (
-                  <tr key={i} className={`hover:bg-gray-50 ${s.isBelowReorder ? "bg-red-50" : ""}`}>
-                    <td className="px-4 py-3 text-sm font-mono text-gray-700">{s.sku}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{s.itemName}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{s.warehouseName}</td>
-                    <td className="px-4 py-3 text-sm text-right text-gray-900">{s.quantityOnHand}</td>
-                    <td className="px-4 py-3 text-sm text-right text-gray-500">{s.quantityReserved}</td>
-                    <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">{s.quantityAvailable}</td>
-                    <td className="px-4 py-3 text-center">
-                      {s.isBelowReorder && <AlertTriangle className="w-4 h-4 text-red-500 mx-auto" />}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
+      {!loading && !error && (() => {
+        const stockColumns: TableColumn<StockLevel>[] = [
+          { key: 'sku', header: 'SKU', render: (s) => <span className="text-sm font-mono text-gray-700">{s.sku}</span> },
+          { key: 'itemName', header: 'Item', render: (s) => <span className="text-sm text-gray-900">{s.itemName}</span> },
+          { key: 'warehouseName', header: 'Warehouse', render: (s) => <span className="text-sm text-gray-500">{s.warehouseName}</span> },
+          { key: 'quantityOnHand', header: 'On Hand', align: 'right' as const, render: (s) => <span className="text-sm text-gray-900">{s.quantityOnHand}</span> },
+          { key: 'quantityReserved', header: 'Reserved', align: 'right' as const, render: (s) => <span className="text-sm text-gray-500">{s.quantityReserved}</span> },
+          { key: 'quantityAvailable', header: 'Available', align: 'right' as const, render: (s) => <span className="text-sm font-medium text-gray-900">{s.quantityAvailable}</span> },
+          {
+            key: 'isBelowReorder', header: 'Alert', align: 'center' as const, render: (s) => (
+              s.isBelowReorder ? <AlertTriangle className="w-4 h-4 text-red-500 mx-auto" /> : null
+            )
+          },
+        ];
+        return levels.length === 0
+          ? <EmptyState title="No stock data" description="No stock levels found." />
+          : <DataTable<StockLevel> columns={stockColumns} data={levels} keyExtractor={(s, i) => String(i)} />;
+      })()}
     </div>
   );
 }

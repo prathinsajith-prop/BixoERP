@@ -10,7 +10,7 @@ interface CardProps {
 
 export function Card({ children, className = "", padding = true }: CardProps) {
   return (
-    <div className={`bg-white rounded-xl border border-gray-200 shadow-sm ${padding ? "p-6" : ""} ${className}`}>
+    <div className={`gogo-card ${padding ? "p-6" : ""} ${className}`}>
       {children}
     </div>
   );
@@ -26,8 +26,8 @@ export function CardHeader({ title, description, action }: CardHeaderProps) {
   return (
     <div className="flex items-center justify-between mb-4">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-        {description && <p className="text-sm text-gray-500 mt-0.5">{description}</p>}
+        <h3 className="text-[length:var(--font-size-h6)] font-semibold text-[var(--gogo-text-primary)]">{title}</h3>
+        {description && <p className="mt-0.5 text-sm text-[var(--gogo-text-secondary)]">{description}</p>}
       </div>
       {action && <div>{action}</div>}
     </div>

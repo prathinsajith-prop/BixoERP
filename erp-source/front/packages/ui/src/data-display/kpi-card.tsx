@@ -13,11 +13,16 @@ interface KPICardProps {
 
 export function KPICard({ title, value, change, trend, icon, subtitle }: KPICardProps) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+    <div
+      className="gogo-card p-6"
+      style={{ backgroundColor: 'var(--gogo-surface)', borderRadius: 'var(--radius-card)', boxShadow: 'var(--shadow-card)', transition: 'box-shadow 0.2s' }}
+      onMouseEnter={e => (e.currentTarget.style.boxShadow = 'var(--shadow-hover)')}
+      onMouseLeave={e => (e.currentTarget.style.boxShadow = 'var(--shadow-card)')}
+    >
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="mt-1 text-2xl font-bold text-gray-900">{value}</p>
+          <p className="text-sm font-medium" style={{ color: 'var(--gogo-text-secondary)' }}>{title}</p>
+          <p className="mt-1 text-2xl font-bold" style={{ color: 'var(--gogo-text-primary)' }}>{value}</p>
           {(change !== undefined || subtitle) && (
             <div className="mt-1 flex items-center gap-1.5">
               {change !== undefined && (
@@ -30,12 +35,12 @@ export function KPICard({ title, value, change, trend, icon, subtitle }: KPICard
                   {Math.abs(change).toFixed(1)}%
                 </span>
               )}
-              {subtitle && <span className="text-xs text-gray-400">{subtitle}</span>}
+              {subtitle && <span className="text-xs" style={{ color: 'var(--gogo-text-secondary)' }}>{subtitle}</span>}
             </div>
           )}
         </div>
         {icon && (
-          <div className="flex-shrink-0 p-3 bg-accent-50 rounded-lg text-accent-600">{icon}</div>
+          <div className="flex-shrink-0 p-3 rounded-lg" style={{ backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 10%, transparent)', color: 'var(--gogo-primary)' }}>{icon}</div>
         )}
       </div>
     </div>

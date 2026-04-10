@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Modal, Button, Input, Select, Textarea, LoadingSpinner, EmptyState } from "@erp/ui";
+import { DataTable, Modal, Button, Input, Select, Textarea, LoadingSpinner, EmptyState, PageHeader, StatusBadge, ActionButtons, type ActionButtonItem, type TableColumn } from "@erp/ui";
 import { showToast } from "@erp/shell";
 import { api, type LeaveRequestResponse, type EmployeeResponse } from "../../lib/api";
 
@@ -25,13 +25,6 @@ const rejectSchema = z.object({
   reason: z.string().min(3, "Please provide a rejection reason (min. 3 characters)"),
 });
 type RejectFormData = z.infer<typeof rejectSchema>;
-
-const statusStyles: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  APPROVED: "bg-green-100 text-green-800",
-  REJECTED: "bg-red-100 text-red-800",
-  CANCELLED: "bg-gray-100 text-gray-800",
-};
 
 const leaveTypeOptions = [
   { value: "", label: "Select type" },
@@ -147,25 +140,70 @@ export default function LeaveRequestsPage() {
     }
   }
 
+  const leaveColumns: TableColumn<LeaveRequestResponse>[] = [
+    {
+      key: 'employeeName',
+      header: 'Employee',
+      render: (lr) => <p className="text-sm font-medium text-gray-900 dark:text-white">{lr.employeeName ?? 'Unknown'}</p>,
+    },
+    {
+      key: 'leaveType',
+      header: 'Type',
+      render: (lr) => <span className="text-sm text-gray-700 capitalize dark:text-gray-300">{lr.leaveType.toLowerCase()}</span>,
+    },
+    {
+      key: 'startDate',
+      header: 'Dates',
+      render: (lr) => (
+        <span className="text-sm text-gray-500 dark:text-gray-400">
+          {new Date(lr.startDate).toLocaleDateString()} → {new Date(lr.endDate).toLocaleDateString()}
+        </span>
+      ),
+    },
+    { key: 'totalDays', header: 'Days', align: 'center' as const },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (lr) => <StatusBadge status={lr.status} />,
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right' as const,
+      render: (lr) =>
+        lr.status === 'PENDING' ? (
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={(e) => { e.stopPropagation(); handleApprove(lr.id); }}
+              disabled={actionLoading === lr.id}
+              className="text-xs text-green-600 hover:text-green-700 font-medium disabled:opacity-50"
+            >Approve</button>
+            <button
+              onClick={(e) => { e.stopPropagation(); openRejectModal(lr.id); }}
+              disabled={actionLoading === lr.id}
+              className="text-xs text-red-600 hover:text-red-700 font-medium disabled:opacity-50"
+            >Reject</button>
+          </div>
+        ) : null,
+    },
+  ];
+
   if (loading) return <LoadingSpinner />;
   if (error) return <EmptyState title="Error loading leave requests" description={error} action={<Button onClick={load}>Retry</Button>} />;
 
   const pendingCount = requests.filter((r) => r.status === "PENDING").length;
 
+  const pageActions: ActionButtonItem[] = [
+    { key: "create", label: "Submit Request", icon: <Plus className="h-3.5 w-3.5" />, variant: "primary", size: "sm", onClick: () => { } },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Leave Requests</h1>
-          <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">
-            {requests.length} total · {pendingCount} pending
-          </p>
-        </div>
-        <Button onClick={() => setShowSubmit(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Submit Request
-        </Button>
-      </div>
+      <PageHeader
+        title="Leave Requests"
+        description={`${requests.length} total · ${pendingCount} pending`}
+        actions={<ActionButtons actions={pageActions} />}
+      />
 
       <div className="flex gap-2">
         <button
@@ -181,55 +219,11 @@ export default function LeaveRequestsPage() {
       {filtered.length === 0 ? (
         <EmptyState title="No leave requests" description={tab === "pending" ? "No pending requests" : "No leave requests yet"} />
       ) : (
-        <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 overflow-x-auto max-w-full dark:bg-gray-800 dark:ring-gray-700">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-800/80">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dates</th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Days</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-              {filtered.map((lr) => (
-                <tr key={lr.id}>
-                  <td className="px-4 py-3">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{lr.employeeName ?? "Unknown"}</p>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-700 capitalize dark:text-gray-300">{lr.leaveType.toLowerCase()}</td>
-                  <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                    {new Date(lr.startDate).toLocaleDateString()} → {new Date(lr.endDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-center text-gray-700 dark:text-gray-300">{lr.totalDays}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium capitalize ${statusStyles[lr.status] ?? "bg-gray-100 text-gray-800"}`}>
-                      {lr.status.toLowerCase()}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {lr.status === "PENDING" && (
-                      <div className="flex gap-2 justify-end">
-                        <button
-                          onClick={() => handleApprove(lr.id)}
-                          disabled={actionLoading === lr.id}
-                          className="text-xs text-green-600 hover:text-green-700 font-medium disabled:opacity-50"
-                        >Approve</button>
-                        <button
-                          onClick={() => openRejectModal(lr.id)}
-                          disabled={actionLoading === lr.id}
-                          className="text-xs text-red-600 hover:text-red-700 font-medium disabled:opacity-50"
-                        >Reject</button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable<LeaveRequestResponse>
+          columns={leaveColumns}
+          data={filtered}
+          keyExtractor={(r) => r.id}
+        />
       )}
 
       {/* Submit leave request modal */}

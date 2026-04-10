@@ -6,7 +6,7 @@ import {
     useMemo,
     type ReactNode,
 } from 'react';
-import { useAuthStore } from '@/store/auth';
+import { useAuthStore } from '@erp/shell';
 
 /**
  * Decoded JWT payload fields that relate to org membership.
@@ -86,7 +86,7 @@ function decodeJwtPayload(token: string): JwtOrgPayload {
 }
 
 export function OrgProvider({ children }: { children: ReactNode }) {
-    const accessToken = useAuthStore((s) => s.accessToken);
+    const accessToken = useAuthStore((s: any) => s.accessToken);
 
     const value = useMemo<OrgContextValue>(() => {
         if (!accessToken) {

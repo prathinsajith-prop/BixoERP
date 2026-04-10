@@ -1,3 +1,5 @@
+import { PageHeader, StatusBadge } from "@erp/ui";
+
 const productionLines = [
   { id: "LINE-01", name: "Assembly Line A", product: "Widget Assembly A", shift: "Day", capacity: 120, output: 105, efficiency: 87.5, status: "running" },
   { id: "LINE-02", name: "SMT Line B", product: "Circuit Board X12", shift: "Day", capacity: 80, output: 76, efficiency: 95.0, status: "running" },
@@ -8,10 +10,7 @@ const productionLines = [
 export default function ProductionPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Production Lines</h1>
-        <p className="text-sm text-gray-500 mt-1">Real-time production monitoring</p>
-      </div>
+      <PageHeader title="Production Lines" description="Real-time production monitoring" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {productionLines.map((line) => (
@@ -21,7 +20,7 @@ export default function ProductionPage() {
                 <h3 className="text-base font-semibold text-gray-900">{line.name}</h3>
                 <p className="text-sm text-gray-500">{line.product} · {line.shift} Shift</p>
               </div>
-              <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${line.status === "running" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>{line.status}</span>
+              <StatusBadge status={line.status} />
             </div>
 
             <div className="grid grid-cols-3 gap-4 text-center">

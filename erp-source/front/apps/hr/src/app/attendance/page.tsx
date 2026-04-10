@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Calendar, Clock, Download, ChevronLeft, ChevronRight, Check, X, AlertCircle } from "lucide-react";
 import { showToast } from "@erp/shell";
+import { DataTable, PageHeader, StatusBadge, type TableColumn } from "@erp/ui";
 import { api, type AttendanceRecord, type AttendanceStatsResponse, type EmployeeResponse } from "../../lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -17,16 +18,6 @@ const STATUS_DOT: Record<string, string> = {
     ON_LEAVE: "bg-blue-400",
     HOLIDAY: "bg-gray-400",
     WEEKEND: "bg-gray-300",
-};
-
-const STATUS_BADGE: Record<string, string> = {
-    PRESENT: "bg-green-100 text-green-800",
-    ABSENT: "bg-red-100 text-red-800",
-    LATE: "bg-amber-100 text-amber-800",
-    HALF_DAY: "bg-amber-50 text-amber-700",
-    ON_LEAVE: "bg-blue-100 text-blue-800",
-    HOLIDAY: "bg-gray-100 text-gray-600",
-    WEEKEND: "bg-gray-50 text-gray-400",
 };
 
 function fmtTime(ts: string | null): string {
@@ -53,6 +44,43 @@ function TodayTab({ records, employees, loading }: {
     loading: boolean;
 }) {
     const empMap = new Map(employees.map((e) => [e.id, `${e.firstName} ${e.lastName}`]));
+
+    const todayColumns: TableColumn<AttendanceRecord>[] = [
+        {
+            key: 'employeeId',
+            header: 'Employee',
+            render: (r) => (
+                <span className="font-medium text-gray-900 dark:text-gray-100">
+                    {empMap.get(r.employeeId) ?? r.employeeId.slice(0, 8)}
+                </span>
+            ),
+        },
+        {
+            key: 'status',
+            header: 'Status',
+            render: (r) => <StatusBadge status={r.status} />,
+        },
+        {
+            key: 'checkInAt',
+            header: 'Check In',
+            render: (r) => <span className="font-mono text-xs text-gray-600 dark:text-gray-300">{fmtTime(r.checkInAt)}</span>,
+        },
+        {
+            key: 'checkOutAt',
+            header: 'Check Out',
+            render: (r) => <span className="font-mono text-xs text-gray-600 dark:text-gray-300">{fmtTime(r.checkOutAt)}</span>,
+        },
+        {
+            key: 'workingMinutes',
+            header: 'Working',
+            render: (r) => <span className="text-gray-600 dark:text-gray-300">{fmtMinutes(r.workingMinutes)}</span>,
+        },
+        {
+            key: 'overtimeMinutes',
+            header: 'Overtime',
+            render: (r) => <span className="text-gray-600 dark:text-gray-300">{fmtMinutes(r.overtimeMinutes)}</span>,
+        },
+    ];
 
     if (loading) {
         return (
@@ -96,38 +124,11 @@ function TodayTab({ records, employees, loading }: {
             </div>
 
             {/* Table */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-                <table className="min-w-full text-sm">
-                    <thead>
-                        <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
-                            {["Employee", "Status", "Check In", "Check Out", "Working", "Overtime"].map((h) => (
-                                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                                    {h}
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {records.map((r) => (
-                            <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
-                                    {empMap.get(r.employeeId) ?? r.employeeId.slice(0, 8)}
-                                </td>
-                                <td className="px-4 py-3">
-                                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE[r.status] ?? "bg-gray-100 text-gray-600"}`}>
-                                        <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[r.status] ?? "bg-gray-400"}`} />
-                                        {r.status}
-                                    </span>
-                                </td>
-                                <td className="px-4 py-3 text-gray-600 dark:text-gray-300 font-mono text-xs">{fmtTime(r.checkInAt)}</td>
-                                <td className="px-4 py-3 text-gray-600 dark:text-gray-300 font-mono text-xs">{fmtTime(r.checkOutAt)}</td>
-                                <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{fmtMinutes(r.workingMinutes)}</td>
-                                <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{fmtMinutes(r.overtimeMinutes)}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+            <DataTable<AttendanceRecord>
+                columns={todayColumns}
+                data={records}
+                keyExtractor={(r) => r.id}
+            />
         </div>
     );
 }
@@ -309,32 +310,32 @@ export default function AttendancePage() {
     return (
         <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Attendance</h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{today}</p>
-                </div>
-                <button
-                    onClick={() => {
-                        const csvData = todayRecords.map((r) =>
-                            `${r.employeeId},${r.date},${r.status},${fmtTime(r.checkInAt)},${fmtTime(r.checkOutAt)},${fmtMinutes(r.workingMinutes)}`
-                        );
-                        const blob = new Blob([["Employee ID,Date,Status,Check In,Check Out,Working\n", ...csvData.map((r) => r + "\n")].join("")], { type: "text/csv" });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = `attendance-${new Date().toISOString().split("T")[0]}.csv`;
-                        a.click();
-                        URL.revokeObjectURL(url);
-                    }}
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600
+            <PageHeader
+                title="Attendance"
+                description={today}
+                actions={
+                    <button
+                        onClick={() => {
+                            const csvData = todayRecords.map((r) =>
+                                `${r.employeeId},${r.date},${r.status},${fmtTime(r.checkInAt)},${fmtTime(r.checkOutAt)},${fmtMinutes(r.workingMinutes)}`
+                            );
+                            const blob = new Blob([["Employee ID,Date,Status,Check In,Check Out,Working\n", ...csvData.map((r) => r + "\n")].join("")], { type: "text/csv" });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = `attendance-${new Date().toISOString().split("T")[0]}.csv`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                        }}
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600
             text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800
             hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                    <Download size={15} />
-                    Export CSV
-                </button>
-            </div>
+                    >
+                        <Download size={15} />
+                        Export CSV
+                    </button>
+                }
+            />
 
             {/* Tabs */}
             <div className="border-b border-gray-200 dark:border-gray-700">
@@ -344,8 +345,8 @@ export default function AttendancePage() {
                             key={t.key}
                             onClick={() => setTab(t.key)}
                             className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${tab === t.key
-                                    ? "border-primary-500 text-primary-600 dark:text-primary-400"
-                                    : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                                ? "border-primary-500 text-primary-600 dark:text-primary-400"
+                                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                                 }`}
                         >
                             {t.label}

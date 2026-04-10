@@ -2,10 +2,10 @@
 
 import React from "react";
 
-type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "outline";
-type ButtonSize = "sm" | "md" | "lg";
+export type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "outline";
+export type ButtonSize = "sm" | "md" | "lg";
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
@@ -13,11 +13,11 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: "bg-accent-600 text-white hover:bg-accent-700 focus:ring-accent-500",
-  secondary: "bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500",
-  danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
-  ghost: "bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-500",
-  outline: "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-accent-500",
+  primary: "gogo-btn-primary shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-hover)] focus:ring-2 focus:ring-[var(--gogo-primary)]/20 focus:ring-offset-2",
+  secondary: "bg-[var(--gogo-text-secondary)] text-white hover:opacity-90 focus:ring-2 focus:ring-[var(--gogo-text-secondary)]/20 focus:ring-offset-2",
+  danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500/20 focus:ring-offset-2",
+  ghost: "bg-transparent text-[var(--gogo-text-primary)] hover:bg-[var(--gogo-grey-100)] focus:ring-2 focus:ring-[var(--gogo-primary)]/20",
+  outline: "border border-[var(--gogo-divider)] bg-[var(--gogo-surface)] text-[var(--gogo-text-primary)] hover:bg-[var(--gogo-grey-100)] focus:ring-2 focus:ring-[var(--gogo-primary)]/20 focus:ring-offset-2",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -37,7 +37,7 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      className={`gogo-btn inline-flex items-center justify-center font-medium transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
       disabled={disabled || loading}
       {...props}
     >

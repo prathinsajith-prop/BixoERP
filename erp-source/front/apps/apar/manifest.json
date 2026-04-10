@@ -1,0 +1,1151 @@
+{
+  "manifest_version": "1.0.0",
+
+  "module": {
+    "id": "apar_module",
+    "name": "Accounts Payable & Receivable",
+    "version": "1.0.0",
+    "description": "Full AP/AR lifecycle — vendor and customer invoices, credit notes, payments, aging reports, and statement reconciliation.",
+    "author": "Bixo",
+    "license": "proprietary",
+    "namespace": "erp.modules.apar"
+  },
+
+  "compatibility": {
+    "core_min_version": "1.0.0",
+    "core_max_version": "2.x",
+    "api_version": "v1",
+    "dependencies": [
+      { "module": "core", "version": ">=1.0.0", "optional": false },
+      { "module": "finance_module", "version": ">=1.0.0", "optional": false },
+      { "module": "auth_module", "version": ">=1.0.0", "optional": false },
+      {
+        "module": "notifications_module",
+        "version": ">=1.0.0",
+        "optional": true
+      }
+    ]
+  },
+
+  "sync": {
+    "strategy": "incremental",
+    "direction": "bidirectional",
+    "trigger": "event_driven",
+    "polling_interval_seconds": 300,
+    "retry_policy": {
+      "max_attempts": 3,
+      "backoff_strategy": "exponential",
+      "initial_delay_ms": 1000
+    },
+    "conflict_resolution": "last_write_wins",
+    "batch_size": 150
+  },
+
+  "ui": {
+    "icon": "FileText",
+    "color": "blue",
+    "basePath": "/apar",
+    "position": 2,
+    "menu": [
+      {
+        "label": "Dashboard",
+        "href": "/apar",
+        "icon": "LayoutDashboard",
+        "permission": "apar:dashboard.view",
+        "visibleTo": [
+          "apar_admin",
+          "apar_manager",
+          "apar_officer",
+          "apar_viewer"
+        ],
+        "position": 1
+      },
+      {
+        "label": "Vendors",
+        "href": "/apar/vendors",
+        "icon": "Truck",
+        "permission": "apar:vendor.read",
+        "visibleTo": [
+          "apar_admin",
+          "apar_manager",
+          "apar_officer",
+          "apar_viewer"
+        ],
+        "position": 2
+      },
+      {
+        "label": "Customers",
+        "href": "/apar/customers",
+        "icon": "Users",
+        "permission": "apar:customer.read",
+        "visibleTo": [
+          "apar_admin",
+          "apar_manager",
+          "apar_officer",
+          "apar_viewer"
+        ],
+        "position": 3
+      },
+      {
+        "label": "Vendor Invoices",
+        "href": "/apar/vendor-invoices",
+        "icon": "FileInput",
+        "permission": "apar:vendor_invoice.read",
+        "visibleTo": [
+          "apar_admin",
+          "apar_manager",
+          "apar_officer",
+          "apar_viewer"
+        ],
+        "position": 4
+      },
+      {
+        "label": "Customer Invoices",
+        "href": "/apar/customer-invoices",
+        "icon": "FileOutput",
+        "permission": "apar:customer_invoice.read",
+        "visibleTo": [
+          "apar_admin",
+          "apar_manager",
+          "apar_officer",
+          "apar_viewer"
+        ],
+        "position": 5
+      },
+      {
+        "label": "Payments",
+        "href": "/apar/payments",
+        "icon": "Wallet",
+        "permission": "apar:payment.read",
+        "visibleTo": ["apar_admin", "apar_manager", "apar_officer"],
+        "position": 6
+      },
+      {
+        "label": "Credit Notes",
+        "href": "/apar/credit-notes",
+        "icon": "FileMinus",
+        "permission": "apar:credit_note.read",
+        "visibleTo": [
+          "apar_admin",
+          "apar_manager",
+          "apar_officer",
+          "apar_viewer"
+        ],
+        "position": 7
+      },
+      {
+        "label": "Aging Reports",
+        "href": "/apar/aging",
+        "icon": "Clock",
+        "permission": "apar:reports.view",
+        "visibleTo": ["apar_admin", "apar_manager", "apar_viewer"],
+        "position": 8
+      },
+      {
+        "label": "Reports",
+        "href": "/apar/reports",
+        "icon": "BarChart3",
+        "permission": "apar:reports.view",
+        "visibleTo": ["apar_admin", "apar_manager", "apar_viewer"],
+        "position": 9
+      },
+      {
+        "label": "Settings",
+        "href": "/apar/settings",
+        "icon": "Settings",
+        "permission": "apar:settings.manage",
+        "visibleTo": ["apar_admin"],
+        "position": 10
+      }
+    ],
+    "widgets": [
+      {
+        "id": "apar_ap_outstanding",
+        "label": "Outstanding Payables",
+        "dashboard": true,
+        "size": "medium"
+      },
+      {
+        "id": "apar_ar_outstanding",
+        "label": "Outstanding Receivables",
+        "dashboard": true,
+        "size": "medium"
+      },
+      {
+        "id": "apar_overdue_invoices",
+        "label": "Overdue Invoices",
+        "dashboard": true,
+        "size": "small"
+      },
+      {
+        "id": "apar_payments_due",
+        "label": "Upcoming Payments",
+        "dashboard": true,
+        "size": "small"
+      },
+      {
+        "id": "apar_cashflow_forecast",
+        "label": "Cash Flow Forecast",
+        "dashboard": true,
+        "size": "large"
+      }
+    ]
+  },
+
+  "ports": {
+    "frontend": 4002,
+    "backend": 3002
+  },
+
+  "tier": "standard",
+
+  "roles": [
+    {
+      "id": "apar_admin",
+      "name": "AP/AR Administrator",
+      "description": "Full access to all AP/AR features",
+      "scopes": [
+        "apar:dashboard.view",
+        "apar:vendor.read",
+        "apar:vendor.create",
+        "apar:vendor.update",
+        "apar:vendor.delete",
+        "apar:customer.read",
+        "apar:customer.create",
+        "apar:customer.update",
+        "apar:customer.delete",
+        "apar:vendor_invoice.read",
+        "apar:vendor_invoice.create",
+        "apar:vendor_invoice.update",
+        "apar:vendor_invoice.delete",
+        "apar:vendor_invoice.approve",
+        "apar:customer_invoice.read",
+        "apar:customer_invoice.create",
+        "apar:customer_invoice.update",
+        "apar:customer_invoice.delete",
+        "apar:customer_invoice.send",
+        "apar:payment.read",
+        "apar:payment.create",
+        "apar:payment.update",
+        "apar:payment.delete",
+        "apar:credit_note.read",
+        "apar:credit_note.create",
+        "apar:credit_note.update",
+        "apar:reports.view",
+        "apar:settings.manage",
+        "apar:sync.pull",
+        "apar:sync.push"
+      ]
+    },
+    {
+      "id": "apar_manager",
+      "name": "AP/AR Manager",
+      "description": "Manage invoices, payments, and approve transactions",
+      "scopes": [
+        "apar:dashboard.view",
+        "apar:vendor.read",
+        "apar:customer.read",
+        "apar:vendor_invoice.read",
+        "apar:vendor_invoice.create",
+        "apar:vendor_invoice.update",
+        "apar:vendor_invoice.approve",
+        "apar:customer_invoice.read",
+        "apar:customer_invoice.create",
+        "apar:customer_invoice.update",
+        "apar:customer_invoice.send",
+        "apar:payment.read",
+        "apar:payment.create",
+        "apar:credit_note.read",
+        "apar:credit_note.create",
+        "apar:reports.view"
+      ]
+    },
+    {
+      "id": "apar_officer",
+      "name": "AP/AR Officer",
+      "description": "Create and manage invoices and payments",
+      "scopes": [
+        "apar:dashboard.view",
+        "apar:vendor.read",
+        "apar:customer.read",
+        "apar:vendor_invoice.read",
+        "apar:vendor_invoice.create",
+        "apar:vendor_invoice.update",
+        "apar:customer_invoice.read",
+        "apar:customer_invoice.create",
+        "apar:customer_invoice.update",
+        "apar:payment.read",
+        "apar:credit_note.read"
+      ]
+    },
+    {
+      "id": "apar_viewer",
+      "name": "AP/AR Viewer",
+      "description": "Read-only access to AP/AR data",
+      "scopes": [
+        "apar:dashboard.view",
+        "apar:vendor.read",
+        "apar:customer.read",
+        "apar:vendor_invoice.read",
+        "apar:customer_invoice.read",
+        "apar:payment.read",
+        "apar:credit_note.read",
+        "apar:reports.view"
+      ]
+    }
+  ],
+
+  "permissions": [
+    {
+      "resource": "dashboard",
+      "actions": [
+        {
+          "id": "apar:dashboard.view",
+          "name": "View Dashboard",
+          "description": "View AP/AR KPIs"
+        }
+      ]
+    },
+    {
+      "resource": "vendor",
+      "actions": [
+        {
+          "id": "apar:vendor.read",
+          "name": "View Vendors",
+          "description": "View vendor list and details"
+        },
+        {
+          "id": "apar:vendor.create",
+          "name": "Create Vendor",
+          "description": "Add new vendors"
+        },
+        {
+          "id": "apar:vendor.update",
+          "name": "Update Vendor",
+          "description": "Edit vendor details"
+        },
+        {
+          "id": "apar:vendor.delete",
+          "name": "Delete Vendor",
+          "description": "Remove vendors"
+        }
+      ]
+    },
+    {
+      "resource": "customer",
+      "actions": [
+        {
+          "id": "apar:customer.read",
+          "name": "View Customers",
+          "description": "View customer list and details"
+        },
+        {
+          "id": "apar:customer.create",
+          "name": "Create Customer",
+          "description": "Add new customers"
+        },
+        {
+          "id": "apar:customer.update",
+          "name": "Update Customer",
+          "description": "Edit customer details"
+        },
+        {
+          "id": "apar:customer.delete",
+          "name": "Delete Customer",
+          "description": "Remove customers"
+        }
+      ]
+    },
+    {
+      "resource": "vendor_invoice",
+      "actions": [
+        {
+          "id": "apar:vendor_invoice.read",
+          "name": "View Vendor Invoices",
+          "description": "View all vendor invoices"
+        },
+        {
+          "id": "apar:vendor_invoice.create",
+          "name": "Create Vendor Invoice",
+          "description": "Record vendor invoices"
+        },
+        {
+          "id": "apar:vendor_invoice.update",
+          "name": "Update Vendor Invoice",
+          "description": "Edit vendor invoices"
+        },
+        {
+          "id": "apar:vendor_invoice.delete",
+          "name": "Delete Vendor Invoice",
+          "description": "Remove vendor invoices"
+        },
+        {
+          "id": "apar:vendor_invoice.approve",
+          "name": "Approve Vendor Invoice",
+          "description": "Approve invoices for payment"
+        }
+      ]
+    },
+    {
+      "resource": "customer_invoice",
+      "actions": [
+        {
+          "id": "apar:customer_invoice.read",
+          "name": "View Customer Invoices",
+          "description": "View all customer invoices"
+        },
+        {
+          "id": "apar:customer_invoice.create",
+          "name": "Create Customer Invoice",
+          "description": "Issue customer invoices"
+        },
+        {
+          "id": "apar:customer_invoice.update",
+          "name": "Update Customer Invoice",
+          "description": "Edit customer invoices"
+        },
+        {
+          "id": "apar:customer_invoice.delete",
+          "name": "Delete Customer Invoice",
+          "description": "Remove customer invoices"
+        },
+        {
+          "id": "apar:customer_invoice.send",
+          "name": "Send Customer Invoice",
+          "description": "Send invoices to customers"
+        }
+      ]
+    },
+    {
+      "resource": "payment",
+      "actions": [
+        {
+          "id": "apar:payment.read",
+          "name": "View Payments",
+          "description": "View all payments"
+        },
+        {
+          "id": "apar:payment.create",
+          "name": "Create Payment",
+          "description": "Record payments"
+        },
+        {
+          "id": "apar:payment.update",
+          "name": "Update Payment",
+          "description": "Edit payment records"
+        },
+        {
+          "id": "apar:payment.delete",
+          "name": "Delete Payment",
+          "description": "Remove payment records"
+        }
+      ]
+    },
+    {
+      "resource": "credit_note",
+      "actions": [
+        {
+          "id": "apar:credit_note.read",
+          "name": "View Credit Notes",
+          "description": "View all credit notes"
+        },
+        {
+          "id": "apar:credit_note.create",
+          "name": "Create Credit Note",
+          "description": "Issue credit notes"
+        },
+        {
+          "id": "apar:credit_note.update",
+          "name": "Update Credit Note",
+          "description": "Edit credit notes"
+        }
+      ]
+    },
+    {
+      "resource": "reports",
+      "actions": [
+        {
+          "id": "apar:reports.view",
+          "name": "View Reports",
+          "description": "Access AP/AR analytics and aging reports"
+        }
+      ]
+    },
+    {
+      "resource": "settings",
+      "actions": [
+        {
+          "id": "apar:settings.manage",
+          "name": "Manage Settings",
+          "description": "Configure AP/AR payment terms and defaults"
+        }
+      ]
+    },
+    {
+      "resource": "sync",
+      "actions": [
+        {
+          "id": "apar:sync.pull",
+          "name": "Sync Pull",
+          "description": "Pull data from core"
+        },
+        {
+          "id": "apar:sync.push",
+          "name": "Sync Push",
+          "description": "Push data to core"
+        }
+      ]
+    }
+  ],
+
+  "entities": [
+    {
+      "name": "Vendor",
+      "plural": "Vendors",
+      "icon": "Truck",
+      "table": "apar_vendors",
+      "primary_key": "vendor_id",
+      "apiPath": "/api/v1/apar/vendors",
+      "sync_enabled": true,
+      "sync_direction": "push_to_core",
+      "fields": [
+        {
+          "name": "vendor_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "vendor_number",
+          "type": "string",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "email",
+          "type": "email",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "phone",
+          "type": "string",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "address",
+          "type": "text",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "tax_number",
+          "type": "string",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "payment_terms_days",
+          "type": "integer",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "bank_account",
+          "type": "string",
+          "required": false,
+          "readonly": false,
+          "sensitive": true
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": true,
+          "readonly": true
+        }
+      ],
+      "indexes": ["vendor_number", "email", "is_active"],
+      "soft_delete": true,
+      "deleted_at_field": "deleted_at"
+    },
+    {
+      "name": "Customer",
+      "plural": "Customers",
+      "icon": "Users",
+      "table": "apar_customers",
+      "primary_key": "customer_id",
+      "apiPath": "/api/v1/apar/customers",
+      "sync_enabled": true,
+      "sync_direction": "push_to_core",
+      "fields": [
+        {
+          "name": "customer_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "customer_number",
+          "type": "string",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "email",
+          "type": "email",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "phone",
+          "type": "string",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "address",
+          "type": "text",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "tax_number",
+          "type": "string",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "credit_limit",
+          "type": "decimal",
+          "required": false,
+          "readonly": false,
+          "sensitive": true
+        },
+        {
+          "name": "payment_terms_days",
+          "type": "integer",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": true,
+          "readonly": true
+        }
+      ],
+      "indexes": ["customer_number", "email", "is_active"],
+      "soft_delete": true,
+      "deleted_at_field": "deleted_at"
+    },
+    {
+      "name": "VendorInvoice",
+      "plural": "Vendor Invoices",
+      "icon": "FileInput",
+      "table": "apar_vendor_invoices",
+      "primary_key": "invoice_id",
+      "apiPath": "/api/v1/apar/vendor-invoices",
+      "sync_enabled": true,
+      "sync_direction": "push_to_core",
+      "fields": [
+        {
+          "name": "invoice_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "invoice_number",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "vendor_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "invoice_date",
+          "type": "date",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "due_date",
+          "type": "date",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "subtotal",
+          "type": "decimal",
+          "required": true,
+          "readonly": false,
+          "sensitive": true
+        },
+        {
+          "name": "tax_amount",
+          "type": "decimal",
+          "required": false,
+          "readonly": false,
+          "sensitive": true
+        },
+        {
+          "name": "total_amount",
+          "type": "decimal",
+          "required": true,
+          "readonly": true,
+          "sensitive": true
+        },
+        {
+          "name": "paid_amount",
+          "type": "decimal",
+          "required": false,
+          "readonly": true,
+          "sensitive": true
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": [
+            "draft",
+            "pending",
+            "approved",
+            "paid",
+            "overdue",
+            "cancelled"
+          ]
+        },
+        {
+          "name": "gl_account_id",
+          "type": "uuid",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": true,
+          "readonly": true
+        }
+      ],
+      "indexes": ["invoice_number", "vendor_id", "status", "due_date"],
+      "soft_delete": true,
+      "deleted_at_field": "deleted_at"
+    },
+    {
+      "name": "CustomerInvoice",
+      "plural": "Customer Invoices",
+      "icon": "FileOutput",
+      "table": "apar_customer_invoices",
+      "primary_key": "invoice_id",
+      "apiPath": "/api/v1/apar/customer-invoices",
+      "sync_enabled": true,
+      "sync_direction": "push_to_core",
+      "fields": [
+        {
+          "name": "invoice_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "invoice_number",
+          "type": "string",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "customer_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "invoice_date",
+          "type": "date",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "due_date",
+          "type": "date",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "subtotal",
+          "type": "decimal",
+          "required": true,
+          "readonly": false,
+          "sensitive": true
+        },
+        {
+          "name": "tax_amount",
+          "type": "decimal",
+          "required": false,
+          "readonly": false,
+          "sensitive": true
+        },
+        {
+          "name": "total_amount",
+          "type": "decimal",
+          "required": true,
+          "readonly": true,
+          "sensitive": true
+        },
+        {
+          "name": "paid_amount",
+          "type": "decimal",
+          "required": false,
+          "readonly": true,
+          "sensitive": true
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": [
+            "draft",
+            "sent",
+            "partially_paid",
+            "paid",
+            "overdue",
+            "cancelled",
+            "void"
+          ]
+        },
+        {
+          "name": "sent_at",
+          "type": "timestamp",
+          "required": false,
+          "readonly": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": true,
+          "readonly": true
+        }
+      ],
+      "indexes": ["invoice_number", "customer_id", "status", "due_date"],
+      "soft_delete": true,
+      "deleted_at_field": "deleted_at"
+    },
+    {
+      "name": "Payment",
+      "plural": "Payments",
+      "icon": "Wallet",
+      "table": "apar_payments",
+      "primary_key": "payment_id",
+      "apiPath": "/api/v1/apar/payments",
+      "sync_enabled": true,
+      "sync_direction": "push_to_core",
+      "fields": [
+        {
+          "name": "payment_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "payment_number",
+          "type": "string",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "type",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": ["incoming", "outgoing"]
+        },
+        {
+          "name": "party_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "party_type",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": ["vendor", "customer"]
+        },
+        {
+          "name": "invoice_id",
+          "type": "uuid",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "amount",
+          "type": "decimal",
+          "required": true,
+          "readonly": false,
+          "sensitive": true
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "payment_date",
+          "type": "date",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "method",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": [
+            "bank_transfer",
+            "cheque",
+            "cash",
+            "credit_card",
+            "online"
+          ]
+        },
+        {
+          "name": "reference",
+          "type": "string",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": ["pending", "processed", "failed", "reversed"]
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": true,
+          "readonly": true
+        }
+      ],
+      "indexes": ["payment_number", "party_id", "status", "payment_date"]
+    }
+  ],
+
+  "events": {
+    "published": [
+      {
+        "name": "apar:vendor_invoice.created",
+        "description": "Fired when a vendor invoice is created"
+      },
+      {
+        "name": "apar:vendor_invoice.approved",
+        "description": "Fired when a vendor invoice is approved"
+      },
+      {
+        "name": "apar:customer_invoice.sent",
+        "description": "Fired when a customer invoice is sent"
+      },
+      {
+        "name": "apar:payment.processed",
+        "description": "Fired when a payment is processed"
+      },
+      {
+        "name": "apar:invoice.overdue",
+        "description": "Fired when an invoice becomes overdue"
+      },
+      {
+        "name": "apar:credit_note.issued",
+        "description": "Fired when a credit note is issued"
+      }
+    ],
+    "subscribed": [
+      {
+        "name": "procurement:po.approved",
+        "handler": "apar:sync.create_vendor_invoice"
+      },
+      {
+        "name": "sales:order.invoiced",
+        "handler": "apar:sync.create_customer_invoice"
+      },
+      {
+        "name": "finance:period.closed",
+        "handler": "apar:sync.period_close_reconcile"
+      }
+    ]
+  },
+
+  "api": {
+    "base_path": "/api/v1/apar",
+    "auth": "bearer_token",
+    "rate_limit": { "requests_per_minute": 350, "burst": 50 },
+    "endpoints": [
+      { "method": "GET", "path": "/vendors", "scope": "apar:vendor.read" },
+      { "method": "POST", "path": "/vendors", "scope": "apar:vendor.create" },
+      { "method": "GET", "path": "/vendors/:id", "scope": "apar:vendor.read" },
+      {
+        "method": "PUT",
+        "path": "/vendors/:id",
+        "scope": "apar:vendor.update"
+      },
+      {
+        "method": "DELETE",
+        "path": "/vendors/:id",
+        "scope": "apar:vendor.delete"
+      },
+      { "method": "GET", "path": "/customers", "scope": "apar:customer.read" },
+      {
+        "method": "POST",
+        "path": "/customers",
+        "scope": "apar:customer.create"
+      },
+      {
+        "method": "GET",
+        "path": "/customers/:id",
+        "scope": "apar:customer.read"
+      },
+      {
+        "method": "PUT",
+        "path": "/customers/:id",
+        "scope": "apar:customer.update"
+      },
+      {
+        "method": "GET",
+        "path": "/vendor-invoices",
+        "scope": "apar:vendor_invoice.read"
+      },
+      {
+        "method": "POST",
+        "path": "/vendor-invoices",
+        "scope": "apar:vendor_invoice.create"
+      },
+      {
+        "method": "GET",
+        "path": "/vendor-invoices/:id",
+        "scope": "apar:vendor_invoice.read"
+      },
+      {
+        "method": "PUT",
+        "path": "/vendor-invoices/:id",
+        "scope": "apar:vendor_invoice.update"
+      },
+      {
+        "method": "POST",
+        "path": "/vendor-invoices/:id/approve",
+        "scope": "apar:vendor_invoice.approve"
+      },
+      {
+        "method": "GET",
+        "path": "/customer-invoices",
+        "scope": "apar:customer_invoice.read"
+      },
+      {
+        "method": "POST",
+        "path": "/customer-invoices",
+        "scope": "apar:customer_invoice.create"
+      },
+      {
+        "method": "PUT",
+        "path": "/customer-invoices/:id",
+        "scope": "apar:customer_invoice.update"
+      },
+      {
+        "method": "POST",
+        "path": "/customer-invoices/:id/send",
+        "scope": "apar:customer_invoice.send"
+      },
+      { "method": "GET", "path": "/payments", "scope": "apar:payment.read" },
+      { "method": "POST", "path": "/payments", "scope": "apar:payment.create" },
+      {
+        "method": "GET",
+        "path": "/aging/payables",
+        "scope": "apar:reports.view"
+      },
+      {
+        "method": "GET",
+        "path": "/aging/receivables",
+        "scope": "apar:reports.view"
+      },
+      { "method": "POST", "path": "/sync/pull", "scope": "apar:sync.pull" },
+      { "method": "POST", "path": "/sync/push", "scope": "apar:sync.push" }
+    ]
+  },
+
+  "health_check": {
+    "endpoint": "/api/v1/apar/health",
+    "interval_seconds": 60,
+    "timeout_seconds": 5
+  },
+
+  "logging": {
+    "level": "info",
+    "audit_trail": true,
+    "sensitive_fields_masked": [
+      "total_amount",
+      "paid_amount",
+      "subtotal",
+      "tax_amount",
+      "amount",
+      "credit_limit",
+      "bank_account"
+    ]
+  }
+}

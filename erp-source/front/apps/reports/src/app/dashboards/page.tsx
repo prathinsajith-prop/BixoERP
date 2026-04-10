@@ -1,4 +1,7 @@
+"use client";
+
 import { Plus, BarChart3 } from "lucide-react";
+import { PageHeader, ActionButtons, type ActionButtonItem } from "@erp/ui";
 
 const dashboards = [
   { id: 1, name: "Executive Overview", desc: "Key KPIs across all modules", widgets: 8, updated: "2024-03-15 09:00", owner: "System", shared: true },
@@ -8,18 +11,18 @@ const dashboards = [
   { id: 5, name: "My Dashboard", desc: "Personal metrics & favorites", widgets: 4, updated: "2024-03-15 10:15", owner: "You", shared: false },
 ];
 
+const pageActions: ActionButtonItem[] = [
+  { key: "create", label: "New Dashboard", icon: <Plus className="h-3.5 w-3.5" />, variant: "primary", size: "sm", onClick: () => { } },
+];
+
 export default function DashboardsPage() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboards</h1>
-          <p className="text-sm text-gray-500 mt-1">Interactive visual dashboards</p>
-        </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
-          <Plus className="w-4 h-4" /> New Dashboard
-        </button>
-      </div>
+      <PageHeader
+        title="Dashboards"
+        description="Interactive visual dashboards"
+        actions={<ActionButtons actions={pageActions} />}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {dashboards.map((d) => (

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Plus, Search } from "lucide-react";
-import { LoadingSpinner, EmptyState } from "@erp/ui";
+import { Alert, DataTable, Input, LoadingSpinner, EmptyState, PageHeader, StatusBadge, ActionButtons, type ActionButtonItem, type TableColumn } from "@erp/ui";
 import { api, type InventoryItem } from "../../lib/api";
 
 export default function InventoryItemsPage() {
@@ -30,75 +30,56 @@ export default function InventoryItemsPage() {
     !search || i.name.toLowerCase().includes(search.toLowerCase()) || i.sku.includes(search)
   );
 
+  const pageActions: ActionButtonItem[] = [
+    { key: "create", label: "New Item", icon: <Plus className="h-3.5 w-3.5" />, variant: "primary", size: "sm", onClick: () => { } },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Inventory Items</h1>
-          <p className="text-sm text-gray-500 mt-1">{items.length} items</p>
-        </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2 bg-accent-600 text-white text-sm font-medium rounded-lg hover:bg-accent-700">
-          <Plus className="w-4 h-4" />
-          New Item
-        </button>
-      </div>
+      <PageHeader
+        title="Inventory Items"
+        description={`${items.length} items`}
+        actions={<ActionButtons actions={pageActions} />}
+      />
 
       <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
+        <Input
           type="text"
           placeholder="Search by name or SKU..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:border-accent-300 focus:ring-2 focus:ring-accent-100 focus:outline-none"
+          className="pr-10"
         />
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
       </div>
 
       {loading && <LoadingSpinner />}
-      {error && <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+      {error && <Alert variant="error">{error}</Alert>}
 
-      {!loading && !error && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          {filtered.length === 0 ? (
-            <EmptyState title="No items found" description="Try adjusting your search." />
-          ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">UOM</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Cost</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Selling Price</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filtered.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50 cursor-pointer">
-                    <td className="px-4 py-3 text-sm font-mono text-gray-700">{item.sku}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.name}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{item.categoryName}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{item.unitOfMeasure}</td>
-                    <td className="px-4 py-3 text-sm text-right text-gray-900">
-                      {item.costPrice.currency} {item.costPrice.amount.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right text-gray-900">
-                      {item.sellingPrice.currency} {item.sellingPrice.amount.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${item.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-500"}`}>
-                        {item.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
+      {!loading && !error && (() => {
+        const itemColumns: TableColumn<InventoryItem>[] = [
+          { key: 'sku', header: 'SKU', render: (item) => <span className="text-sm font-mono text-gray-700">{item.sku}</span> },
+          { key: 'name', header: 'Name', render: (item) => <span className="text-sm font-medium text-gray-900">{item.name}</span> },
+          { key: 'categoryName', header: 'Category', render: (item) => <span className="text-sm text-gray-500">{item.categoryName}</span> },
+          { key: 'unitOfMeasure', header: 'UOM', render: (item) => <span className="text-sm text-gray-500">{item.unitOfMeasure}</span> },
+          {
+            key: 'costPrice', header: 'Cost', align: 'right' as const, render: (item) => (
+              <span className="text-sm text-gray-900">{item.costPrice.currency} {item.costPrice.amount.toLocaleString()}</span>
+            )
+          },
+          {
+            key: 'sellingPrice', header: 'Selling Price', align: 'right' as const, render: (item) => (
+              <span className="text-sm text-gray-900">{item.sellingPrice.currency} {item.sellingPrice.amount.toLocaleString()}</span>
+            )
+          },
+          {
+            key: 'isActive', header: 'Status', render: (item) => <StatusBadge status={item.isActive ? 'Active' : 'Inactive'} />,
+          },
+        ];
+        return filtered.length === 0
+          ? <EmptyState title="No items found" description="Try adjusting your search." />
+          : <DataTable<InventoryItem> columns={itemColumns} data={filtered} keyExtractor={(item) => item.id} />;
+      })()}
     </div>
   );
 }

@@ -25,14 +25,18 @@ export function ModuleLayout({ moduleId, children }: ModuleLayoutProps) {
   return (
     <AuthGuard>
       <PageTitleProvider>
-        <div className="flex min-h-screen bg-gray-50/80 dark:bg-gray-950">
+        <div className="min-h-screen bg-[var(--gogo-bg-default)]">
+          <TopBar moduleId={moduleId} />
           <ModuleSidebar moduleId={moduleId} />
-          <div className="flex min-h-screen flex-1 flex-col pb-16 md:pb-0 md:pl-[74px]">
-            <TopBar moduleId={moduleId} />
-            <div className="mx-auto w-full max-w-7xl flex-1 px-6">{children}</div>
+          <div className="flex min-h-screen min-w-0 flex-col pb-16 pt-[var(--gogo-header-height)] md:ml-[var(--gogo-sidebar-width)] md:pb-[var(--gogo-footer-height)]">
+            <main className="flex flex-1 flex-col">
+              <div className="mx-auto w-full max-w-[1200px] flex-1 px-4 pt-4 pb-10 sm:px-6 sm:pt-6 lg:px-10">
+                {children}
+              </div>
+            </main>
+            <ModuleFooter />
           </div>
         </div>
-        <ModuleFooter />
       </PageTitleProvider>
     </AuthGuard>
   );

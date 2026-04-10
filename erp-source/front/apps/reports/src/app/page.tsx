@@ -1,4 +1,5 @@
 import { FileBarChart, FileText, PieChart, TrendingUp, DollarSign } from "lucide-react";
+import { PageHeader, StatusBadge } from "@erp/ui";
 
 const reportCategories = [
   {
@@ -47,10 +48,7 @@ const reportCategories = [
 export default function ReportsDashboardPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
-        <p className="text-sm text-gray-500 mt-1">Standard & custom reports across all modules</p>
-      </div>
+      <PageHeader title="Reports & Analytics" description="Standard & custom reports across all modules" />
 
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 text-center">
@@ -86,7 +84,7 @@ export default function ReportsDashboardPage() {
                   <p className="text-xs text-gray-500">{r.description}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${r.type === "custom" ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-600"}`}>{r.type}</span>
+                  <StatusBadge status={r.type} />
                   <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">Run</button>
                 </div>
               </div>

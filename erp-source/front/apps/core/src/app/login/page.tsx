@@ -9,9 +9,7 @@ import { z } from 'zod';
 import { useAuthStore } from '@/store/auth';
 import { GOOGLE_CLIENT_ID, MICROSOFT_CLIENT_ID, MICROSOFT_TENANT, GITHUB_CLIENT_ID, APPLE_CLIENT_ID, getOAuthRedirectUri } from '@/lib/config';
 import AuthLayout from '@/components/layout/auth-layout';
-import Input from '@/components/ui/input';
-import Button from '@/components/ui/button';
-import Alert from '@/components/ui/alert';
+import { Button, Input, Alert } from '@erp/ui';
 
 const loginSchema = z.object({
   email: z.string().email('Enter a valid email address'),
@@ -77,7 +75,7 @@ function LoginContent() {
     <AuthLayout>
       <h2 className="mb-6 text-xl font-semibold text-gray-900 dark:text-white">Sign in to your account</h2>
 
-      {(error || oauthError) && <div className="mb-4"><Alert>{error || oauthError}</Alert></div>}
+      {(error || oauthError) && <div className="mb-4"><Alert variant="error">{error || oauthError}</Alert></div>}
 
       <div className="mb-6 space-y-3">
         <SocialButton provider="google" onClick={() => handleSocialLogin('google')} disabled={isLoading || !!socialLoading}

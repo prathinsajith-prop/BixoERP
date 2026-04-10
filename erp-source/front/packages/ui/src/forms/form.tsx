@@ -2,7 +2,7 @@
 
 import React from "react";
 
-interface InputProps extends React.ComponentPropsWithRef<"input"> {
+export interface InputProps extends React.ComponentPropsWithRef<"input"> {
   label?: string;
   error?: string;
   helperText?: string;
@@ -13,26 +13,26 @@ export function Input({ label, error, helperText, className = "", id, ref, ...pr
   return (
     <div className="space-y-1">
       {label && (
-        <label htmlFor={inputId} className="block text-sm font-medium text-gray-700">
+        <label htmlFor={inputId} className="block text-sm font-medium text-[var(--gogo-text-primary)]">
           {label}
         </label>
       )}
       <input
         ref={ref}
         id={inputId}
-        className={`block w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0 ${error
-          ? "border-red-300 focus:border-red-400 focus:ring-red-200"
-          : "border-gray-300 focus:border-accent-400 focus:ring-accent-200"
+        className={`gogo-input block w-full px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none ${error
+            ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-200"
+            : ""
           } ${className}`}
         {...props}
       />
       {error && <p className="text-xs text-red-600">{error}</p>}
-      {helperText && !error && <p className="text-xs text-gray-500">{helperText}</p>}
+      {helperText && !error && <p className="text-xs text-[var(--gogo-text-secondary)]">{helperText}</p>}
     </div>
   );
 }
 
-interface SelectProps extends React.ComponentPropsWithRef<"select"> {
+export interface SelectProps extends React.ComponentPropsWithRef<"select"> {
   label?: string;
   error?: string;
   options: { value: string; label: string }[];
@@ -43,16 +43,16 @@ export function Select({ label, error, options, className = "", id, ref, ...prop
   return (
     <div className="space-y-1">
       {label && (
-        <label htmlFor={selectId} className="block text-sm font-medium text-gray-700">
+        <label htmlFor={selectId} className="block text-sm font-medium text-[var(--gogo-text-primary)]">
           {label}
         </label>
       )}
       <select
         ref={ref}
         id={selectId}
-        className={`block w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0 ${error
-          ? "border-red-300 focus:border-red-400 focus:ring-red-200"
-          : "border-gray-300 focus:border-accent-400 focus:ring-accent-200"
+        className={`gogo-input block w-full px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none ${error
+            ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-200"
+            : ""
           } ${className}`}
         {...props}
       >
@@ -67,7 +67,7 @@ export function Select({ label, error, options, className = "", id, ref, ...prop
   );
 }
 
-interface TextareaProps extends React.ComponentPropsWithRef<"textarea"> {
+export interface TextareaProps extends React.ComponentPropsWithRef<"textarea"> {
   label?: string;
   error?: string;
 }
@@ -77,16 +77,16 @@ export function Textarea({ label, error, className = "", id, ref, ...props }: Te
   return (
     <div className="space-y-1">
       {label && (
-        <label htmlFor={textareaId} className="block text-sm font-medium text-gray-700">
+        <label htmlFor={textareaId} className="block text-sm font-medium text-[var(--gogo-text-primary)]">
           {label}
         </label>
       )}
       <textarea
         ref={ref}
         id={textareaId}
-        className={`block w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0 ${error
-          ? "border-red-300 focus:border-red-400 focus:ring-red-200"
-          : "border-gray-300 focus:border-accent-400 focus:ring-accent-200"
+        className={`gogo-input block w-full px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none ${error
+            ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-200"
+            : ""
           } ${className}`}
         {...props}
       />

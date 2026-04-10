@@ -1,3 +1,4 @@
+@import '@erp/shell/styles/gogo-tokens.css';
 @import "tailwindcss";
 @source "../../../../packages/shell/src";
 @source "../../../../packages/ui/src";
@@ -8,6 +9,7 @@
 /* ─── Layout & Display System ─────────────────────────────── */
 :root { --base-font-size: 14px; }
 html { font-size: var(--base-font-size); }
+body { font-family: var(--font-gogo); }
 
 html.compact { --spacing-scale: 0.75; }
 html:not(.compact) { --spacing-scale: 1; }
@@ -48,17 +50,18 @@ html.reduced-motion *::after {
 }
 
 /* ─── Accent Color System ─────────────────────────────────── */
+/* Default: Gogo purple — overridden at runtime by ThemeProvider */
 :root {
-  --accent-50:  #eff6ff;
-  --accent-100: #dbeafe;
-  --accent-200: #bfdbfe;
-  --accent-300: #93c5fd;
-  --accent-400: #60a5fa;
-  --accent-500: #3b82f6;
-  --accent-600: #2563eb;
-  --accent-700: #1d4ed8;
-  --accent-800: #1e40af;
-  --accent-900: #1e3a8a;
+  --accent-50:  #fdf4fc;
+  --accent-100: #f5daf3;
+  --accent-200: #ebb5e7;
+  --accent-300: #d780d0;
+  --accent-400: #c355bc;
+  --accent-500: #922c88;
+  --accent-600: #7c1f72;
+  --accent-700: #6d2166;
+  --accent-800: #5a1a54;
+  --accent-900: #461342;
 }
 
 /* Accent utility classes using CSS vars */

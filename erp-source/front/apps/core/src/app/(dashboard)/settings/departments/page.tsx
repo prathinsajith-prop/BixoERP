@@ -6,7 +6,7 @@ import { useOrgContext } from '@/context/org';
 import { showToast } from '@erp/shell';
 import CanDo from '@/components/can-do';
 import PageHeader from '@/components/page-header';
-import Button from '@/components/ui/button';
+import { Button } from '@erp/ui';
 
 interface DeptNode {
     id: string;

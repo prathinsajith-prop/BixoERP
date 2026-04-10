@@ -1,0 +1,973 @@
+{
+  "manifest_version": "1.0.0",
+
+  "module": {
+    "id": "procurement_module",
+    "name": "Procurement",
+    "version": "1.0.0",
+    "description": "End-to-end procurement — purchase requests, purchase orders, goods receipt, vendor bill matching, and spend analytics.",
+    "author": "Bixo",
+    "license": "proprietary",
+    "namespace": "erp.modules.procurement"
+  },
+
+  "compatibility": {
+    "core_min_version": "1.0.0",
+    "core_max_version": "2.x",
+    "api_version": "v1",
+    "dependencies": [
+      { "module": "core", "version": ">=1.0.0", "optional": false },
+      { "module": "auth_module", "version": ">=1.0.0", "optional": false },
+      { "module": "finance_module", "version": ">=1.0.0", "optional": false },
+      { "module": "inventory_module", "version": ">=1.0.0", "optional": true },
+      { "module": "workflow_module", "version": ">=1.0.0", "optional": true },
+      {
+        "module": "notifications_module",
+        "version": ">=1.0.0",
+        "optional": true
+      }
+    ]
+  },
+
+  "sync": {
+    "strategy": "incremental",
+    "direction": "bidirectional",
+    "trigger": "event_driven",
+    "polling_interval_seconds": 300,
+    "retry_policy": {
+      "max_attempts": 3,
+      "backoff_strategy": "exponential",
+      "initial_delay_ms": 1000
+    },
+    "conflict_resolution": "last_write_wins",
+    "batch_size": 100
+  },
+
+  "ui": {
+    "icon": "ShoppingBag",
+    "color": "cyan",
+    "basePath": "/procurement",
+    "position": 6,
+    "menu": [
+      {
+        "label": "Dashboard",
+        "href": "/procurement",
+        "icon": "LayoutDashboard",
+        "permission": "procurement:dashboard.view",
+        "visibleTo": [
+          "procurement_admin",
+          "procurement_manager",
+          "procurement_officer",
+          "procurement_approver",
+          "procurement_viewer"
+        ],
+        "position": 1
+      },
+      {
+        "label": "Vendors",
+        "href": "/procurement/vendors",
+        "icon": "Building",
+        "permission": "procurement:vendor.read",
+        "visibleTo": [
+          "procurement_admin",
+          "procurement_manager",
+          "procurement_officer",
+          "procurement_viewer"
+        ],
+        "position": 2
+      },
+      {
+        "label": "Purchase Requests",
+        "href": "/procurement/requests",
+        "icon": "ClipboardList",
+        "permission": "procurement:request.read",
+        "visibleTo": [
+          "procurement_admin",
+          "procurement_manager",
+          "procurement_officer",
+          "procurement_approver",
+          "procurement_viewer"
+        ],
+        "position": 3
+      },
+      {
+        "label": "Purchase Orders",
+        "href": "/procurement/orders",
+        "icon": "FileOutput",
+        "permission": "procurement:order.read",
+        "visibleTo": [
+          "procurement_admin",
+          "procurement_manager",
+          "procurement_officer",
+          "procurement_approver",
+          "procurement_viewer"
+        ],
+        "position": 4
+      },
+      {
+        "label": "Goods Receipt",
+        "href": "/procurement/receipts",
+        "icon": "PackageCheck",
+        "permission": "procurement:receipt.read",
+        "visibleTo": [
+          "procurement_admin",
+          "procurement_manager",
+          "procurement_officer"
+        ],
+        "position": 5
+      },
+      {
+        "label": "Vendor Contracts",
+        "href": "/procurement/contracts",
+        "icon": "Scroll",
+        "permission": "procurement:contract.read",
+        "visibleTo": [
+          "procurement_admin",
+          "procurement_manager",
+          "procurement_viewer"
+        ],
+        "position": 6
+      },
+      {
+        "label": "Vendor Bills",
+        "href": "/procurement/bills",
+        "icon": "Receipt",
+        "permission": "procurement:bill.read",
+        "visibleTo": [
+          "procurement_admin",
+          "procurement_manager",
+          "procurement_viewer"
+        ],
+        "position": 7
+      },
+      {
+        "label": "Returns to Vendor",
+        "href": "/procurement/returns",
+        "icon": "RotateCcw",
+        "permission": "procurement:return.read",
+        "visibleTo": [
+          "procurement_admin",
+          "procurement_manager",
+          "procurement_officer"
+        ],
+        "position": 8
+      },
+      {
+        "label": "Spend Analysis",
+        "href": "/procurement/analytics",
+        "icon": "PieChart",
+        "permission": "procurement:reports.view",
+        "visibleTo": [
+          "procurement_admin",
+          "procurement_manager",
+          "procurement_viewer"
+        ],
+        "position": 9
+      },
+      {
+        "label": "Settings",
+        "href": "/procurement/settings",
+        "icon": "Settings",
+        "permission": "procurement:settings.manage",
+        "visibleTo": ["procurement_admin"],
+        "position": 10
+      }
+    ],
+    "widgets": [
+      {
+        "id": "procurement_open_pos",
+        "label": "Open Purchase Orders",
+        "dashboard": true,
+        "size": "small"
+      },
+      {
+        "id": "procurement_pending_approvals",
+        "label": "Pending Approvals",
+        "dashboard": true,
+        "size": "small"
+      },
+      {
+        "id": "procurement_spend_mtd",
+        "label": "Month-to-Date Spend",
+        "dashboard": true,
+        "size": "medium"
+      },
+      {
+        "id": "procurement_top_vendors",
+        "label": "Top Vendors by Spend",
+        "dashboard": true,
+        "size": "medium"
+      },
+      {
+        "id": "procurement_overdue_receipts",
+        "label": "Overdue Deliveries",
+        "dashboard": true,
+        "size": "small"
+      }
+    ]
+  },
+
+  "ports": {
+    "frontend": 4005,
+    "backend": 3006
+  },
+
+  "tier": "standard",
+
+  "roles": [
+    {
+      "id": "procurement_admin",
+      "name": "Procurement Administrator",
+      "description": "Full access to all procurement features",
+      "scopes": [
+        "procurement:dashboard.view",
+        "procurement:vendor.read",
+        "procurement:vendor.create",
+        "procurement:vendor.update",
+        "procurement:vendor.delete",
+        "procurement:request.read",
+        "procurement:request.create",
+        "procurement:request.update",
+        "procurement:request.delete",
+        "procurement:request.approve",
+        "procurement:order.read",
+        "procurement:order.create",
+        "procurement:order.update",
+        "procurement:order.cancel",
+        "procurement:order.approve",
+        "procurement:receipt.read",
+        "procurement:receipt.create",
+        "procurement:receipt.confirm",
+        "procurement:contract.read",
+        "procurement:contract.create",
+        "procurement:contract.update",
+        "procurement:bill.read",
+        "procurement:bill.create",
+        "procurement:return.read",
+        "procurement:return.create",
+        "procurement:return.approve",
+        "procurement:reports.view",
+        "procurement:settings.manage",
+        "procurement:sync.pull",
+        "procurement:sync.push"
+      ]
+    },
+    {
+      "id": "procurement_manager",
+      "name": "Procurement Manager",
+      "description": "Manage and approve purchase orders and requests",
+      "scopes": [
+        "procurement:dashboard.view",
+        "procurement:vendor.read",
+        "procurement:vendor.create",
+        "procurement:vendor.update",
+        "procurement:request.read",
+        "procurement:request.create",
+        "procurement:request.update",
+        "procurement:request.approve",
+        "procurement:order.read",
+        "procurement:order.create",
+        "procurement:order.update",
+        "procurement:order.approve",
+        "procurement:receipt.read",
+        "procurement:receipt.create",
+        "procurement:contract.read",
+        "procurement:bill.read",
+        "procurement:return.read",
+        "procurement:return.approve",
+        "procurement:reports.view"
+      ]
+    },
+    {
+      "id": "procurement_officer",
+      "name": "Procurement Officer",
+      "description": "Create and manage purchase requests and orders",
+      "scopes": [
+        "procurement:dashboard.view",
+        "procurement:vendor.read",
+        "procurement:request.read",
+        "procurement:request.create",
+        "procurement:request.update",
+        "procurement:order.read",
+        "procurement:order.create",
+        "procurement:receipt.read",
+        "procurement:receipt.create",
+        "procurement:receipt.confirm",
+        "procurement:return.read",
+        "procurement:return.create"
+      ]
+    },
+    {
+      "id": "procurement_approver",
+      "name": "Procurement Approver",
+      "description": "Approve purchase requests and purchase orders",
+      "scopes": [
+        "procurement:dashboard.view",
+        "procurement:request.read",
+        "procurement:request.approve",
+        "procurement:order.read",
+        "procurement:order.approve"
+      ]
+    },
+    {
+      "id": "procurement_viewer",
+      "name": "Procurement Viewer",
+      "description": "Read-only access to procurement data",
+      "scopes": [
+        "procurement:dashboard.view",
+        "procurement:vendor.read",
+        "procurement:request.read",
+        "procurement:order.read",
+        "procurement:contract.read",
+        "procurement:bill.read",
+        "procurement:reports.view"
+      ]
+    }
+  ],
+
+  "permissions": [
+    {
+      "resource": "dashboard",
+      "actions": [
+        {
+          "id": "procurement:dashboard.view",
+          "name": "View Dashboard",
+          "description": "View procurement KPIs"
+        }
+      ]
+    },
+    {
+      "resource": "vendor",
+      "actions": [
+        {
+          "id": "procurement:vendor.read",
+          "name": "View Vendors",
+          "description": "View vendor records"
+        },
+        {
+          "id": "procurement:vendor.create",
+          "name": "Create Vendor",
+          "description": "Add new vendors"
+        },
+        {
+          "id": "procurement:vendor.update",
+          "name": "Update Vendor",
+          "description": "Edit vendor details"
+        },
+        {
+          "id": "procurement:vendor.delete",
+          "name": "Delete Vendor",
+          "description": "Remove vendors"
+        }
+      ]
+    },
+    {
+      "resource": "request",
+      "actions": [
+        {
+          "id": "procurement:request.read",
+          "name": "View Purchase Requests",
+          "description": "View all purchase requests"
+        },
+        {
+          "id": "procurement:request.create",
+          "name": "Create Purchase Request",
+          "description": "Raise new purchase requests"
+        },
+        {
+          "id": "procurement:request.update",
+          "name": "Update Purchase Request",
+          "description": "Edit purchase requests"
+        },
+        {
+          "id": "procurement:request.delete",
+          "name": "Delete Purchase Request",
+          "description": "Remove purchase requests"
+        },
+        {
+          "id": "procurement:request.approve",
+          "name": "Approve Purchase Request",
+          "description": "Approve or reject requests"
+        }
+      ]
+    },
+    {
+      "resource": "order",
+      "actions": [
+        {
+          "id": "procurement:order.read",
+          "name": "View Purchase Orders",
+          "description": "View all POs"
+        },
+        {
+          "id": "procurement:order.create",
+          "name": "Create Purchase Order",
+          "description": "Issue new POs"
+        },
+        {
+          "id": "procurement:order.update",
+          "name": "Update Purchase Order",
+          "description": "Edit PO details"
+        },
+        {
+          "id": "procurement:order.cancel",
+          "name": "Cancel Purchase Order",
+          "description": "Cancel open POs"
+        },
+        {
+          "id": "procurement:order.approve",
+          "name": "Approve Purchase Order",
+          "description": "Approve POs above threshold"
+        }
+      ]
+    },
+    {
+      "resource": "receipt",
+      "actions": [
+        {
+          "id": "procurement:receipt.read",
+          "name": "View Goods Receipts",
+          "description": "View GRNs"
+        },
+        {
+          "id": "procurement:receipt.create",
+          "name": "Create Goods Receipt",
+          "description": "Record incoming goods"
+        },
+        {
+          "id": "procurement:receipt.confirm",
+          "name": "Confirm Goods Receipt",
+          "description": "Mark GRN as confirmed"
+        }
+      ]
+    },
+    {
+      "resource": "contract",
+      "actions": [
+        {
+          "id": "procurement:contract.read",
+          "name": "View Vendor Contracts",
+          "description": "View contract terms"
+        },
+        {
+          "id": "procurement:contract.create",
+          "name": "Create Contract",
+          "description": "Create vendor contracts"
+        },
+        {
+          "id": "procurement:contract.update",
+          "name": "Update Contract",
+          "description": "Edit contract details"
+        }
+      ]
+    },
+    {
+      "resource": "bill",
+      "actions": [
+        {
+          "id": "procurement:bill.read",
+          "name": "View Vendor Bills",
+          "description": "View vendor bills"
+        },
+        {
+          "id": "procurement:bill.create",
+          "name": "Create Vendor Bill",
+          "description": "Record vendor bills"
+        }
+      ]
+    },
+    {
+      "resource": "return",
+      "actions": [
+        {
+          "id": "procurement:return.read",
+          "name": "View Vendor Returns",
+          "description": "View returns to vendor"
+        },
+        {
+          "id": "procurement:return.create",
+          "name": "Create Vendor Return",
+          "description": "Initiate return to vendor"
+        },
+        {
+          "id": "procurement:return.approve",
+          "name": "Approve Vendor Return",
+          "description": "Approve a vendor return"
+        }
+      ]
+    },
+    {
+      "resource": "reports",
+      "actions": [
+        {
+          "id": "procurement:reports.view",
+          "name": "View Reports",
+          "description": "Access spend analysis and reports"
+        }
+      ]
+    },
+    {
+      "resource": "settings",
+      "actions": [
+        {
+          "id": "procurement:settings.manage",
+          "name": "Manage Settings",
+          "description": "Configure procurement settings"
+        }
+      ]
+    },
+    {
+      "resource": "sync",
+      "actions": [
+        {
+          "id": "procurement:sync.pull",
+          "name": "Sync Pull",
+          "description": "Pull data from core"
+        },
+        {
+          "id": "procurement:sync.push",
+          "name": "Sync Push",
+          "description": "Push data to core"
+        }
+      ]
+    }
+  ],
+
+  "entities": [
+    {
+      "name": "PurchaseRequest",
+      "plural": "Purchase Requests",
+      "icon": "ClipboardList",
+      "table": "procurement_requests",
+      "primary_key": "request_id",
+      "apiPath": "/api/v1/procurement/requests",
+      "sync_enabled": false,
+      "fields": [
+        {
+          "name": "request_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "request_number",
+          "type": "string",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "requested_by",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "department",
+          "type": "string",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "request_date",
+          "type": "date",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "required_by_date",
+          "type": "date",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": [
+            "draft",
+            "submitted",
+            "approved",
+            "rejected",
+            "converted",
+            "cancelled"
+          ]
+        },
+        {
+          "name": "justification",
+          "type": "text",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "total_estimated_amount",
+          "type": "decimal",
+          "required": false,
+          "readonly": true,
+          "sensitive": true
+        }
+      ],
+      "indexes": ["request_number", "requested_by", "status"],
+      "soft_delete": true,
+      "deleted_at_field": "deleted_at"
+    },
+    {
+      "name": "PurchaseOrder",
+      "plural": "Purchase Orders",
+      "icon": "FileOutput",
+      "table": "procurement_orders",
+      "primary_key": "po_id",
+      "apiPath": "/api/v1/procurement/orders",
+      "sync_enabled": true,
+      "sync_direction": "bidirectional",
+      "fields": [
+        { "name": "po_id", "type": "uuid", "required": true, "readonly": true },
+        {
+          "name": "po_number",
+          "type": "string",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "vendor_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "request_id",
+          "type": "uuid",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "order_date",
+          "type": "date",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "expected_delivery_date",
+          "type": "date",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": [
+            "draft",
+            "approved",
+            "sent",
+            "partially_received",
+            "received",
+            "invoiced",
+            "cancelled"
+          ]
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "subtotal",
+          "type": "decimal",
+          "required": false,
+          "readonly": true,
+          "sensitive": true
+        },
+        {
+          "name": "tax_amount",
+          "type": "decimal",
+          "required": false,
+          "readonly": true,
+          "sensitive": true
+        },
+        {
+          "name": "total_amount",
+          "type": "decimal",
+          "required": false,
+          "readonly": true,
+          "sensitive": true
+        }
+      ],
+      "indexes": ["po_number", "vendor_id", "status", "order_date"],
+      "soft_delete": true,
+      "deleted_at_field": "deleted_at"
+    },
+    {
+      "name": "GoodsReceipt",
+      "plural": "Goods Receipts",
+      "icon": "PackageCheck",
+      "table": "procurement_receipts",
+      "primary_key": "grn_id",
+      "apiPath": "/api/v1/procurement/receipts",
+      "sync_enabled": true,
+      "sync_direction": "push",
+      "fields": [
+        {
+          "name": "grn_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "grn_number",
+          "type": "string",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "po_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "received_by",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "receipt_date",
+          "type": "date",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": [
+            "draft",
+            "confirmed",
+            "partially_matched",
+            "fully_matched"
+          ]
+        }
+      ],
+      "indexes": ["grn_number", "po_id"],
+      "soft_delete": false
+    },
+    {
+      "name": "VendorContract",
+      "plural": "Vendor Contracts",
+      "icon": "Scroll",
+      "table": "procurement_contracts",
+      "primary_key": "contract_id",
+      "apiPath": "/api/v1/procurement/contracts",
+      "sync_enabled": false,
+      "fields": [
+        {
+          "name": "contract_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "contract_number",
+          "type": "string",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "vendor_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": ["draft", "active", "expired", "terminated"]
+        },
+        {
+          "name": "contract_value",
+          "type": "decimal",
+          "required": false,
+          "readonly": false,
+          "sensitive": true
+        }
+      ],
+      "indexes": ["contract_number", "vendor_id", "status"],
+      "soft_delete": true,
+      "deleted_at_field": "deleted_at"
+    }
+  ],
+
+  "events": {
+    "published": [
+      {
+        "name": "procurement:po.created",
+        "description": "Fired when a purchase order is created"
+      },
+      {
+        "name": "procurement:po.approved",
+        "description": "Fired when a PO is approved"
+      },
+      {
+        "name": "procurement:po.sent",
+        "description": "Fired when a PO is sent to vendor"
+      },
+      {
+        "name": "procurement:grn.created",
+        "description": "Fired when goods are received"
+      },
+      {
+        "name": "procurement:grn.completed",
+        "description": "Fired when goods receipt is confirmed"
+      },
+      {
+        "name": "procurement:request.approved",
+        "description": "Fired when a purchase request is approved"
+      }
+    ],
+    "subscribed": [
+      {
+        "name": "inventory:stock.low",
+        "handler": "procurement:sync.create_reorder_request"
+      },
+      {
+        "name": "finance:budget.exceeded",
+        "handler": "procurement:sync.flag_po_over_budget"
+      }
+    ]
+  },
+
+  "api": {
+    "base_path": "/api/v1/procurement",
+    "auth": "bearer_token",
+    "rate_limit": { "requests_per_minute": 300, "burst": 50 },
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/vendors",
+        "scope": "procurement:vendor.read"
+      },
+      {
+        "method": "POST",
+        "path": "/vendors",
+        "scope": "procurement:vendor.create"
+      },
+      {
+        "method": "GET",
+        "path": "/requests",
+        "scope": "procurement:request.read"
+      },
+      {
+        "method": "POST",
+        "path": "/requests",
+        "scope": "procurement:request.create"
+      },
+      {
+        "method": "PUT",
+        "path": "/requests/:id",
+        "scope": "procurement:request.update"
+      },
+      {
+        "method": "POST",
+        "path": "/requests/:id/approve",
+        "scope": "procurement:request.approve"
+      },
+      { "method": "GET", "path": "/orders", "scope": "procurement:order.read" },
+      {
+        "method": "POST",
+        "path": "/orders",
+        "scope": "procurement:order.create"
+      },
+      {
+        "method": "PUT",
+        "path": "/orders/:id",
+        "scope": "procurement:order.update"
+      },
+      {
+        "method": "POST",
+        "path": "/orders/:id/approve",
+        "scope": "procurement:order.approve"
+      },
+      {
+        "method": "POST",
+        "path": "/orders/:id/cancel",
+        "scope": "procurement:order.cancel"
+      },
+      {
+        "method": "GET",
+        "path": "/receipts",
+        "scope": "procurement:receipt.read"
+      },
+      {
+        "method": "POST",
+        "path": "/receipts",
+        "scope": "procurement:receipt.create"
+      },
+      {
+        "method": "POST",
+        "path": "/receipts/:id/confirm",
+        "scope": "procurement:receipt.confirm"
+      },
+      {
+        "method": "GET",
+        "path": "/contracts",
+        "scope": "procurement:contract.read"
+      },
+      {
+        "method": "POST",
+        "path": "/contracts",
+        "scope": "procurement:contract.create"
+      },
+      { "method": "GET", "path": "/bills", "scope": "procurement:bill.read" },
+      {
+        "method": "GET",
+        "path": "/analytics",
+        "scope": "procurement:reports.view"
+      },
+      {
+        "method": "POST",
+        "path": "/sync/pull",
+        "scope": "procurement:sync.pull"
+      },
+      {
+        "method": "POST",
+        "path": "/sync/push",
+        "scope": "procurement:sync.push"
+      }
+    ]
+  },
+
+  "health_check": {
+    "endpoint": "/api/v1/procurement/health",
+    "interval_seconds": 60,
+    "timeout_seconds": 5
+  },
+
+  "logging": {
+    "level": "info",
+    "audit_trail": true,
+    "sensitive_fields_masked": [
+      "total_amount",
+      "subtotal",
+      "tax_amount",
+      "contract_value"
+    ]
+  }
+}

@@ -1,3 +1,19 @@
+"use client";
+
+import { DataTable, PageHeader, type TableColumn } from "@erp/ui";
+
+type AgingRow = { customer: string; current: number; d30: number; d60: number; d90: number; over90: number; total: number };
+
+const agingColumns: TableColumn<AgingRow>[] = [
+  { key: 'customer', header: 'Customer/Vendor', render: (r) => <span className="text-sm font-medium text-gray-900">{r.customer}</span> },
+  { key: 'current', header: 'Current', align: 'right' as const, render: (r) => <span className="text-sm text-gray-700">{fmt(r.current)}</span> },
+  { key: 'd30', header: '1-30', align: 'right' as const, render: (r) => <span className="text-sm text-gray-700">{fmt(r.d30)}</span> },
+  { key: 'd60', header: '31-60', align: 'right' as const, render: (r) => <span className="text-sm text-yellow-600">{fmt(r.d60)}</span> },
+  { key: 'd90', header: '61-90', align: 'right' as const, render: (r) => <span className="text-sm text-orange-600">{fmt(r.d90)}</span> },
+  { key: 'over90', header: '90+', align: 'right' as const, render: (r) => <span className="text-sm text-red-600">{fmt(r.over90)}</span> },
+  { key: 'total', header: 'Total', align: 'right' as const, render: (r) => <span className="text-sm font-semibold text-gray-900">{fmt(r.total)}</span> },
+];
+
 const agingData = {
   receivable: [
     { customer: "Acme Corp", current: 12400, d30: 8200, d60: 0, d90: 0, over90: 0, total: 20600 },
@@ -20,73 +36,20 @@ function fmt(n: number) {
 export default function AgingReportPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Aging Report</h1>
-        <p className="text-sm text-gray-500 mt-1">Outstanding balances by age bucket</p>
-      </div>
+      <PageHeader title="Aging Report" description="Outstanding balances by age bucket" />
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Accounts Receivable Aging</h2>
         </div>
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Current</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">1-30</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">31-60</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">61-90</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">90+</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {agingData.receivable.map((r) => (
-              <tr key={r.customer}>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">{r.customer}</td>
-                <td className="px-4 py-3 text-sm text-right text-gray-700">{fmt(r.current)}</td>
-                <td className="px-4 py-3 text-sm text-right text-gray-700">{fmt(r.d30)}</td>
-                <td className="px-4 py-3 text-sm text-right text-yellow-600">{fmt(r.d60)}</td>
-                <td className="px-4 py-3 text-sm text-right text-orange-600">{fmt(r.d90)}</td>
-                <td className="px-4 py-3 text-sm text-right text-red-600">{fmt(r.over90)}</td>
-                <td className="px-4 py-3 text-sm text-right font-semibold text-gray-900">{fmt(r.total)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable<AgingRow> columns={agingColumns} data={agingData.receivable} keyExtractor={(r) => r.customer} />
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Accounts Payable Aging</h2>
         </div>
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vendor</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Current</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">1-30</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">31-60</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">61-90</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">90+</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {agingData.payable.map((r) => (
-              <tr key={r.customer}>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">{r.customer}</td>
-                <td className="px-4 py-3 text-sm text-right text-gray-700">{fmt(r.current)}</td>
-                <td className="px-4 py-3 text-sm text-right text-gray-700">{fmt(r.d30)}</td>
-                <td className="px-4 py-3 text-sm text-right text-yellow-600">{fmt(r.d60)}</td>
-                <td className="px-4 py-3 text-sm text-right text-orange-600">{fmt(r.d90)}</td>
-                <td className="px-4 py-3 text-sm text-right text-red-600">{fmt(r.over90)}</td>
-                <td className="px-4 py-3 text-sm text-right font-semibold text-gray-900">{fmt(r.total)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable<AgingRow> columns={agingColumns} data={agingData.payable} keyExtractor={(r) => r.customer} />
       </div>
     </div>
   );

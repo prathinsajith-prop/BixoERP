@@ -53,7 +53,7 @@ function AcceptInviteContent() {
         setLoadingPreview(true);
         authApi
             .getInvitePreview(token)
-            .then(({ data }) => setPreview(data.data))
+            .then(({ data }: { data: any }) => setPreview(data.data))
             .catch(() => setError('This invitation link is invalid or has expired.'))
             .finally(() => setLoadingPreview(false));
     }, [token]);

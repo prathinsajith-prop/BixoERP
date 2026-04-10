@@ -1,0 +1,370 @@
+{
+  "manifest_version": "1.0.0",
+
+  "module": {
+    "id": "reports_module",
+    "name": "Reports & Analytics",
+    "version": "1.0.0",
+    "description": "Custom dashboard builder, report designer, scheduled report delivery, and cross-module data visualisation.",
+    "author": "Bixo",
+    "license": "proprietary",
+    "namespace": "erp.modules.reports"
+  },
+
+  "compatibility": {
+    "core_min_version": "1.0.0",
+    "core_max_version": "2.x",
+    "api_version": "v1",
+    "dependencies": [
+      { "module": "core", "version": ">=1.0.0", "optional": false },
+      { "module": "auth_module", "version": ">=1.0.0", "optional": false },
+      { "module": "finance_module", "version": ">=1.0.0", "optional": true },
+      { "module": "hr_module", "version": ">=1.0.0", "optional": true },
+      { "module": "sales_module", "version": ">=1.0.0", "optional": true },
+      {
+        "module": "notifications_module",
+        "version": ">=1.0.0",
+        "optional": true
+      }
+    ]
+  },
+
+  "sync": {
+    "strategy": "incremental",
+    "direction": "read_only",
+    "trigger": "scheduled",
+    "polling_interval_seconds": 3600,
+    "retry_policy": {
+      "max_attempts": 3,
+      "backoff_strategy": "exponential",
+      "initial_delay_ms": 2000
+    },
+    "conflict_resolution": "source_wins",
+    "batch_size": 200
+  },
+
+  "ui": {
+    "menu": [
+      {
+        "key": "reports",
+        "label": "Reports & Analytics",
+        "icon": "chart-bar",
+        "basePath": "/reports",
+        "position": 9,
+        "color": "teal",
+        "children": [
+          {
+            "key": "reports.dashboards",
+            "label": "Dashboards",
+            "path": "/reports/dashboards"
+          },
+          {
+            "key": "reports.builder",
+            "label": "Report Builder",
+            "path": "/reports/builder"
+          },
+          {
+            "key": "reports.library",
+            "label": "Report Library",
+            "path": "/reports/library"
+          },
+          {
+            "key": "reports.scheduled",
+            "label": "Scheduled Reports",
+            "path": "/reports/scheduled"
+          }
+        ]
+      }
+    ]
+  },
+
+  "ports": {
+    "frontend": 4009,
+    "backend": 3013
+  },
+
+  "tier": "intelligence",
+
+  "roles": [
+    {
+      "key": "reports_admin",
+      "label": "Reports Admin",
+      "description": "Full access including report creation, sharing, scheduling, and data source management.",
+      "permissions": ["reports.*"]
+    },
+    {
+      "key": "reports_editor",
+      "label": "Reports Editor",
+      "description": "Create and edit reports and dashboards, schedule delivery.",
+      "permissions": [
+        "reports.dashboard.manage",
+        "reports.report.manage",
+        "reports.schedule.manage",
+        "reports.export"
+      ]
+    },
+    {
+      "key": "reports_viewer",
+      "label": "Reports Viewer",
+      "description": "View shared reports and dashboards.",
+      "permissions": [
+        "reports.dashboard.view",
+        "reports.report.view",
+        "reports.export"
+      ]
+    }
+  ],
+
+  "permissions": [
+    {
+      "key": "reports.dashboard.view",
+      "label": "View Dashboards",
+      "description": "Access and interact with dashboards"
+    },
+    {
+      "key": "reports.dashboard.manage",
+      "label": "Manage Dashboards",
+      "description": "Create, edit, and delete dashboards"
+    },
+    {
+      "key": "reports.report.view",
+      "label": "View Reports",
+      "description": "View and run saved reports"
+    },
+    {
+      "key": "reports.report.manage",
+      "label": "Manage Reports",
+      "description": "Create, edit, and delete reports using the report builder"
+    },
+    {
+      "key": "reports.schedule.manage",
+      "label": "Manage Schedules",
+      "description": "Schedule automated report delivery"
+    },
+    {
+      "key": "reports.export",
+      "label": "Export Data",
+      "description": "Export report results to CSV, Excel, or PDF"
+    },
+    {
+      "key": "reports.datasource.manage",
+      "label": "Manage Data Sources",
+      "description": "Configure and manage report data sources"
+    }
+  ],
+
+  "entities": [
+    {
+      "name": "Dashboard",
+      "table": "report_dashboards",
+      "description": "A configurable collection of widgets displaying cross-module KPIs.",
+      "fields": [
+        "id",
+        "name",
+        "description",
+        "layout",
+        "is_global",
+        "owner_id",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "Widget",
+      "table": "report_widgets",
+      "description": "A single chart, table, or metric component on a dashboard.",
+      "fields": [
+        "id",
+        "dashboard_id",
+        "type",
+        "title",
+        "data_source",
+        "config",
+        "position",
+        "created_at"
+      ]
+    },
+    {
+      "name": "Report",
+      "table": "reports",
+      "description": "A saved report definition with query, filters, and column configuration.",
+      "fields": [
+        "id",
+        "name",
+        "description",
+        "module",
+        "query_definition",
+        "columns",
+        "filters",
+        "owner_id",
+        "is_public",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "ScheduledReport",
+      "table": "scheduled_reports",
+      "description": "Automated report delivery configuration.",
+      "fields": [
+        "id",
+        "report_id",
+        "name",
+        "cron_expression",
+        "recipients",
+        "format",
+        "is_active",
+        "last_run_at",
+        "next_run_at",
+        "created_by",
+        "created_at"
+      ]
+    },
+    {
+      "name": "ReportRun",
+      "table": "report_runs",
+      "description": "A historical record of a report execution.",
+      "fields": [
+        "id",
+        "report_id",
+        "triggered_by",
+        "trigger_type",
+        "status",
+        "row_count",
+        "file_key",
+        "run_at",
+        "completed_at"
+      ]
+    }
+  ],
+
+  "events": {
+    "publishes": [
+      "reports.report.run_completed",
+      "reports.report.scheduled_sent",
+      "reports.dashboard.created"
+    ],
+    "subscribes": [
+      "finance.ledger.period_closed",
+      "hr.payroll.run_completed",
+      "sales.order.completed"
+    ]
+  },
+
+  "api": {
+    "base_path": "/api/v1/reports",
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/dashboards",
+        "description": "List dashboards",
+        "auth": true
+      },
+      {
+        "method": "POST",
+        "path": "/dashboards",
+        "description": "Create a dashboard",
+        "auth": true
+      },
+      {
+        "method": "GET",
+        "path": "/dashboards/{id}",
+        "description": "Get dashboard detail",
+        "auth": true
+      },
+      {
+        "method": "PUT",
+        "path": "/dashboards/{id}",
+        "description": "Update dashboard",
+        "auth": true
+      },
+      {
+        "method": "DELETE",
+        "path": "/dashboards/{id}",
+        "description": "Delete dashboard",
+        "auth": true
+      },
+      {
+        "method": "GET",
+        "path": "/",
+        "description": "List saved reports",
+        "auth": true
+      },
+      {
+        "method": "POST",
+        "path": "/",
+        "description": "Create a report",
+        "auth": true
+      },
+      {
+        "method": "GET",
+        "path": "/{id}",
+        "description": "Get report definition",
+        "auth": true
+      },
+      {
+        "method": "PUT",
+        "path": "/{id}",
+        "description": "Update report",
+        "auth": true
+      },
+      {
+        "method": "DELETE",
+        "path": "/{id}",
+        "description": "Delete report",
+        "auth": true
+      },
+      {
+        "method": "POST",
+        "path": "/{id}/run",
+        "description": "Run a report",
+        "auth": true
+      },
+      {
+        "method": "GET",
+        "path": "/{id}/runs",
+        "description": "List report run history",
+        "auth": true
+      },
+      {
+        "method": "GET",
+        "path": "/scheduled",
+        "description": "List scheduled reports",
+        "auth": true
+      },
+      {
+        "method": "POST",
+        "path": "/scheduled",
+        "description": "Create a scheduled report",
+        "auth": true
+      },
+      {
+        "method": "PUT",
+        "path": "/scheduled/{id}",
+        "description": "Update scheduled report",
+        "auth": true
+      },
+      {
+        "method": "DELETE",
+        "path": "/scheduled/{id}",
+        "description": "Delete scheduled report",
+        "auth": true
+      }
+    ]
+  },
+
+  "health_check": {
+    "path": "/api/v1/reports/health",
+    "interval_seconds": 30,
+    "timeout_seconds": 5,
+    "healthy_threshold": 2,
+    "unhealthy_threshold": 3
+  },
+
+  "logging": {
+    "level": "info",
+    "structured": true,
+    "include_request_id": true,
+    "sensitive_fields": []
+  }
+}

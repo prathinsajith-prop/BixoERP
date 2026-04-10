@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { AlertTriangle } from "lucide-react";
-import { LoadingSpinner } from "@erp/ui";
+import { LoadingSpinner, PageHeader, KPICard, PageErrorState } from "@erp/ui";
 import { api } from "../lib/api";
 
 export default function InventoryDashboardPage() {
@@ -36,7 +35,7 @@ export default function InventoryDashboardPage() {
   useEffect(() => { load(); }, [load]);
 
   if (loading) return <LoadingSpinner />;
-  if (error) return <div className="p-6 text-sm text-red-600">{error}</div>;
+  if (error) return <PageErrorState error={error} onRetry={load} />;
 
   const kpis = [
     { title: "Total Items", value: stats.items, alert: false },
@@ -47,19 +46,10 @@ export default function InventoryDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Inventory Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">Stock levels and movement overview</p>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <PageHeader title="Inventory Dashboard" description="Stock levels and movement overview" />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {kpis.map((k) => (
-          <div key={k.title} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-gray-500">{k.title}</p>
-              {k.alert && <AlertTriangle className="w-4 h-4 text-red-500" />}
-            </div>
-            <p className={`mt-1 text-2xl font-bold ${k.alert ? "text-red-600" : "text-gray-900"}`}>{k.value}</p>
-          </div>
+          <KPICard key={k.title} title={k.title} value={String(k.value)} />
         ))}
       </div>
     </div>

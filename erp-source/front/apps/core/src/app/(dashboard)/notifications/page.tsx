@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import PageHeader from '@/components/page-header';
+import { Input, PageHeader } from '@erp/ui';
 
 interface Notification {
   id: number;
@@ -101,7 +101,7 @@ export default function NotificationsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Notifications" subtitle="Stay updated with alerts and messages" />
+      <PageHeader title="Notifications" description="Stay updated with alerts and messages" />
       <div className="mb-6 flex items-center justify-end gap-3">
         <span className="text-sm text-gray-500 dark:text-gray-400">{unreadCount} unread · {notifications.length} total</span>
         <button onClick={markAllRead} className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">Mark All Read</button>
@@ -112,22 +112,21 @@ export default function NotificationsPage() {
         {/* Sidebar */}
         <aside className="w-full shrink-0 space-y-4 lg:w-64">
           <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700">
-            <input
+            <Input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search notifications..."
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-500"
             />
           </div>
           <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700 space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Filters</h3>
             <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-              <input type="checkbox" checked={filterUnread} onChange={(e) => setFilterUnread(e.target.checked)} className="rounded border-gray-300 text-blue-600" />
+              <input type="checkbox" checked={filterUnread} onChange={(e) => setFilterUnread(e.target.checked)} className="rounded border-gray-300" style={{ accentColor: 'var(--gogo-primary)' }} />
               Unread only
             </label>
             <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-              <input type="checkbox" checked={filterStarred} onChange={(e) => setFilterStarred(e.target.checked)} className="rounded border-gray-300 text-blue-600" />
+              <input type="checkbox" checked={filterStarred} onChange={(e) => setFilterStarred(e.target.checked)} className="rounded border-gray-300" style={{ accentColor: 'var(--gogo-primary)' }} />
               Starred only
             </label>
           </div>
@@ -135,7 +134,7 @@ export default function NotificationsPage() {
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Category</h3>
             <div className="flex flex-wrap gap-2">
               {CATEGORIES.map((cat) => (
-                <button key={cat} onClick={() => setFilterCategory(cat)} className={`rounded-full px-3 py-1 text-xs font-medium capitalize transition ${filterCategory === cat ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'}`}>
+                <button key={cat} onClick={() => setFilterCategory(cat)} className={`rounded-full px-3 py-1 text-xs font-medium capitalize transition ${filterCategory === cat ? 'text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'}`} style={filterCategory === cat ? { backgroundColor: 'var(--gogo-primary)' } : undefined}>
                   {cat}
                 </button>
               ))}
@@ -145,7 +144,7 @@ export default function NotificationsPage() {
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Severity</h3>
             <div className="flex flex-wrap gap-2">
               {['all', 'critical', 'warning', 'info', 'success'].map((sev) => (
-                <button key={sev} onClick={() => setFilterSeverity(sev)} className={`rounded-full px-3 py-1 text-xs font-medium capitalize transition ${filterSeverity === sev ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'}`}>
+                <button key={sev} onClick={() => setFilterSeverity(sev)} className={`rounded-full px-3 py-1 text-xs font-medium capitalize transition ${filterSeverity === sev ? 'text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'}`} style={filterSeverity === sev ? { backgroundColor: 'var(--gogo-primary)' } : undefined}>
                   {sev}
                 </button>
               ))}
@@ -156,10 +155,10 @@ export default function NotificationsPage() {
         {/* Main list */}
         <div className="flex-1 space-y-6">
           {selected.size > 0 && (
-            <div className="flex items-center gap-3 rounded-xl bg-blue-50 px-4 py-3 dark:bg-blue-900/30">
-              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{selected.size} selected</span>
-              <button onClick={deselectAll} className="text-xs text-blue-600 underline dark:text-blue-400">Deselect</button>
-              <button onClick={markSelectedRead} className="ml-auto rounded-lg bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700">Mark Read</button>
+            <div className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 8%, transparent)' }}>
+              <span className="text-sm font-medium" style={{ color: 'var(--gogo-primary)' }}>{selected.size} selected</span>
+              <button onClick={deselectAll} className="text-xs underline" style={{ color: 'var(--gogo-primary)' }}>Deselect</button>
+              <button onClick={markSelectedRead} className="ml-auto rounded-lg px-3 py-1 text-xs font-medium text-white hover:opacity-90" style={{ backgroundColor: 'var(--gogo-primary)' }}>Mark Read</button>
               <button onClick={deleteSelected} className="rounded-lg bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700">Delete</button>
             </div>
           )}
@@ -177,9 +176,9 @@ export default function NotificationsPage() {
                   {items.map((n) => {
                     const cfg = TYPE_CONFIG[n.type];
                     return (
-                      <div key={n.id} className={`group rounded-xl border transition ${!n.read ? 'border-blue-200 bg-blue-50/30 dark:border-blue-800 dark:bg-blue-900/10' : 'border-gray-100 bg-white dark:border-gray-700 dark:bg-gray-800'} ${selected.has(n.id) ? 'ring-2 ring-blue-400' : ''}`}>
+                      <div key={n.id} className={`group rounded-xl border transition ${!n.read ? 'border-[var(--gogo-divider)] bg-[color-mix(in_srgb,var(--gogo-primary)_4%,transparent)]' : 'border-gray-100 bg-white dark:border-gray-700 dark:bg-gray-800'} ${selected.has(n.id) ? 'ring-2 ring-[var(--gogo-primary)]' : ''}`}>
                         <div className="flex items-start gap-3 px-4 py-3 cursor-pointer" onClick={() => setExpandedId(expandedId === n.id ? null : n.id)}>
-                          <input type="checkbox" checked={selected.has(n.id)} onChange={() => toggleSelect(n.id)} onClick={(e) => e.stopPropagation()} className="mt-1 rounded border-gray-300 text-blue-600" />
+                          <input type="checkbox" checked={selected.has(n.id)} onChange={() => toggleSelect(n.id)} onClick={(e) => e.stopPropagation()} className="mt-1 rounded border-gray-300" style={{ accentColor: 'var(--gogo-primary)' }} />
                           <div className={`mt-0.5 shrink-0 rounded-lg p-1.5 ${cfg.bg}`}>{cfg.icon}</div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
@@ -220,7 +219,7 @@ export default function NotificationsPage() {
 
           {filtered.length > 0 && (
             <div className="flex justify-between items-center pt-2">
-              <button onClick={selectAll} className="text-xs text-blue-600 hover:underline dark:text-blue-400">Select all {filtered.length}</button>
+              <button onClick={selectAll} className="text-xs hover:underline" style={{ color: 'var(--gogo-primary)' }}>Select all {filtered.length}</button>
               <span className="text-xs text-gray-400">{filtered.length} notifications</span>
             </div>
           )}

@@ -115,7 +115,7 @@ export function AlertsDropdown() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-96 overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-gray-200/60 z-50 dark:bg-gray-800 dark:ring-gray-700">
+        <div className="absolute right-0 top-full mt-2 w-96 overflow-hidden rounded-2xl bg-white shadow-[var(--shadow-card)] ring-1 ring-[var(--gogo-divider)] z-50 dark:bg-[var(--gogo-surface)]">
           <div className="border-b border-gray-100 px-4 py-3 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -127,7 +127,7 @@ export function AlertsDropdown() {
                 )}
               </div>
               {unreadCount > 0 && (
-                <button onClick={markAllRead} className="text-xs font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400">
+                <button onClick={markAllRead} className="text-xs font-medium transition" style={{ color: 'var(--gogo-primary)' }}>
                   Mark all read
                 </button>
               )}
@@ -156,7 +156,8 @@ export function AlertsDropdown() {
                   <button
                     key={n.id}
                     onClick={() => { if (isUnread) markRead(n.id); }}
-                    className={`flex w-full items-start gap-3 border-b border-gray-50 px-4 py-3 text-left transition hover:bg-gray-50 dark:border-gray-700/50 dark:hover:bg-white/5 ${isUnread ? 'bg-blue-50/60 dark:bg-blue-900/10' : ''}`}
+                    className={`flex w-full items-start gap-3 border-b border-gray-50 px-4 py-3 text-left transition hover:bg-gray-50 dark:border-gray-700/50 dark:hover:bg-white/5`}
+                    style={isUnread ? { backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 7%, transparent)' } : undefined}
                   >
                     <span className="mt-0.5 text-base">{CHANNEL_ICON[n.channel || ''] || '🔔'}</span>
                     <div className="min-w-0 flex-1">
@@ -164,7 +165,7 @@ export function AlertsDropdown() {
                         <p className={`text-sm ${isUnread ? 'font-semibold text-gray-900 dark:text-white' : 'font-medium text-gray-700 dark:text-gray-300'}`}>
                           {n.subject || 'Notification'}
                         </p>
-                        {isUnread && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-500" />}
+                        {isUnread && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: 'var(--gogo-primary)' }} />}
                       </div>
                       <p className="mt-0.5 text-xs text-gray-500 line-clamp-2 dark:text-gray-400">{n.body}</p>
                       <div className="mt-1 flex items-center gap-2">
@@ -183,7 +184,8 @@ export function AlertsDropdown() {
           <div className="border-t border-gray-100 px-4 py-2.5 dark:border-gray-700">
             <button
               onClick={() => { setOpen(false); window.location.href = '/notifications'; }}
-              className="flex w-full items-center justify-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400"
+              className="flex w-full items-center justify-center gap-1.5 text-xs font-semibold transition"
+              style={{ color: 'var(--gogo-primary)' }}
             >
               View All Notifications
               <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

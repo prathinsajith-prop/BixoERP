@@ -5,7 +5,7 @@ import { Building2, Plus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Modal, Button, Input, Textarea, LoadingSpinner, EmptyState } from "@erp/ui";
+import { Modal, Button, Input, Textarea, LoadingSpinner, EmptyState, PageHeader, ActionButtons, type ActionButtonItem } from "@erp/ui";
 import { showToast } from "@erp/shell";
 import { api, type DepartmentResponse, type EmployeeResponse } from "../../lib/api";
 
@@ -95,18 +95,17 @@ export default function DepartmentsPage() {
   if (loading) return <LoadingSpinner />;
   if (error) return <EmptyState title="Error loading departments" description={error} action={<Button onClick={load}>Retry</Button>} />;
 
+  const pageActions: ActionButtonItem[] = [
+    { key: "create", label: "Add Department", icon: <Plus className="h-3.5 w-3.5" />, variant: "primary", size: "sm", onClick: () => {} },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Departments</h1>
-          <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">{departments.length} departments</p>
-        </div>
-        <Button onClick={() => setShowCreate(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Department
-        </Button>
-      </div>
+      <PageHeader
+        title="Departments"
+        description={`${departments.length} departments`}
+        actions={<ActionButtons actions={pageActions} />}
+      />
 
       {departments.length === 0 ? (
         <EmptyState title="No departments" description="Create your first department" />

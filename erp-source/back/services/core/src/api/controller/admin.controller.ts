@@ -61,11 +61,21 @@ export class AdminController {
     @TenantId() tenantId: string,
     @Query('page') page = '1',
     @Query('limit') limit = '20',
+    @Query('q') search?: string,
+    @Query('filter') filter?: string,
+    @Query('sort_by') sortBy?: string,
+    @Query('sort_dir') sortDir?: string,
   ) {
     const result = await this.userRepo.findByTenant(
       tenantId,
       parseInt(page, 10),
       Math.min(parseInt(limit, 10), 100),
+      {
+        search: search?.trim() || undefined,
+        filter: filter?.trim() || undefined,
+        sortBy,
+        sortDir: sortDir?.toUpperCase() as 'ASC' | 'DESC' | undefined,
+      },
     );
     const profileMap = await this.profileRepo.findByUserIds(tenantId, result.users.map((u) => u.id));
     return {
@@ -88,6 +98,7 @@ export class AdminController {
           };
         }),
         total: result.total,
+        summary: result.summary,
       },
     };
   }

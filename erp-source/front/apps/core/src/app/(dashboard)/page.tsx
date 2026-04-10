@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import PageHeader from '@/components/page-header';
+import { PageHeader } from '@erp/ui';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { authApi } from '@/lib/api/auth';
@@ -15,15 +15,15 @@ function StatCard({ label, value, icon, iconBg, loading }: {
   label: string; value: string | number; icon: React.ReactNode; iconBg?: string; loading?: boolean;
 }) {
   return (
-    <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md dark:bg-gray-800 dark:ring-gray-700">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{label}</span>
-        <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconBg || 'bg-blue-50 text-blue-600'}`}>{icon}</span>
+    <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md sm:p-5 dark:bg-gray-800 dark:ring-gray-700">
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-xs font-medium leading-tight text-gray-500 sm:text-sm dark:text-gray-400">{label}</span>
+        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl sm:h-10 sm:w-10 ${iconBg || 'bg-[color-mix(in_srgb,var(--gogo-primary)_10%,transparent)] text-[var(--gogo-primary)]'}`}>{icon}</span>
       </div>
       {loading ? (
-        <div className="mt-3 h-8 w-16 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-700" />
+        <div className="mt-2 h-7 w-14 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-700" />
       ) : (
-        <p className="mt-3 text-3xl font-bold text-gray-900 dark:text-white">{value}</p>
+        <p className="mt-2 text-2xl font-bold text-gray-900 sm:text-3xl dark:text-white">{value}</p>
       )}
     </div>
   );
@@ -53,8 +53,8 @@ function QuickAction({ icon, label, description, onClick }: {
   icon: React.ReactNode; label: string; description: string; onClick?: () => void;
 }) {
   return (
-    <button onClick={onClick} className="group flex items-start gap-3 rounded-xl border border-gray-100 bg-white p-4 text-left transition hover:border-blue-200 hover:shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-700">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-50 text-gray-600 transition group-hover:bg-blue-50 group-hover:text-blue-600 dark:bg-gray-700 dark:text-gray-300">{icon}</span>
+    <button onClick={onClick} className="group flex items-start gap-3 rounded-xl border border-gray-100 bg-white p-4 text-left transition hover:border-[var(--gogo-primary)] hover:shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:hover:border-[var(--gogo-primary)]">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-50 text-gray-600 transition group-hover:text-[var(--gogo-primary)] dark:bg-gray-700 dark:text-gray-300">{icon}</span>
       <div>
         <p className="text-sm font-semibold text-gray-900 dark:text-white">{label}</p>
         <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{description}</p>
@@ -137,15 +137,15 @@ export default function DashboardPage() {
       }
       if (invitesRes.status === 'fulfilled') {
         const d = invitesRes.value.data?.data;
-        setPendingInvites(Array.isArray(d) ? d.length : 0);
+        setPendingInvites(Array.isArray(d) ? d.length : (d?.total ?? 0));
       }
       if (divsRes.status === 'fulfilled') {
         const d = divsRes.value.data?.data;
-        setDivisionCount(Array.isArray(d) ? d.length : 0);
+        setDivisionCount(Array.isArray(d) ? d.length : (d?.total ?? 0));
       }
       if (deptsRes.status === 'fulfilled') {
         const d = deptsRes.value.data?.data;
-        setDepartmentCount(Array.isArray(d) ? d.length : 0);
+        setDepartmentCount(Array.isArray(d) ? d.length : (d?.total ?? 0));
       }
     }).finally(() => setStatsLoading(false));
   }, [orgId]);
@@ -154,7 +154,7 @@ export default function DashboardPage() {
     if (!orgId) return;
     setAuditLoading(true);
     authApi.getAuditLog(orgId, { limit: 10 })
-      .then(({ data }) => {
+      .then(({ data }: { data: any }) => {
         const entries: AuditEntry[] = data?.data?.entries ?? data?.data ?? [];
         setAuditLog(Array.isArray(entries) ? entries : []);
       })
@@ -166,11 +166,11 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <PageHeader
         title={`${greeting}, ${displayName}`}
-        subtitle="Here&apos;s an overview of your organisation"
+        description="Here's an overview of your organisation"
       />
 
       {/* Stat Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard loading={statsLoading} label="Members" value={memberCount}
           iconBg="bg-violet-50 text-violet-600"
           icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>}
@@ -180,7 +180,7 @@ export default function DashboardPage() {
           icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>}
         />
         <StatCard loading={statsLoading} label="Divisions" value={divisionCount}
-          iconBg="bg-blue-50 text-blue-600"
+          iconBg="bg-[color-mix(in_srgb,var(--gogo-primary)_10%,transparent)] text-[var(--gogo-primary)]"
           icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg>}
         />
         <StatCard loading={statsLoading} label="Departments" value={departmentCount}
@@ -190,11 +190,11 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent Activity */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
         <div className="lg:col-span-2 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-base font-semibold text-gray-900 dark:text-white">Recent Activity</h2>
-            <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">Audit log</span>
+            <span className="rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 10%, transparent)', color: 'var(--gogo-primary)' }}>Audit log</span>
           </div>
           {auditLoading ? (
             <div className="space-y-3">
@@ -249,7 +249,7 @@ export default function DashboardPage() {
       {/* Quick Actions */}
       <div>
         <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Quick Actions</h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <QuickAction
             onClick={() => router.push('/admin/users')}
             label="Manage Users"

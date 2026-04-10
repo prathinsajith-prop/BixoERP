@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { useTheme, showToast } from '@erp/shell';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
-import PageHeader from '@/components/page-header';
+import { Select, Input, Button } from '@erp/ui';
 
 const SIDEBAR_ITEMS = [
   { key: 'appearance', label: 'Appearance', icon: 'M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008z' },
@@ -32,55 +32,263 @@ const SHORTCUTS = [
   { keys: ['⌘', 'B'], action: 'Toggle notifications' },
 ];
 
-function SettingSection({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+function Toggle({
+  label,
+  description,
+  checked,
+  onChange,
+  divider = false,
+}: {
+  label: string;
+  description?: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  divider?: boolean;
+}) {
   return (
-    <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 dark:bg-gray-900 dark:ring-gray-800">
-      <div className="mb-5">
-        <h3 className="text-base font-semibold text-gray-900 dark:text-white">{title}</h3>
-        <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{description}</p>
+    <label
+      className="flex cursor-pointer items-center justify-between gap-4 py-3"
+      style={divider ? { borderTop: '1px solid var(--gogo-divider)' } : undefined}
+    >
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium" style={{ color: 'var(--gogo-text-primary)' }}>{label}</p>
+        {description && <p className="mt-0.5 text-xs" style={{ color: 'var(--gogo-text-secondary)' }}>{description}</p>}
       </div>
-      {children}
-    </div>
-  );
-}
-
-function Toggle({ label, description, checked, onChange }: { label: string; description?: string; checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <div className="flex items-center justify-between py-3">
-      <div>
-        <p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p>
-        {description && <p className="text-xs text-gray-500 dark:text-gray-400">{description}</p>}
-      </div>
-      <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition ${checked ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}>
-        <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className="relative shrink-0 transition-all focus:outline-none focus-visible:ring-2"
+        style={{
+          width: 44,
+          height: 24,
+          borderRadius: 999,
+          backgroundColor: checked ? 'var(--gogo-primary)' : 'var(--gogo-grey-100)',
+          border: '2px solid',
+          borderColor: checked ? 'var(--gogo-primary)' : 'var(--gogo-divider)',
+        }}
+      >
+        <span
+          className="absolute top-0.5 block h-4 w-4 rounded-full shadow-sm transition-all"
+          style={{
+            left: checked ? 'calc(100% - 18px)' : 2,
+            backgroundColor: checked ? '#ffffff' : 'var(--gogo-text-secondary)',
+          }}
+        />
       </button>
-    </div>
+    </label>
   );
 }
 
-function Slider({ label, description, value, onChange, min = 0, max = 100, unit = '' }: { label: string; description?: string; value: number; onChange: (v: number) => void; min?: number; max?: number; unit?: string }) {
+function CustomSlider({
+  label,
+  description,
+  value,
+  onChange,
+  min = 0,
+  max = 100,
+  unit = '',
+}: {
+  label: string;
+  description?: string;
+  value: number;
+  onChange: (v: number) => void;
+  min?: number;
+  max?: number;
+  unit?: string;
+}) {
+  const pct = ((value - min) / (max - min)) * 100;
   return (
-    <div className="py-3">
-      <div className="mb-2 flex items-center justify-between">
+    <div className="py-4">
+      <div className="mb-3 flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p>
-          {description && <p className="text-xs text-gray-500 dark:text-gray-400">{description}</p>}
+          <p className="text-sm font-medium" style={{ color: 'var(--gogo-text-primary)' }}>{label}</p>
+          {description && <p className="mt-0.5 text-xs" style={{ color: 'var(--gogo-text-secondary)' }}>{description}</p>}
         </div>
-        <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">{value}{unit}</span>
+        <span
+          className="shrink-0 rounded-[var(--radius-chip)] px-2.5 py-1 text-xs font-bold"
+          style={{
+            backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 10%, transparent)',
+            color: 'var(--gogo-primary)',
+            minWidth: '3rem',
+            textAlign: 'center',
+          }}
+        >
+          {value}{unit}
+        </span>
       </div>
-      <input type="range" min={min} max={max} value={value} onChange={(e) => onChange(Number(e.target.value))} className="h-2 w-full cursor-pointer appearance-none rounded-full bg-gray-200 accent-blue-600 dark:bg-gray-700" />
+      <div className="relative">
+        <div className="relative h-2 w-full overflow-hidden" style={{ borderRadius: 999, backgroundColor: 'var(--gogo-grey-100)' }}>
+          <div className="h-full transition-all" style={{ width: `${pct}%`, backgroundColor: 'var(--gogo-primary)', borderRadius: 999 }} />
+        </div>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          value={value}
+          onChange={e => onChange(Number(e.target.value))}
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          style={{ margin: 0 }}
+        />
+        <div
+          className="pointer-events-none absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full shadow-md transition-all"
+          style={{
+            left: `calc(${pct}% - 10px)`,
+            backgroundColor: 'var(--gogo-surface)',
+            border: '2.5px solid var(--gogo-primary)',
+          }}
+        />
+      </div>
+      <div className="mt-1.5 flex justify-between">
+        <span className="text-[10px]" style={{ color: 'var(--gogo-text-secondary)' }}>{min}{unit}</span>
+        <span className="text-[10px]" style={{ color: 'var(--gogo-text-secondary)' }}>{max}{unit}</span>
+      </div>
     </div>
   );
 }
 
-const selectClass = "block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white";
-const labelClass = "mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300";
+function SettingSection({
+  title,
+  description,
+  icon,
+  children,
+  variant = 'default',
+}: {
+  title: string;
+  description: string;
+  icon?: string;
+  children: ReactNode;
+  variant?: 'default' | 'danger';
+}) {
+  return (
+    <div
+      className="overflow-hidden"
+      style={{
+        backgroundColor: 'var(--gogo-surface)',
+        borderRadius: 'var(--radius-card)',
+        boxShadow: 'var(--shadow-card)',
+        border: variant === 'danger' ? '1px solid rgba(220,38,38,0.2)' : '1px solid var(--gogo-divider)',
+      }}
+    >
+      <div className="flex items-center gap-3 px-4 py-3 sm:px-6 sm:py-4" style={{ borderBottom: '1px solid var(--gogo-divider)' }}>
+        {icon && (
+          <span
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-chip)]"
+            style={{
+              backgroundColor: variant === 'danger' ? 'rgba(220,38,38,0.1)' : 'color-mix(in srgb, var(--gogo-primary) 10%, transparent)',
+              color: variant === 'danger' ? '#dc2626' : 'var(--gogo-primary)',
+            }}
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+              <path strokeLinecap="round" strokeLinejoin="round" d={icon} />
+            </svg>
+          </span>
+        )}
+        <div>
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--gogo-text-primary)' }}>{title}</h3>
+          <p className="mt-0.5 text-xs" style={{ color: 'var(--gogo-text-secondary)' }}>{description}</p>
+        </div>
+      </div>
+      <div className="px-4 py-4 sm:px-6 sm:py-5">{children}</div>
+    </div>
+  );
+}
+
+function SettingsSidebar({
+  active,
+  onChange,
+  sectionCounts,
+}: {
+  active: string;
+  onChange: (key: string) => void;
+  sectionCounts: Record<string, number>;
+}) {
+  const GROUPS = [
+    {
+      label: 'Preferences',
+      items: SIDEBAR_ITEMS.filter(i => ['appearance', 'notifications', 'language', 'accessibility'].includes(i.key)),
+    },
+    {
+      label: 'Account',
+      items: SIDEBAR_ITEMS.filter(i => ['security', 'privacy', 'data', 'integrations'].includes(i.key)),
+    },
+    {
+      label: 'System',
+      items: SIDEBAR_ITEMS.filter(i => ['keyboard', 'danger'].includes(i.key)),
+    },
+  ];
+
+  return (
+    <nav className="space-y-5">
+      {GROUPS.map(group => (
+        <div key={group.label}>
+          <p className="mb-1.5 px-3 text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: 'var(--gogo-text-secondary)' }}>
+            {group.label}
+          </p>
+          <div className="space-y-0.5">
+            {group.items.map(item => {
+              const isActive = active === item.key;
+              const isDanger = item.key === 'danger';
+              const count = sectionCounts[item.key] ?? 0;
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => onChange(item.key)}
+                  className="relative flex w-full items-center gap-3 rounded-[var(--radius-button)] px-3 py-2.5 text-left text-sm transition-all"
+                  style={{
+                    backgroundColor: isActive ? 'color-mix(in srgb, var(--gogo-primary) 10%, transparent)' : 'transparent',
+                    color: isActive ? 'var(--gogo-primary)' : isDanger ? '#dc2626' : 'var(--gogo-text-secondary)',
+                    fontWeight: isActive ? 600 : 500,
+                  }}
+                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.backgroundColor = 'var(--gogo-grey-100)'; }}
+                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                >
+                  {isActive && (
+                    <span
+                      className="absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full"
+                      style={{ width: 3, height: '60%', backgroundColor: 'var(--gogo-primary)' }}
+                    />
+                  )}
+                  <span
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-chip)]"
+                    style={{
+                      backgroundColor: isActive ? 'color-mix(in srgb, var(--gogo-primary) 15%, transparent)' : 'var(--gogo-grey-100)',
+                    }}
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
+                    </svg>
+                  </span>
+                  <span className="flex-1">{item.label}</span>
+                  {count > 0 && (
+                    <span
+                      className="flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[10px] font-bold"
+                      style={{
+                        backgroundColor: isActive ? 'var(--gogo-primary)' : 'var(--gogo-grey-100)',
+                        color: isActive ? '#ffffff' : 'var(--gogo-text-secondary)',
+                      }}
+                    >
+                      {count}
+                    </span>
+                  )}
+                  {isDanger && count === 0 && <span className="h-1.5 w-1.5 rounded-full bg-red-500" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </nav>
+  );
+}
 
 export default function SettingsPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const loadedRef = useRef(false);
+  const initialSettingsRef = useRef<any>(null);
   const [activeSection, setActiveSection] = useState('appearance');
   const [mobileSectionOpen, setMobileSectionOpen] = useState(false);
 
@@ -100,7 +308,6 @@ export default function SettingsPage() {
   const [quietEnd, setQuietEnd] = useState('08:00');
 
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  useEffect(() => { authApi.twoFactorStatus().then(({ data }) => setTwoFactorEnabled(data.data.enabled)).catch(() => { }); }, []);
   const [sessionTimeout, setSessionTimeout] = useState(30);
   const [loginAlerts, setLoginAlerts] = useState(true);
   const [ipWhitelisting, setIpWhitelisting] = useState(false);
@@ -235,7 +442,19 @@ export default function SettingsPage() {
   }
 
   useEffect(() => {
-    authApi.getSettings().then(({ data }) => { if (data.data) applySettings(data.data); }).catch(() => { }).finally(() => { loadedRef.current = true; });
+    Promise.all([
+      authApi.getSettings().then(({ data }: { data: any }) => {
+        if (data.data) {
+          initialSettingsRef.current = data.data;
+          applySettings(data.data);
+        }
+      }).catch(() => { }),
+      authApi.twoFactorStatus().then(({ data }: { data: any }) => setTwoFactorEnabled(data.data.enabled)).catch(() => { }),
+    ]).finally(() => {
+      // Defer until React has flushed all batched setState calls from the above promises,
+      // so the dirty useEffect does not fire on initial load.
+      setTimeout(() => { loadedRef.current = true; }, 0);
+    });
   }, []);
 
   useEffect(() => { if (loadedRef.current) setDirty(true); }, [
@@ -252,7 +471,9 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await authApi.updateSettings(buildPayload());
+      const payload = buildPayload();
+      await authApi.updateSettings(payload);
+      initialSettingsRef.current = payload;
       setDirty(false);
       showToast.success('Settings saved');
     } catch (err: any) {
@@ -261,32 +482,112 @@ export default function SettingsPage() {
   };
 
   const ACCENT_COLORS = [
-    { key: 'blue', color: 'bg-blue-500' }, { key: 'indigo', color: 'bg-indigo-500' }, { key: 'purple', color: 'bg-purple-500' },
-    { key: 'pink', color: 'bg-pink-500' }, { key: 'red', color: 'bg-red-500' }, { key: 'orange', color: 'bg-orange-500' },
-    { key: 'amber', color: 'bg-amber-500' }, { key: 'emerald', color: 'bg-emerald-500' }, { key: 'teal', color: 'bg-teal-500' }, { key: 'cyan', color: 'bg-cyan-500' },
+    { key: 'blue', label: 'Blue', hex: '#3b82f6', tw: 'bg-blue-500' },
+    { key: 'indigo', label: 'Indigo', hex: '#6366f1', tw: 'bg-indigo-500' },
+    { key: 'purple', label: 'Purple', hex: '#922c88', tw: 'bg-purple-500' },
+    { key: 'pink', label: 'Pink', hex: '#ec4899', tw: 'bg-pink-500' },
+    { key: 'red', label: 'Red', hex: '#ef4444', tw: 'bg-red-500' },
+    { key: 'orange', label: 'Orange', hex: '#f97316', tw: 'bg-orange-500' },
+    { key: 'amber', label: 'Amber', hex: '#f59e0b', tw: 'bg-amber-500' },
+    { key: 'emerald', label: 'Green', hex: '#10b981', tw: 'bg-emerald-500' },
+    { key: 'teal', label: 'Teal', hex: '#14b8a6', tw: 'bg-teal-500' },
+    { key: 'cyan', label: 'Cyan', hex: '#06b6d4', tw: 'bg-cyan-500' },
+  ];
+
+  const THEMES = [
+    {
+      key: 'light',
+      label: 'Light',
+      icon: <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" /></svg>,
+      preview: { bg: '#ffffff', text: '#2b2b2b' },
+    },
+    {
+      key: 'dark',
+      label: 'Dark',
+      icon: <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" /></svg>,
+      preview: { bg: '#1e1e1e', text: '#ffffff' },
+    },
+    {
+      key: 'system',
+      label: 'System',
+      icon: <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0H3" /></svg>,
+      preview: { bg: 'linear-gradient(135deg, #ffffff 50%, #1e1e1e 50%)', text: '#2b2b2b' },
+    },
   ];
 
   const storageUsed = 2.4, storageTotal = 10;
 
-  const btnActive = "border-blue-500 bg-blue-50 text-blue-700 shadow-sm dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700";
-  const btnInactive = "border-gray-200 bg-white text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:border-gray-600";
+  const btnActive = {
+    border: '2px solid var(--gogo-primary)',
+    backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 10%, transparent)',
+    color: 'var(--gogo-primary)',
+    fontWeight: 600,
+  };
+
+  const btnInactive = {
+    border: '2px solid var(--gogo-divider)',
+    backgroundColor: 'var(--gogo-surface)',
+    color: 'var(--gogo-text-secondary)',
+  };
+
+  const sectionCounts: Record<string, number> = {
+    appearance: [accentColor !== 'purple', compactMode, !animationsEnabled].filter(Boolean).length,
+    notifications: [!emailNotifs, !pushNotifs, quietHoursEnabled].filter(Boolean).length,
+    security: [twoFactorEnabled, loginAlerts, ipWhitelisting].filter(Boolean).length,
+    privacy: [!showEmail, !searchable, !activityStatus, !readReceipts].filter(Boolean).length,
+    integrations: [slackConnected, googleConnected, microsoftConnected, jiraConnected, githubConnected].filter(Boolean).length,
+  };
 
   return (
     <>
-      <PageHeader title="Settings" subtitle="Customize your preferences" />
-      <div className="flex flex-col lg:flex-row lg:gap-0">
-        <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 overflow-y-auto py-6 pr-4 lg:block">
-          <nav className="space-y-1">
-            {SIDEBAR_ITEMS.map((item) => (
-              <button key={item.key} onClick={() => setActiveSection(item.key)} className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition ${activeSection === item.key ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white'}`}>
-                <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={item.icon} /></svg>
-                {item.label}
-                {item.key === 'danger' && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-red-500" />}
-              </button>
-            ))}
-          </nav>
+      {/* Dynamic settings header */}
+      <div className="mb-6">
+        <div className="mb-1 flex items-center gap-2 text-xs font-medium" style={{ color: 'var(--gogo-text-secondary)' }}>
+          <span>Settings</span>
+          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+          <span style={{ color: 'var(--gogo-primary)', fontWeight: 600 }}>
+            {SIDEBAR_ITEMS.find(i => i.key === activeSection)?.label ?? 'Appearance'}
+          </span>
+        </div>
+        <h1 className="text-xl font-bold" style={{ color: 'var(--gogo-text-primary)', fontFamily: 'var(--font-gogo)' }}>
+          {SIDEBAR_ITEMS.find(i => i.key === activeSection)?.label ?? 'Settings'}
+        </h1>
+        <p className="mt-0.5 text-sm" style={{ color: 'var(--gogo-text-secondary)' }}>
+          {(() => {
+            const descriptions: Record<string, string> = {
+              appearance: 'Customize how BixoERP looks and feels',
+              notifications: 'Control when and how you get notified',
+              security: 'Protect your account and data',
+              privacy: 'Manage what others can see about you',
+              language: 'Set your preferred language, timezone and formats',
+              accessibility: 'Adapt the interface to your needs',
+              data: 'Manage your storage, exports and cache',
+              integrations: 'Connect third-party apps and APIs',
+              keyboard: 'Reference for keyboard shortcuts',
+              danger: 'Irreversible actions — proceed with caution',
+            };
+            return descriptions[activeSection] ?? 'Customize your preferences';
+          })()}
+        </p>
+      </div>
+
+      <div className="flex flex-col lg:flex-row lg:gap-8">
+        {/* Desktop sidebar */}
+        <aside
+          className="sticky hidden h-fit w-56 shrink-0 overflow-y-auto lg:block"
+          style={{
+            top: 'calc(var(--gogo-header-height) + 1.5rem)',
+            backgroundColor: 'var(--gogo-surface)',
+            borderRadius: 'var(--radius-card)',
+            boxShadow: 'var(--shadow-card)',
+            border: '1px solid var(--gogo-divider)',
+            padding: '12px',
+          }}
+        >
+          <SettingsSidebar active={activeSection} onChange={setActiveSection} sectionCounts={sectionCounts} />
         </aside>
 
+        {/* Mobile section picker */}
         <div className="relative mb-4 w-full lg:hidden">
           {(() => {
             const active = SIDEBAR_ITEMS.find((i) => i.key === activeSection);
@@ -294,28 +595,38 @@ export default function SettingsPage() {
               <>
                 <button
                   onClick={() => setMobileSectionOpen((o) => !o)}
-                  className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-gray-600"
+                  className="flex w-full items-center justify-between px-4 py-3 text-left transition"
+                  style={{
+                    borderRadius: 'var(--radius-card)',
+                    border: '1px solid var(--gogo-divider)',
+                    backgroundColor: 'var(--gogo-surface)',
+                    boxShadow: 'var(--shadow-card)',
+                  }}
                 >
                   <span className="flex items-center gap-2.5">
-                    <svg className="h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={active?.icon} /></svg>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{active?.label}</span>
+                    <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} style={{ color: 'var(--gogo-text-secondary)' }}><path strokeLinecap="round" strokeLinejoin="round" d={active?.icon} /></svg>
+                    <span className="text-sm font-medium" style={{ color: 'var(--gogo-text-primary)' }}>{active?.label}</span>
                   </span>
-                  <svg className={`h-4 w-4 text-gray-400 transition-transform ${mobileSectionOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                  <svg className={`h-4 w-4 transition-transform ${mobileSectionOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ color: 'var(--gogo-text-secondary)' }}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
                 </button>
                 {mobileSectionOpen && (
                   <>
                     <div className="fixed inset-0 z-30" onClick={() => setMobileSectionOpen(false)} />
-                    <div className="absolute left-0 right-0 top-full z-40 mt-1 max-h-80 overflow-y-auto rounded-xl border border-gray-200 bg-white py-1 shadow-xl dark:border-gray-700 dark:bg-gray-900">
+                    <div
+                      className="absolute left-0 right-0 top-full z-40 mt-1 max-h-80 overflow-y-auto py-1"
+                      style={{ borderRadius: 'var(--radius-card)', border: '1px solid var(--gogo-divider)', backgroundColor: 'var(--gogo-surface)', boxShadow: 'var(--shadow-hover)' }}
+                    >
                       {SIDEBAR_ITEMS.map((item) => (
                         <button
                           key={item.key}
                           onClick={() => { setActiveSection(item.key); setMobileSectionOpen(false); }}
-                          className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition ${activeSection === item.key ? 'bg-blue-50 font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+                          className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium transition"
+                          style={activeSection === item.key ? { backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 8%, transparent)', color: 'var(--gogo-primary)' } : { color: 'var(--gogo-text-primary)' }}
                         >
                           <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={item.icon} /></svg>
                           {item.label}
                           {item.key === 'danger' && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-red-500" />}
-                          {activeSection === item.key && <svg className="ml-auto h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>}
+                          {activeSection === item.key && <svg className="ml-auto h-4 w-4" style={{ color: 'var(--gogo-primary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>}
                         </button>
                       ))}
                     </div>
@@ -326,73 +637,110 @@ export default function SettingsPage() {
           })()}
         </div>
 
+        {/* Content */}
         <div className="min-w-0 flex-1">
           <div className="space-y-6">
 
             {/* Appearance */}
             {activeSection === 'appearance' && (<>
-              <SettingSection title="Theme" description="Choose your preferred color scheme.">
-                <div className="flex gap-3">
-                  {[{ key: 'light', emoji: '☀️' }, { key: 'dark', emoji: '🌙' }, { key: 'system', emoji: '💻' }].map((t) => (
-                    <button key={t.key} onClick={() => setTheme(t.key)} className={`flex-1 rounded-xl border-2 px-4 py-4 text-center transition ${theme === t.key ? btnActive : btnInactive}`}>
-                      <span className="text-2xl">{t.emoji}</span>
-                      <p className="mt-1 text-sm font-medium capitalize">{t.key}</p>
-                    </button>
-                  ))}
+              <SettingSection title="Theme" description="Choose your preferred color scheme." icon={SIDEBAR_ITEMS[0].icon}>
+                <div className="grid grid-cols-3 gap-3">
+                  {THEMES.map(t => {
+                    const isActive = theme === t.key;
+                    return (
+                      <button
+                        key={t.key}
+                        onClick={() => setTheme(t.key)}
+                        className="group relative overflow-hidden transition-all"
+                        style={{
+                          borderRadius: 'var(--radius-input)',
+                          border: isActive ? '2px solid var(--gogo-primary)' : '2px solid var(--gogo-divider)',
+                          backgroundColor: isActive ? 'color-mix(in srgb, var(--gogo-primary) 5%, var(--gogo-surface))' : 'var(--gogo-surface)',
+                          boxShadow: isActive ? 'var(--shadow-card)' : 'none',
+                        }}
+                      >
+                        <div className="h-14 w-full" style={{ background: t.preview.bg }}>
+                          <div className="flex h-full items-end px-3 pb-2 gap-1">
+                            <div className="h-1.5 w-8 rounded-full opacity-40" style={{ backgroundColor: t.preview.text }} />
+                            <div className="h-1 w-5 rounded-full opacity-20" style={{ backgroundColor: t.preview.text }} />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 px-3 py-2.5">
+                          <span style={{ color: isActive ? 'var(--gogo-primary)' : 'var(--gogo-text-secondary)' }}>{t.icon}</span>
+                          <span className="text-sm font-semibold" style={{ color: isActive ? 'var(--gogo-primary)' : 'var(--gogo-text-primary)' }}>{t.label}</span>
+                          {isActive && (
+                            <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full" style={{ backgroundColor: 'var(--gogo-primary)' }}>
+                              <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </SettingSection>
-              <SettingSection title="Accent Color" description="Personalize the primary color across the interface.">
-                <div className="flex flex-wrap gap-3">
-                  {ACCENT_COLORS.map((c) => (
-                    <button key={c.key} onClick={() => setAccentColor(c.key)} className={`flex h-10 w-10 items-center justify-center rounded-full transition ${c.color} ${accentColor === c.key ? 'ring-2 ring-offset-2 ring-gray-900 scale-110 dark:ring-white' : 'hover:scale-105'}`}>
-                      {accentColor === c.key && <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>}
-                    </button>
-                  ))}
-                </div>
-              </SettingSection>
-              <SettingSection title="Layout & Display" description="Adjust the interface density and behavior.">
-                <Slider label="Font size" description="Adjust the base text size" value={fontSize} onChange={setFontSize} min={10} max={20} unit="px" />
-                <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  <Toggle label="Compact mode" description="Reduce spacing and padding" checked={compactMode} onChange={setCompactMode} />
-                  <Toggle label="Animations" description="Enable transitions and motion effects" checked={animationsEnabled} onChange={setAnimationsEnabled} />
-                  <Toggle label="Reduced motion" description="Minimize non-essential movement" checked={reducedMotion} onChange={setReducedMotion} />
-                </div>
 
+              <SettingSection title="Accent Color" description="Personalize the primary color across the interface." icon={SIDEBAR_ITEMS[0].icon}>
+                <div className="grid grid-cols-5 gap-2">
+                  {ACCENT_COLORS.map(c => {
+                    const isActive = accentColor === c.key;
+                    return (
+                      <button
+                        key={c.key}
+                        onClick={() => setAccentColor(c.key)}
+                        className="flex flex-col items-center gap-1.5 p-2 transition-all"
+                        style={{
+                          borderRadius: 'var(--radius-input)',
+                          border: isActive ? `2px solid ${c.hex}` : '2px solid transparent',
+                          backgroundColor: isActive ? `${c.hex}14` : 'transparent',
+                        }}
+                        title={c.label}
+                      >
+                        <span className={`relative flex h-8 w-8 items-center justify-center rounded-full ${c.tw}`}>
+                          {isActive && (
+                            <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                          )}
+                        </span>
+                        <span className="text-[10px] font-medium" style={{ color: isActive ? c.hex : 'var(--gogo-text-secondary)' }}>{c.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </SettingSection>
+
+              <SettingSection title="Layout & Display" description="Adjust the interface density and behavior." icon={SIDEBAR_ITEMS[0].icon}>
+                <CustomSlider label="Font size" description="Adjust the base text size" value={fontSize} onChange={setFontSize} min={10} max={20} unit="px" />
+                <Toggle label="Compact mode" description="Reduce spacing and padding" checked={compactMode} onChange={setCompactMode} divider />
+                <Toggle label="Animations" description="Enable transitions and motion effects" checked={animationsEnabled} onChange={setAnimationsEnabled} divider />
+                <Toggle label="Reduced motion" description="Minimize non-essential movement" checked={reducedMotion} onChange={setReducedMotion} divider />
               </SettingSection>
             </>)}
 
             {/* Notifications */}
             {activeSection === 'notifications' && (<>
-              <SettingSection title="Channels" description="Control how you receive notifications.">
-                <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  <Toggle label="Email notifications" description="Receive important updates via email" checked={emailNotifs} onChange={setEmailNotifs} />
-                  <Toggle label="Push notifications" description="Get real-time alerts in your browser" checked={pushNotifs} onChange={setPushNotifs} />
-                  <Toggle label="Desktop notifications" description="Show native desktop notification popups" checked={desktopNotifs} onChange={setDesktopNotifs} />
-                  <Toggle label="Sound alerts" description="Play a sound for incoming notifications" checked={soundEnabled} onChange={setSoundEnabled} />
-                </div>
+              <SettingSection title="Channels" description="Control how you receive notifications." icon={SIDEBAR_ITEMS[1].icon}>
+                <Toggle label="Email notifications" description="Receive important updates via email" checked={emailNotifs} onChange={setEmailNotifs} />
+                <Toggle label="Push notifications" description="Get real-time alerts in your browser" checked={pushNotifs} onChange={setPushNotifs} divider />
+                <Toggle label="Desktop notifications" description="Show native desktop notification popups" checked={desktopNotifs} onChange={setDesktopNotifs} divider />
+                <Toggle label="Sound alerts" description="Play a sound for incoming notifications" checked={soundEnabled} onChange={setSoundEnabled} divider />
                 {soundEnabled && (
                   <div className="mt-4">
-                    <label className={labelClass}>Notification sound</label>
-                    <select value={notifSound} onChange={(e) => setNotifSound(e.target.value)} className={selectClass}>
-                      <option value="default">Default</option><option value="chime">Chime</option><option value="ping">Ping</option><option value="pop">Pop</option><option value="bell">Bell</option><option value="none">None</option>
-                    </select>
+                    <Select label="Notification sound" value={notifSound} onChange={(e) => setNotifSound(e.target.value)} options={[{ value: 'default', label: 'Default' }, { value: 'chime', label: 'Chime' }, { value: 'ping', label: 'Ping' }, { value: 'pop', label: 'Pop' }, { value: 'bell', label: 'Bell' }, { value: 'none', label: 'None' }]} />
                   </div>
                 )}
               </SettingSection>
-              <SettingSection title="Activity Types" description="Choose which events trigger notifications.">
-                <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  <Toggle label="@Mentions" description="When someone mentions you" checked={mentionNotifs} onChange={setMentionNotifs} />
-                  <Toggle label="Task assignments" description="When a task is assigned to you" checked={taskNotifs} onChange={setTaskNotifs} />
-                  <Toggle label="Module updates" description="Changes in modules you're subscribed to" checked={moduleUpdates} onChange={setModuleUpdates} />
-                  <Toggle label="Weekly digest" description="Summary of activity every Monday" checked={weeklyDigest} onChange={setWeeklyDigest} />
-                </div>
+              <SettingSection title="Activity Types" description="Choose which events trigger notifications." icon={SIDEBAR_ITEMS[1].icon}>
+                <Toggle label="@Mentions" description="When someone mentions you" checked={mentionNotifs} onChange={setMentionNotifs} />
+                <Toggle label="Task assignments" description="When a task is assigned to you" checked={taskNotifs} onChange={setTaskNotifs} divider />
+                <Toggle label="Module updates" description="Changes in modules you're subscribed to" checked={moduleUpdates} onChange={setModuleUpdates} divider />
+                <Toggle label="Weekly digest" description="Summary of activity every Monday" checked={weeklyDigest} onChange={setWeeklyDigest} divider />
               </SettingSection>
-              <SettingSection title="Quiet Hours" description="Pause notifications during specific times.">
+              <SettingSection title="Quiet Hours" description="Pause notifications during specific times." icon={SIDEBAR_ITEMS[1].icon}>
                 <Toggle label="Enable quiet hours" description="Silence all notifications during the set period" checked={quietHoursEnabled} onChange={setQuietHoursEnabled} />
                 {quietHoursEnabled && (
                   <div className="mt-3 grid grid-cols-2 gap-4">
-                    <div><label className={labelClass}>Start time</label><input type="time" value={quietStart} onChange={(e) => setQuietStart(e.target.value)} className={selectClass} /></div>
-                    <div><label className={labelClass}>End time</label><input type="time" value={quietEnd} onChange={(e) => setQuietEnd(e.target.value)} className={selectClass} /></div>
+                    <Input type="time" label="Start time" value={quietStart} onChange={(e) => setQuietStart(e.target.value)} />
+                    <Input type="time" label="End time" value={quietEnd} onChange={(e) => setQuietEnd(e.target.value)} />
                   </div>
                 )}
               </SettingSection>
@@ -400,32 +748,45 @@ export default function SettingsPage() {
 
             {/* Security */}
             {activeSection === 'security' && (<>
-              <SettingSection title="Authentication" description="Strengthen your account security.">
-                <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  <div className="flex items-center justify-between py-3">
-                    <div><p className="text-sm font-medium text-gray-900 dark:text-white">Two-factor authentication</p><p className="text-xs text-gray-500 dark:text-gray-400">Add an extra layer of security</p></div>
-                    <div className="flex items-center gap-2">
-                      {twoFactorEnabled && <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-300">Enabled</span>}
-                      <button onClick={() => { if (twoFactorEnabled) setTwoFactorEnabled(false); else router.push('/2fa/setup'); }} className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${twoFactorEnabled ? 'border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20' : 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300'}`}>
-                        {twoFactorEnabled ? 'Disable' : 'Enable'}
-                      </button>
-                    </div>
+              <SettingSection title="Authentication" description="Strengthen your account security." icon={SIDEBAR_ITEMS[2].icon}>
+                <div className="flex items-center justify-between py-3">
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: 'var(--gogo-text-primary)' }}>Two-factor authentication</p>
+                    <p className="text-xs" style={{ color: 'var(--gogo-text-secondary)' }}>Add an extra layer of security</p>
                   </div>
-                  <Toggle label="Biometric login" description="Use fingerprint or face ID" checked={biometricLogin} onChange={setBiometricLogin} />
-                  <Toggle label="Login alerts" description="Email alert from new device" checked={loginAlerts} onChange={setLoginAlerts} />
-                  <Toggle label="IP whitelisting" description="Restrict to specific IPs" checked={ipWhitelisting} onChange={setIpWhitelisting} />
+                  <div className="flex items-center gap-2">
+                    {twoFactorEnabled && (
+                      <span className="rounded-full px-2 py-0.5 text-xs font-semibold" style={{ backgroundColor: 'rgba(16,185,129,0.1)', color: '#059669' }}>Enabled</span>
+                    )}
+                    <button
+                      onClick={() => { if (twoFactorEnabled) setTwoFactorEnabled(false); else router.push('/2fa/setup'); }}
+                      className="rounded-[var(--radius-button)] px-3 py-1.5 text-xs font-semibold transition"
+                      style={twoFactorEnabled
+                        ? { border: '1px solid rgba(220,38,38,0.3)', color: '#dc2626', backgroundColor: 'rgba(220,38,38,0.05)' }
+                        : { border: '1px solid var(--gogo-primary)', color: 'var(--gogo-primary)', backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 8%, transparent)' }}
+                    >
+                      {twoFactorEnabled ? 'Disable' : 'Enable'}
+                    </button>
+                  </div>
+                </div>
+                <Toggle label="Biometric login" description="Use fingerprint or face ID" checked={biometricLogin} onChange={setBiometricLogin} divider />
+                <Toggle label="Login alerts" description="Email alert from new device" checked={loginAlerts} onChange={setLoginAlerts} divider />
+                <Toggle label="IP whitelisting" description="Restrict to specific IPs" checked={ipWhitelisting} onChange={setIpWhitelisting} divider />
+              </SettingSection>
+              <SettingSection title="Session Management" description="Control session behavior and expiry." icon={SIDEBAR_ITEMS[2].icon}>
+                <CustomSlider label="Session timeout" description="Auto-logout after inactivity" value={sessionTimeout} onChange={setSessionTimeout} min={5} max={120} unit=" min" />
+                <div className="mt-4">
+                  <Select label="Password expiry" value={passwordExpiry} onChange={(e) => setPasswordExpiry(e.target.value)} options={[{ value: '30', label: 'Every 30 days' }, { value: '60', label: 'Every 60 days' }, { value: '90', label: 'Every 90 days' }, { value: '180', label: 'Every 180 days' }, { value: 'never', label: 'Never' }]} />
                 </div>
               </SettingSection>
-              <SettingSection title="Session Management" description="Control session behavior and expiry.">
-                <Slider label="Session timeout" description="Auto-logout after inactivity" value={sessionTimeout} onChange={setSessionTimeout} min={5} max={120} unit=" min" />
-                <div className="mt-4"><label className={labelClass}>Password expiry</label>
-                  <select value={passwordExpiry} onChange={(e) => setPasswordExpiry(e.target.value)} className={selectClass}>
-                    <option value="30">Every 30 days</option><option value="60">Every 60 days</option><option value="90">Every 90 days</option><option value="180">Every 180 days</option><option value="never">Never</option>
-                  </select>
-                </div>
-              </SettingSection>
-              <SettingSection title="Password" description="Update your account password.">
-                <button onClick={() => router.push('/change-password')} className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
+              <SettingSection title="Password" description="Update your account password." icon={SIDEBAR_ITEMS[2].icon}>
+                <button
+                  onClick={() => router.push('/change-password')}
+                  className="flex items-center gap-2 rounded-[var(--radius-button)] px-4 py-2.5 text-sm font-medium transition"
+                  style={{ border: '1px solid var(--gogo-divider)', backgroundColor: 'var(--gogo-surface)', color: 'var(--gogo-text-primary)' }}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--gogo-grey-100)')}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--gogo-surface)')}
+                >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
                   Change Password
                 </button>
@@ -434,74 +795,63 @@ export default function SettingsPage() {
 
             {/* Privacy */}
             {activeSection === 'privacy' && (<>
-              <SettingSection title="Profile Visibility" description="Control who can see your profile.">
-                <div className="mb-4"><label className={labelClass}>Who can view your profile</label>
-                  <select value={profileVisibility} onChange={(e) => setProfileVisibility(e.target.value)} className={selectClass}>
-                    <option value="everyone">Everyone in organization</option><option value="team">My team only</option><option value="private">Only me</option>
-                  </select>
+              <SettingSection title="Profile Visibility" description="Control who can see your profile." icon={SIDEBAR_ITEMS[3].icon}>
+                <div className="mb-4">
+                  <Select label="Who can view your profile" value={profileVisibility} onChange={(e) => setProfileVisibility(e.target.value)} options={[{ value: 'everyone', label: 'Everyone in organization' }, { value: 'team', label: 'My team only' }, { value: 'private', label: 'Only me' }]} />
                 </div>
-                <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  <Toggle label="Show email address" description="Display email on profile" checked={showEmail} onChange={setShowEmail} />
-                  <Toggle label="Show phone number" description="Display phone on profile" checked={showPhone} onChange={setShowPhone} />
-                  <Toggle label="Appear in search results" description="Allow others to find you" checked={searchable} onChange={setSearchable} />
-                </div>
+                <Toggle label="Show email address" description="Display email on profile" checked={showEmail} onChange={setShowEmail} />
+                <Toggle label="Show phone number" description="Display phone on profile" checked={showPhone} onChange={setShowPhone} divider />
+                <Toggle label="Appear in search results" description="Allow others to find you" checked={searchable} onChange={setSearchable} divider />
               </SettingSection>
-              <SettingSection title="Activity & Status" description="Manage what others see about your activity.">
-                <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  <Toggle label="Online activity status" description="Show when you're active" checked={activityStatus} onChange={setActivityStatus} />
-                  <Toggle label="Read receipts" description="Let others know you've seen messages" checked={readReceipts} onChange={setReadReceipts} />
-                </div>
+              <SettingSection title="Activity & Status" description="Manage what others see about your activity." icon={SIDEBAR_ITEMS[3].icon}>
+                <Toggle label="Online activity status" description="Show when you're active" checked={activityStatus} onChange={setActivityStatus} />
+                <Toggle label="Read receipts" description="Let others know you've seen messages" checked={readReceipts} onChange={setReadReceipts} divider />
               </SettingSection>
-              <SettingSection title="Data Usage" description="Control how your data is used.">
-                <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  <Toggle label="Usage analytics" description="Share anonymized usage data" checked={analyticsOptIn} onChange={setAnalyticsOptIn} />
-                  <Toggle label="Third-party data sharing" description="Allow sharing with trusted partners" checked={dataSharing} onChange={setDataSharing} />
-                </div>
+              <SettingSection title="Data Usage" description="Control how your data is used." icon={SIDEBAR_ITEMS[3].icon}>
+                <Toggle label="Usage analytics" description="Share anonymized usage data" checked={analyticsOptIn} onChange={setAnalyticsOptIn} />
+                <Toggle label="Third-party data sharing" description="Allow sharing with trusted partners" checked={dataSharing} onChange={setDataSharing} divider />
               </SettingSection>
             </>)}
 
             {/* Language & Region */}
             {activeSection === 'language' && (<>
-              <SettingSection title="Language" description="Set your preferred interface language.">
-                <select value={language} onChange={(e) => setLanguage(e.target.value)} className={selectClass}>
-                  <option value="en">English</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="ar">العربية</option><option value="zh">中文</option><option value="ja">日本語</option><option value="hi">हिन्दी</option><option value="ko">한국어</option><option value="it">Italiano</option><option value="nl">Nederlands</option><option value="ru">Русский</option><option value="tr">Türkçe</option>
-                </select>
+              <SettingSection title="Language" description="Set your preferred interface language." icon={SIDEBAR_ITEMS[4].icon}>
+                <Select value={language} onChange={(e) => setLanguage(e.target.value)} options={[{ value: 'en', label: 'English' }, { value: 'es', label: 'Espanol' }, { value: 'fr', label: 'Francais' }, { value: 'de', label: 'Deutsch' }, { value: 'pt', label: 'Portugues' }, { value: 'ar', label: 'Arabic' }, { value: 'zh', label: 'Chinese' }, { value: 'ja', label: 'Japanese' }, { value: 'hi', label: 'Hindi' }, { value: 'ko', label: 'Korean' }, { value: 'it', label: 'Italiano' }, { value: 'nl', label: 'Nederlands' }, { value: 'ru', label: 'Russian' }, { value: 'tr', label: 'Turkce' }]} />
               </SettingSection>
-              <SettingSection title="Timezone & Calendar" description="Configure date, time, and calendar preferences.">
+              <SettingSection title="Timezone & Calendar" description="Configure date, time, and calendar preferences." icon={SIDEBAR_ITEMS[4].icon}>
                 <div className="space-y-4">
-                  <div><label className={labelClass}>Timezone</label>
-                    <select value={timezone} onChange={(e) => setTimezone(e.target.value)} className={selectClass}>
-                      <option value="UTC">UTC</option><option value="America/New_York">Eastern Time</option><option value="America/Chicago">Central Time</option><option value="America/Denver">Mountain Time</option><option value="America/Los_Angeles">Pacific Time</option><option value="Europe/London">London (GMT)</option><option value="Europe/Paris">Paris (CET)</option><option value="Asia/Kolkata">India (IST)</option><option value="Asia/Tokyo">Tokyo (JST)</option><option value="Asia/Dubai">Dubai (GST)</option><option value="Australia/Sydney">Sydney (AEST)</option>
-                    </select>
-                  </div>
-                  <div><label className={labelClass}>First day of week</label>
+                  <Select label="Timezone" value={timezone} onChange={(e) => setTimezone(e.target.value)} options={[{ value: 'UTC', label: 'UTC' }, { value: 'America/New_York', label: 'Eastern Time' }, { value: 'America/Chicago', label: 'Central Time' }, { value: 'America/Denver', label: 'Mountain Time' }, { value: 'America/Los_Angeles', label: 'Pacific Time' }, { value: 'Europe/London', label: 'London (GMT)' }, { value: 'Europe/Paris', label: 'Paris (CET)' }, { value: 'Asia/Kolkata', label: 'India (IST)' }, { value: 'Asia/Tokyo', label: 'Tokyo (JST)' }, { value: 'Asia/Dubai', label: 'Dubai (GST)' }, { value: 'Australia/Sydney', label: 'Sydney (AEST)' }]} />
+                  <div>
+                    <p className="mb-1.5 text-sm font-medium" style={{ color: 'var(--gogo-text-primary)' }}>First day of week</p>
                     <div className="flex gap-3">
                       {['sunday', 'monday', 'saturday'].map((day) => (
-                        <button key={day} onClick={() => setFirstDayOfWeek(day)} className={`flex-1 rounded-lg border-2 px-3 py-2 text-center text-sm font-medium capitalize transition ${firstDayOfWeek === day ? btnActive : btnInactive}`}>{day}</button>
+                        <button key={day} onClick={() => setFirstDayOfWeek(day)} className="flex-1 rounded-[var(--radius-button)] px-3 py-2 text-center text-sm font-medium capitalize transition" style={firstDayOfWeek === day ? btnActive : btnInactive}>{day}</button>
                       ))}
                     </div>
                   </div>
                 </div>
               </SettingSection>
-              <SettingSection title="Formatting" description="Set how dates, times, numbers, and currency are displayed.">
+              <SettingSection title="Formatting" description="Set how dates, times, numbers, and currency are displayed." icon={SIDEBAR_ITEMS[4].icon}>
                 <div className="space-y-4">
-                  <div><label className={labelClass}>Date format</label>
+                  <div>
+                    <p className="mb-1.5 text-sm font-medium" style={{ color: 'var(--gogo-text-primary)' }}>Date format</p>
                     <div className="flex flex-wrap gap-3">
                       {['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD'].map((fmt) => (
-                        <button key={fmt} onClick={() => setDateFormat(fmt)} className={`rounded-lg border-2 px-3 py-2 text-xs font-mono font-medium transition ${dateFormat === fmt ? btnActive : btnInactive}`}>{fmt}</button>
+                        <button key={fmt} onClick={() => setDateFormat(fmt)} className="rounded-[var(--radius-button)] px-3 py-2 text-xs font-mono font-medium transition" style={dateFormat === fmt ? btnActive : btnInactive}>{fmt}</button>
                       ))}
                     </div>
                   </div>
-                  <div><label className={labelClass}>Time format</label>
+                  <div>
+                    <p className="mb-1.5 text-sm font-medium" style={{ color: 'var(--gogo-text-primary)' }}>Time format</p>
                     <div className="flex gap-3">
                       {[{ key: '12h', label: '12 hour (3:30 PM)' }, { key: '24h', label: '24 hour (15:30)' }].map((f) => (
-                        <button key={f.key} onClick={() => setTimeFormat(f.key)} className={`flex-1 rounded-lg border-2 px-3 py-2 text-sm font-medium transition ${timeFormat === f.key ? btnActive : btnInactive}`}>{f.label}</button>
+                        <button key={f.key} onClick={() => setTimeFormat(f.key)} className="flex-1 rounded-[var(--radius-button)] px-3 py-2 text-sm font-medium transition" style={timeFormat === f.key ? btnActive : btnInactive}>{f.label}</button>
                       ))}
                     </div>
                   </div>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div><label className={labelClass}>Number format</label><select value={numberFormat} onChange={(e) => setNumberFormat(e.target.value)} className={selectClass}><option value="1,000.00">1,000.00</option><option value="1.000,00">1.000,00</option><option value="1 000.00">1 000.00</option></select></div>
-                    <div><label className={labelClass}>Currency</label><select value={currency} onChange={(e) => setCurrency(e.target.value)} className={selectClass}><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option><option value="INR">INR (₹)</option><option value="JPY">JPY (¥)</option><option value="AUD">AUD (A$)</option><option value="CAD">CAD (C$)</option><option value="AED">AED (د.إ)</option><option value="BRL">BRL (R$)</option><option value="SGD">SGD (S$)</option></select></div>
+                    <Select label="Number format" value={numberFormat} onChange={(e) => setNumberFormat(e.target.value)} options={[{ value: '1,000.00', label: '1,000.00' }, { value: '1.000,00', label: '1.000,00' }, { value: '1 000.00', label: '1 000.00' }]} />
+                    <Select label="Currency" value={currency} onChange={(e) => setCurrency(e.target.value)} options={[{ value: 'USD', label: 'USD ($)' }, { value: 'EUR', label: 'EUR' }, { value: 'GBP', label: 'GBP' }, { value: 'INR', label: 'INR' }, { value: 'JPY', label: 'JPY' }, { value: 'AUD', label: 'AUD' }, { value: 'CAD', label: 'CAD' }, { value: 'AED', label: 'AED' }, { value: 'BRL', label: 'BRL' }, { value: 'SGD', label: 'SGD' }]} />
                   </div>
                 </div>
               </SettingSection>
@@ -509,60 +859,74 @@ export default function SettingsPage() {
 
             {/* Accessibility */}
             {activeSection === 'accessibility' && (<>
-              <SettingSection title="Visual" description="Adjust visual settings for better readability.">
-                <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  <Toggle label="High contrast mode" description="Increase contrast for better visibility" checked={highContrast} onChange={setHighContrast} />
-                  <Toggle label="Increased text spacing" description="Add more space between letters and lines" checked={textSpacing} onChange={setTextSpacing} />
-                  <Toggle label="Focus indicators" description="Show visible outlines on focused elements" checked={focusIndicators} onChange={setFocusIndicators} />
-                </div>
+              <SettingSection title="Visual" description="Adjust visual settings for better readability." icon={SIDEBAR_ITEMS[5].icon}>
+                <Toggle label="High contrast mode" description="Increase contrast for better visibility" checked={highContrast} onChange={setHighContrast} />
+                <Toggle label="Increased text spacing" description="Add more space between letters and lines" checked={textSpacing} onChange={setTextSpacing} divider />
+                <Toggle label="Focus indicators" description="Show visible outlines on focused elements" checked={focusIndicators} onChange={setFocusIndicators} divider />
               </SettingSection>
-              <SettingSection title="Interaction" description="Customize how you interact with the interface.">
-                <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  <Toggle label="Keyboard navigation" description="Full interface navigation via keyboard" checked={keyboardNavigation} onChange={setKeyboardNavigation} />
-                  <Toggle label="Screen reader optimized" description="Optimize layout for screen readers" checked={screenReaderOptimized} onChange={setScreenReaderOptimized} />
-                  <Toggle label="Auto-play media" description="Automatically play videos and animations" checked={autoplayMedia} onChange={setAutoplayMedia} />
-                  <Toggle label="Closed captions" description="Show captions on video and audio content" checked={captionsEnabled} onChange={setCaptionsEnabled} />
-                </div>
-                <Slider label="Tooltip delay" description="Time before tooltips appear" value={tooltipDelay} onChange={setTooltipDelay} min={0} max={2000} unit="ms" />
+              <SettingSection title="Interaction" description="Customize how you interact with the interface." icon={SIDEBAR_ITEMS[5].icon}>
+                <Toggle label="Keyboard navigation" description="Full interface navigation via keyboard" checked={keyboardNavigation} onChange={setKeyboardNavigation} />
+                <Toggle label="Screen reader optimized" description="Optimize layout for screen readers" checked={screenReaderOptimized} onChange={setScreenReaderOptimized} divider />
+                <Toggle label="Auto-play media" description="Automatically play videos and animations" checked={autoplayMedia} onChange={setAutoplayMedia} divider />
+                <Toggle label="Closed captions" description="Show captions on video and audio content" checked={captionsEnabled} onChange={setCaptionsEnabled} divider />
+                <CustomSlider label="Tooltip delay" description="Time before tooltips appear" value={tooltipDelay} onChange={setTooltipDelay} min={0} max={2000} unit="ms" />
               </SettingSection>
             </>)}
 
             {/* Data & Storage */}
             {activeSection === 'data' && (<>
-              <SettingSection title="Storage Usage" description="Monitor your data storage consumption.">
+              <SettingSection title="Storage Usage" description="Monitor your data storage consumption." icon={SIDEBAR_ITEMS[6].icon}>
                 <div className="mb-4">
                   <div className="mb-2 flex items-end justify-between">
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{storageUsed} GB</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">of {storageTotal} GB used</p>
+                    <p className="text-2xl font-bold" style={{ color: 'var(--gogo-text-primary)' }}>{storageUsed} GB</p>
+                    <p className="text-sm" style={{ color: 'var(--gogo-text-secondary)' }}>of {storageTotal} GB used</p>
                   </div>
-                  <div className="h-3 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800"><div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500" style={{ width: `${(storageUsed / storageTotal) * 100}%` }} /></div>
+                  <div className="h-3 overflow-hidden rounded-full" style={{ backgroundColor: 'var(--gogo-grey-100)' }}>
+                    <div className="h-full rounded-full" style={{ width: `${(storageUsed / storageTotal) * 100}%`, backgroundColor: 'var(--gogo-primary)' }} />
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                  {[{ label: 'Documents', size: '1.2 GB', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' }, { label: 'Media', size: '0.8 GB', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' }, { label: 'Other', size: '0.4 GB', color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' }].map((item) => (
-                    <div key={item.label} className={`rounded-xl px-3 py-2.5 text-center ${item.color}`}><p className="text-xs font-medium">{item.label}</p><p className="text-sm font-bold">{item.size}</p></div>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: 'Documents', size: '1.2 GB', bg: 'color-mix(in srgb, var(--gogo-primary) 10%, transparent)', color: 'var(--gogo-primary)' },
+                    { label: 'Media', size: '0.8 GB', bg: 'rgba(99,102,241,0.1)', color: '#6366f1' },
+                    { label: 'Other', size: '0.4 GB', bg: 'var(--gogo-grey-100)', color: 'var(--gogo-text-secondary)' },
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-[var(--radius-button)] px-3 py-2.5 text-center" style={{ backgroundColor: item.bg }}>
+                      <p className="text-xs font-medium" style={{ color: item.color }}>{item.label}</p>
+                      <p className="text-sm font-bold" style={{ color: item.color }}>{item.size}</p>
+                    </div>
                   ))}
                 </div>
               </SettingSection>
-              <SettingSection title="Auto-Save" description="Automatically save your work at regular intervals.">
+              <SettingSection title="Auto-Save" description="Automatically save your work at regular intervals." icon={SIDEBAR_ITEMS[6].icon}>
                 <Toggle label="Enable auto-save" description="Automatically save unsaved changes" checked={autoSave} onChange={setAutoSave} />
-                {autoSave && <Slider label="Save interval" description="How often to auto-save" value={autoSaveInterval} onChange={setAutoSaveInterval} min={1} max={30} unit=" min" />}
+                {autoSave && <CustomSlider label="Save interval" description="How often to auto-save" value={autoSaveInterval} onChange={setAutoSaveInterval} min={1} max={30} unit=" min" />}
               </SettingSection>
-              <SettingSection title="Cache & Offline" description="Manage cached data and offline access.">
-                <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  <Toggle label="Enable caching" description="Cache data locally for faster loading" checked={cacheEnabled} onChange={setCacheEnabled} />
-                  <Toggle label="Offline mode" description="Access recently viewed data without internet" checked={offlineMode} onChange={setOfflineMode} />
+              <SettingSection title="Cache & Offline" description="Manage cached data and offline access." icon={SIDEBAR_ITEMS[6].icon}>
+                <Toggle label="Enable caching" description="Cache data locally for faster loading" checked={cacheEnabled} onChange={setCacheEnabled} />
+                <Toggle label="Offline mode" description="Access recently viewed data without internet" checked={offlineMode} onChange={setOfflineMode} divider />
+                <div className="mt-4">
+                  <button
+                    className="rounded-[var(--radius-button)] px-3 py-2 text-xs font-semibold transition"
+                    style={{ border: '1px solid var(--gogo-divider)', color: 'var(--gogo-text-secondary)', backgroundColor: 'var(--gogo-surface)' }}
+                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--gogo-grey-100)')}
+                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--gogo-surface)')}
+                  >Clear Cache</button>
                 </div>
-                <div className="mt-4"><button className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800">Clear Cache</button></div>
               </SettingSection>
-              <SettingSection title="Export Data" description="Download your data in various formats.">
-                <div className="mb-4"><label className={labelClass}>Export format</label>
+              <SettingSection title="Export Data" description="Download your data in various formats." icon={SIDEBAR_ITEMS[6].icon}>
+                <div className="mb-4">
+                  <p className="mb-1.5 text-sm font-medium" style={{ color: 'var(--gogo-text-primary)' }}>Export format</p>
                   <div className="flex flex-wrap gap-3">
                     {['csv', 'json', 'xlsx', 'pdf'].map((fmt) => (
-                      <button key={fmt} onClick={() => setExportFormat(fmt)} className={`rounded-lg border-2 px-4 py-2 text-xs font-mono font-medium uppercase transition ${exportFormat === fmt ? btnActive : btnInactive}`}>.{fmt}</button>
+                      <button key={fmt} onClick={() => setExportFormat(fmt)} className="rounded-[var(--radius-button)] px-4 py-2 text-xs font-mono font-medium uppercase transition" style={exportFormat === fmt ? btnActive : btnInactive}>.{fmt}</button>
                     ))}
                   </div>
                 </div>
-                <button className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700">
+                <button
+                  className="flex items-center gap-2 rounded-[var(--radius-button)] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+                  style={{ backgroundColor: 'var(--gogo-primary)' }}
+                >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
                   Export All Data
                 </button>
@@ -571,39 +935,57 @@ export default function SettingsPage() {
 
             {/* Integrations */}
             {activeSection === 'integrations' && (<>
-              <SettingSection title="Connected Apps" description="Manage third-party service integrations.">
+              <SettingSection title="Connected Apps" description="Manage third-party service integrations." icon={SIDEBAR_ITEMS[7].icon}>
                 <div className="space-y-3">
                   {[
-                    { name: 'Slack', desc: 'Receive notifications in Slack', connected: slackConnected, toggle: setSlackConnected, color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' },
-                    { name: 'Google Workspace', desc: 'Sync calendar, contacts, drive', connected: googleConnected, toggle: setGoogleConnected, color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
-                    { name: 'Microsoft 365', desc: 'Teams, Outlook, OneDrive', connected: microsoftConnected, toggle: setMicrosoftConnected, color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
-                    { name: 'Jira', desc: 'Sync issues and projects', connected: jiraConnected, toggle: setJiraConnected, color: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300' },
-                    { name: 'GitHub', desc: 'Link repos and PRs', connected: githubConnected, toggle: setGithubConnected, color: 'bg-gray-800 text-white dark:bg-gray-700' },
-                    { name: 'Zapier', desc: 'Automate workflows', connected: zapierConnected, toggle: setZapierConnected, color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' },
+                    { name: 'Slack', desc: 'Receive notifications in Slack', connected: slackConnected, toggle: setSlackConnected, bg: 'color-mix(in srgb, #922c88 10%, transparent)', color: '#922c88' },
+                    { name: 'Google Workspace', desc: 'Sync calendar, contacts, drive', connected: googleConnected, toggle: setGoogleConnected, bg: 'rgba(239,68,68,0.1)', color: '#dc2626' },
+                    { name: 'Microsoft 365', desc: 'Teams, Outlook, OneDrive', connected: microsoftConnected, toggle: setMicrosoftConnected, bg: 'rgba(59,130,246,0.1)', color: '#2563eb' },
+                    { name: 'Jira', desc: 'Sync issues and projects', connected: jiraConnected, toggle: setJiraConnected, bg: 'rgba(14,165,233,0.1)', color: '#0284c7' },
+                    { name: 'GitHub', desc: 'Link repos and PRs', connected: githubConnected, toggle: setGithubConnected, bg: 'var(--gogo-grey-100)', color: 'var(--gogo-text-primary)' },
+                    { name: 'Zapier', desc: 'Automate workflows', connected: zapierConnected, toggle: setZapierConnected, bg: 'rgba(249,115,22,0.1)', color: '#ea580c' },
                   ].map((app) => (
-                    <div key={app.name} className="flex flex-col gap-3 rounded-xl border border-gray-100 p-4 transition hover:bg-gray-50/50 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:hover:bg-gray-800/50">
+                    <div
+                      key={app.name}
+                      className="flex items-center justify-between gap-3 rounded-[var(--radius-button)] p-3 sm:p-4 transition"
+                      style={{ border: '1px solid var(--gogo-divider)' }}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--gogo-grey-100)')}
+                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
                       <div className="flex items-center gap-3">
-                        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${app.color}`}>{app.name.charAt(0)}</span>
-                        <div><p className="text-sm font-medium text-gray-900 dark:text-white">{app.name}</p><p className="text-xs text-gray-500 dark:text-gray-400">{app.desc}</p></div>
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-bold" style={{ backgroundColor: app.bg, color: app.color }}>{app.name.charAt(0)}</span>
+                        <div>
+                          <p className="text-sm font-medium" style={{ color: 'var(--gogo-text-primary)' }}>{app.name}</p>
+                          <p className="text-xs" style={{ color: 'var(--gogo-text-secondary)' }}>{app.desc}</p>
+                        </div>
                       </div>
-                      <button onClick={() => app.toggle(!app.connected)} className={`shrink-0 self-start rounded-lg border px-3 py-1.5 text-xs font-semibold transition sm:self-auto ${app.connected ? 'border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400' : 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300'}`}>
+                      <button
+                        onClick={() => app.toggle(!app.connected)}
+                        className="shrink-0 rounded-[var(--radius-button)] px-3 py-1.5 text-xs font-semibold transition"
+                        style={app.connected
+                          ? { border: '1px solid rgba(220,38,38,0.3)', color: '#dc2626', backgroundColor: 'rgba(220,38,38,0.05)' }
+                          : { border: '1px solid var(--gogo-primary)', color: 'var(--gogo-primary)', backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 8%, transparent)' }}
+                      >
                         {app.connected ? 'Disconnect' : 'Connect'}
                       </button>
                     </div>
                   ))}
                 </div>
               </SettingSection>
-              <SettingSection title="API & Webhooks" description="Developer integrations and automation.">
-                <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  <Toggle label="API access" description="Allow external apps to access data via API" checked={apiAccess} onChange={setApiAccess} />
-                  <Toggle label="Webhooks" description="Send real-time events to external URLs" checked={webhooksEnabled} onChange={setWebhooksEnabled} />
-                </div>
+              <SettingSection title="API & Webhooks" description="Developer integrations and automation." icon={SIDEBAR_ITEMS[7].icon}>
+                <Toggle label="API access" description="Allow external apps to access data via API" checked={apiAccess} onChange={setApiAccess} />
+                <Toggle label="Webhooks" description="Send real-time events to external URLs" checked={webhooksEnabled} onChange={setWebhooksEnabled} divider />
                 {apiAccess && (
-                  <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
-                    <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">API Key</p>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                      <code className="flex-1 truncate rounded-lg bg-white px-3 py-2 font-mono text-xs text-gray-700 ring-1 ring-gray-200 dark:bg-gray-900 dark:text-gray-300 dark:ring-gray-700">sk-••••••••••••••••••••••••••••4f2a</code>
-                      <button className="shrink-0 self-start rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 sm:self-auto dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">Regenerate</button>
+                  <div className="mt-4 rounded-[var(--radius-button)] p-4" style={{ border: '1px solid var(--gogo-divider)', backgroundColor: 'var(--gogo-grey-100)' }}>
+                    <p className="mb-1 text-xs font-medium" style={{ color: 'var(--gogo-text-secondary)' }}>API Key</p>
+                    <div className="flex items-center gap-2">
+                      <code className="min-w-0 flex-1 truncate rounded-[var(--radius-input)] px-3 py-2 font-mono text-xs" style={{ backgroundColor: 'var(--gogo-surface)', color: 'var(--gogo-text-primary)', border: '1px solid var(--gogo-divider)' }}>sk-••••••••••••••••••••••••••••4f2a</code>
+                      <button
+                        className="shrink-0 rounded-[var(--radius-button)] px-3 py-2 text-xs font-semibold transition"
+                        style={{ border: '1px solid var(--gogo-divider)', backgroundColor: 'var(--gogo-surface)', color: 'var(--gogo-text-secondary)' }}
+                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--gogo-grey-100)')}
+                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--gogo-surface)')}
+                      >Regenerate</button>
                     </div>
                   </div>
                 )}
@@ -612,16 +994,19 @@ export default function SettingsPage() {
 
             {/* Keyboard Shortcuts */}
             {activeSection === 'keyboard' && (
-              <SettingSection title="Keyboard Shortcuts" description="Quick reference for available shortcuts.">
-                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+              <SettingSection title="Keyboard Shortcuts" description="Quick reference for available shortcuts." icon={SIDEBAR_ITEMS[8].icon}>
+                <div>
                   {SHORTCUTS.map((s, i) => (
-                    <div key={i} className="flex items-center justify-between py-3">
-                      <p className="text-sm text-gray-700 dark:text-gray-300">{s.action}</p>
+                    <div key={i} className="flex items-center justify-between py-3" style={i > 0 ? { borderTop: '1px solid var(--gogo-divider)' } : undefined}>
+                      <p className="text-sm" style={{ color: 'var(--gogo-text-primary)' }}>{s.action}</p>
                       <div className="flex items-center gap-1">
                         {s.keys.map((key, j) => (
                           <span key={j}>
-                            <kbd className="inline-flex min-w-[1.75rem] items-center justify-center rounded-md border border-gray-200 bg-gray-50 px-2 py-1 font-mono text-xs font-medium text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">{key}</kbd>
-                            {j < s.keys.length - 1 && <span className="mx-0.5 text-xs text-gray-400">+</span>}
+                            <kbd
+                              className="inline-flex min-w-[1.75rem] items-center justify-center rounded-[var(--radius-chip)] px-2 py-1 font-mono text-xs font-medium shadow-sm"
+                              style={{ border: '1px solid var(--gogo-divider)', backgroundColor: 'var(--gogo-grey-100)', color: 'var(--gogo-text-primary)' }}
+                            >{key}</kbd>
+                            {j < s.keys.length - 1 && <span className="mx-0.5 text-xs" style={{ color: 'var(--gogo-text-secondary)' }}>+</span>}
                           </span>
                         ))}
                       </div>
@@ -633,7 +1018,7 @@ export default function SettingsPage() {
 
             {/* Danger Zone */}
             {activeSection === 'danger' && (
-              <SettingSection title="Danger Zone" description="These actions are irreversible. Proceed with caution.">
+              <SettingSection title="Danger Zone" description="These actions are irreversible. Proceed with caution." icon={SIDEBAR_ITEMS[9].icon} variant="danger">
                 <div className="space-y-3">
                   {[
                     { title: 'Clear all notifications', desc: 'Remove all notification history permanently.', level: 'amber' as const, btn: 'Clear' },
@@ -641,39 +1026,89 @@ export default function SettingsPage() {
                     { title: 'Delete all data', desc: 'Permanently erase all your personal data.', level: 'red' as const, btn: 'Delete Data' },
                     { title: 'Deactivate account', desc: 'Temporarily disable your account.', level: 'red' as const, btn: 'Deactivate' },
                   ].map((item) => (
-                    <div key={item.title} className={`flex flex-col gap-3 rounded-xl border px-4 py-4 sm:flex-row sm:items-center sm:justify-between ${item.level === 'amber' ? 'border-amber-200 bg-amber-50/50 dark:border-amber-900/50 dark:bg-amber-900/20' : 'border-red-200 bg-red-50/50 dark:border-red-900/50 dark:bg-red-900/20'}`}>
+                    <div
+                      key={item.title}
+                      className="flex flex-col gap-3 rounded-[var(--radius-button)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                      style={{
+                        border: item.level === 'amber' ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(220,38,38,0.2)',
+                        backgroundColor: item.level === 'amber' ? 'rgba(245,158,11,0.05)' : 'rgba(220,38,38,0.03)',
+                      }}
+                    >
                       <div>
-                        <p className={`text-sm font-medium ${item.level === 'amber' ? 'text-amber-900 dark:text-amber-300' : 'text-red-900 dark:text-red-300'}`}>{item.title}</p>
-                        <p className={`text-xs ${item.level === 'amber' ? 'text-amber-700 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{item.desc}</p>
+                        <p className="text-sm font-medium" style={{ color: item.level === 'amber' ? '#d97706' : '#dc2626' }}>{item.title}</p>
+                        <p className="text-xs" style={{ color: item.level === 'amber' ? '#b45309' : '#ef4444' }}>{item.desc}</p>
                       </div>
-                      <button className={`shrink-0 self-start rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${item.level === 'amber' ? 'border-amber-300 bg-white text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:bg-gray-900 dark:text-amber-400' : 'border-red-300 bg-white text-red-600 hover:bg-red-50 dark:border-red-800 dark:bg-gray-900 dark:text-red-400'}`}>{item.btn}</button>
+                      <button
+                        className="shrink-0 self-start rounded-[var(--radius-button)] px-3 py-1.5 text-xs font-semibold transition sm:self-auto"
+                        style={{
+                          border: item.level === 'amber' ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(220,38,38,0.3)',
+                          color: item.level === 'amber' ? '#d97706' : '#dc2626',
+                          backgroundColor: 'var(--gogo-surface)',
+                        }}
+                      >{item.btn}</button>
                     </div>
                   ))}
-                  <div className="flex flex-col gap-3 rounded-xl border-2 border-red-300 bg-red-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-800 dark:bg-red-900/30">
+                  <div
+                    className="flex flex-col gap-3 rounded-[var(--radius-button)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                    style={{ border: '2px solid rgba(220,38,38,0.4)', backgroundColor: 'rgba(220,38,38,0.05)' }}
+                  >
                     <div>
-                      <p className="text-sm font-bold text-red-900 dark:text-red-300">Delete account permanently</p>
-                      <p className="text-xs text-red-600 dark:text-red-400">This action cannot be undone. All data will be lost forever.</p>
+                      <p className="text-sm font-bold" style={{ color: '#dc2626' }}>Delete account permanently</p>
+                      <p className="text-xs" style={{ color: '#ef4444' }}>This action cannot be undone. All data will be lost forever.</p>
                     </div>
-                    <button className="shrink-0 self-start rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-700">Delete Account</button>
+                    <button
+                      className="shrink-0 self-start rounded-[var(--radius-button)] px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90 sm:self-auto"
+                      style={{ backgroundColor: '#dc2626' }}
+                    >Delete Account</button>
                   </div>
                 </div>
               </SettingSection>
             )}
+
           </div>
         </div>
+      </div>
 
-        {dirty && (
-          <div className="fixed inset-x-0 bottom-14 z-50 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur-sm md:bottom-0 md:px-6 dark:border-gray-800 dark:bg-gray-950/95">
-            <div className="mx-auto flex max-w-7xl items-center justify-between">
-              <p className="text-sm text-gray-600 dark:text-gray-400">You have unsaved changes</p>
-              <div className="flex items-center gap-3">
-                <button onClick={() => { setDirty(false); window.location.reload(); }} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">Discard</button>
-                <button onClick={handleSave} disabled={saving} className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60">{saving ? 'Saving…' : 'Save Changes'}</button>
-              </div>
+      {/* Unsaved changes bar */}
+      {dirty && (
+        <div
+          className="fixed inset-x-0 bottom-0 z-50 px-6 py-3 backdrop-blur-md"
+          style={{
+            backgroundColor: 'color-mix(in srgb, var(--gogo-surface) 95%, transparent)',
+            borderTop: '1px solid var(--gogo-divider)',
+            boxShadow: '0 -4px 20px rgba(0,0,0,0.06)',
+          }}
+        >
+          <div className="mx-auto flex max-w-4xl items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" style={{ backgroundColor: 'var(--gogo-primary)' }} />
+                <span className="relative inline-flex h-2 w-2 rounded-full" style={{ backgroundColor: 'var(--gogo-primary)' }} />
+              </span>
+              <p className="text-sm font-medium" style={{ color: 'var(--gogo-text-primary)' }}>Unsaved changes</p>
+              <p className="hidden text-sm sm:block" style={{ color: 'var(--gogo-text-secondary)' }}>your preferences have not been saved yet</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                onClick={() => {
+                  if (initialSettingsRef.current) {
+                    loadedRef.current = false;
+                    applySettings(initialSettingsRef.current);
+                    setTimeout(() => { loadedRef.current = true; setDirty(false); }, 0);
+                  } else {
+                    setDirty(false);
+                  }
+                }}
+                className="rounded-[var(--radius-button)] px-4 py-2 text-sm font-medium transition"
+                style={{ border: '1px solid var(--gogo-divider)', color: 'var(--gogo-text-secondary)', backgroundColor: 'var(--gogo-surface)' }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--gogo-grey-100)')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--gogo-surface)')}
+              >Discard</button>
+              <Button onClick={handleSave} disabled={saving} loading={saving}>Save Changes</Button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 }

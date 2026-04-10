@@ -123,11 +123,19 @@ export class OrganizationController {
   async list(
     @Query('page') page = '1',
     @Query('limit') limit = '20',
+    @Query('q') search?: string,
+    @Query('filter') filter?: string,
+    @Query('sort_by') sortBy?: string,
+    @Query('sort_dir') sortDir?: string,
   ) {
-    const result = await this.orgUseCase.listOrganizations(
-      parseInt(page, 10),
-      Math.min(parseInt(limit, 10), 100),
-    );
+    const p = Math.max(1, parseInt(page, 10) || 1);
+    const l = Math.min(Math.max(1, parseInt(limit, 10) || 20), 100);
+    const result = await this.orgUseCase.listOrganizations(p, l, {
+      search: search?.trim() || undefined,
+      filter: filter?.trim() || undefined,
+      sortBy,
+      sortDir: sortDir?.toUpperCase() as 'ASC' | 'DESC' | undefined,
+    });
     return {
       statusCode: 200,
       data: {
@@ -139,8 +147,10 @@ export class OrganizationController {
           status: o.status,
           ownerId: o.ownerId,
           createdAt: o.createdAt,
+          logoUrl: o.logoUrl || undefined,
         })),
         total: result.total,
+        summary: result.summary,
       },
     };
   }

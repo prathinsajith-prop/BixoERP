@@ -6,9 +6,13 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./data-display": "./src/data-display/index.ts",
     "./data-display/*": "./src/data-display/*.tsx",
+    "./feedback": "./src/feedback/index.ts",
     "./feedback/*": "./src/feedback/*.tsx",
+    "./forms": "./src/forms/index.ts",
     "./forms/*": "./src/forms/*.tsx",
+    "./navigation": "./src/navigation/index.ts",
     "./navigation/*": "./src/navigation/*.tsx"
   },
   "scripts": {
@@ -16,7 +20,9 @@
     "clean": "rm -rf dist node_modules"
   },
   "dependencies": {
-    "@erp/shared": "*"
+    "@erp/shared": "*",
+    "chart.js": "^4.4.0",
+    "react-chartjs-2": "^5.2.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

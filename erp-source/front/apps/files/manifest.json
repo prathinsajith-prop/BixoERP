@@ -1,0 +1,312 @@
+{
+  "manifest_version": "1.0.0",
+
+  "module": {
+    "id": "files_module",
+    "name": "File Management",
+    "version": "1.0.0",
+    "description": "Document storage, version control, file sharing, and preview capabilities with folder-based organisation.",
+    "author": "Bixo",
+    "license": "proprietary",
+    "namespace": "erp.modules.files"
+  },
+
+  "compatibility": {
+    "core_min_version": "1.0.0",
+    "core_max_version": "2.x",
+    "api_version": "v1",
+    "dependencies": [
+      { "module": "core", "version": ">=1.0.0", "optional": false },
+      { "module": "auth_module", "version": ">=1.0.0", "optional": false },
+      {
+        "module": "notifications_module",
+        "version": ">=1.0.0",
+        "optional": true
+      }
+    ]
+  },
+
+  "sync": {
+    "strategy": "incremental",
+    "direction": "bidirectional",
+    "trigger": "event_driven",
+    "polling_interval_seconds": 300,
+    "retry_policy": {
+      "max_attempts": 3,
+      "backoff_strategy": "exponential",
+      "initial_delay_ms": 1000
+    },
+    "conflict_resolution": "last_write_wins",
+    "batch_size": 100
+  },
+
+  "ui": {
+    "menu": [
+      {
+        "key": "files",
+        "label": "File Manager",
+        "icon": "folder",
+        "basePath": "/files",
+        "position": 12,
+        "color": "sky",
+        "children": [
+          { "key": "files.browse", "label": "Browse Files", "path": "/files" },
+          {
+            "key": "files.shared",
+            "label": "Shared with Me",
+            "path": "/files/shared"
+          },
+          { "key": "files.recent", "label": "Recent", "path": "/files/recent" },
+          { "key": "files.trash", "label": "Trash", "path": "/files/trash" }
+        ]
+      }
+    ]
+  },
+
+  "ports": {
+    "frontend": 4012,
+    "backend": 3011
+  },
+
+  "tier": "platform",
+
+  "roles": [
+    {
+      "key": "files_admin",
+      "label": "Files Admin",
+      "description": "Full access including bucket configuration and retention policies.",
+      "permissions": ["files.*"]
+    },
+    {
+      "key": "files_manager",
+      "label": "Files Manager",
+      "description": "Upload, organise, share, and manage access to files.",
+      "permissions": [
+        "files.upload",
+        "files.download",
+        "files.share",
+        "files.folder.manage",
+        "files.version.manage"
+      ]
+    },
+    {
+      "key": "files_viewer",
+      "label": "Files Viewer",
+      "description": "Read-only access to files shared with them.",
+      "permissions": ["files.download", "files.view"]
+    }
+  ],
+
+  "permissions": [
+    {
+      "key": "files.view",
+      "label": "View Files",
+      "description": "Browse and preview files"
+    },
+    {
+      "key": "files.upload",
+      "label": "Upload Files",
+      "description": "Upload new files and create folders"
+    },
+    {
+      "key": "files.download",
+      "label": "Download Files",
+      "description": "Download files"
+    },
+    {
+      "key": "files.delete",
+      "label": "Delete Files",
+      "description": "Delete files and folders"
+    },
+    {
+      "key": "files.share",
+      "label": "Share Files",
+      "description": "Generate share links and manage access"
+    },
+    {
+      "key": "files.folder.manage",
+      "label": "Manage Folders",
+      "description": "Create, rename, and organise folder structure"
+    },
+    {
+      "key": "files.version.manage",
+      "label": "Manage Versions",
+      "description": "Upload new versions and restore previous versions"
+    },
+    {
+      "key": "files.config",
+      "label": "Configure Storage",
+      "description": "Configure storage buckets, quotas, and retention"
+    }
+  ],
+
+  "entities": [
+    {
+      "name": "File",
+      "table": "files",
+      "description": "A stored file with metadata including name, size, MIME type, and upload info.",
+      "fields": [
+        "id",
+        "name",
+        "mime_type",
+        "size_bytes",
+        "storage_key",
+        "folder_id",
+        "uploaded_by",
+        "version",
+        "is_deleted",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "Folder",
+      "table": "folders",
+      "description": "Hierarchical folder for organising files.",
+      "fields": ["id", "name", "parent_id", "owner_id", "created_at"]
+    },
+    {
+      "name": "FileVersion",
+      "table": "file_versions",
+      "description": "A historical version of a file.",
+      "fields": [
+        "id",
+        "file_id",
+        "version_number",
+        "storage_key",
+        "size_bytes",
+        "uploaded_by",
+        "created_at"
+      ]
+    },
+    {
+      "name": "ShareLink",
+      "table": "share_links",
+      "description": "A shareable access link for a file or folder.",
+      "fields": [
+        "id",
+        "file_id",
+        "folder_id",
+        "token",
+        "permissions",
+        "expires_at",
+        "created_by",
+        "created_at"
+      ]
+    },
+    {
+      "name": "FileAccess",
+      "table": "file_access",
+      "description": "Access control record granting a user or role access to a file or folder.",
+      "fields": [
+        "id",
+        "resource_id",
+        "resource_type",
+        "principal_id",
+        "principal_type",
+        "access_level",
+        "granted_by",
+        "created_at"
+      ]
+    }
+  ],
+
+  "events": {
+    "publishes": [
+      "files.file.uploaded",
+      "files.file.deleted",
+      "files.file.version_created",
+      "files.file.shared",
+      "files.folder.created",
+      "files.folder.deleted"
+    ],
+    "subscribes": ["auth.user.deleted", "core.org.settings_updated"]
+  },
+
+  "api": {
+    "base_path": "/api/v1/files",
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/",
+        "description": "List files and folders",
+        "auth": true
+      },
+      {
+        "method": "POST",
+        "path": "/upload",
+        "description": "Upload a new file",
+        "auth": true
+      },
+      {
+        "method": "GET",
+        "path": "/{id}",
+        "description": "Get file metadata",
+        "auth": true
+      },
+      {
+        "method": "DELETE",
+        "path": "/{id}",
+        "description": "Delete a file",
+        "auth": true
+      },
+      {
+        "method": "POST",
+        "path": "/{id}/versions",
+        "description": "Upload a new version",
+        "auth": true
+      },
+      {
+        "method": "GET",
+        "path": "/{id}/versions",
+        "description": "List file versions",
+        "auth": true
+      },
+      {
+        "method": "POST",
+        "path": "/{id}/restore/{v}",
+        "description": "Restore a previous version",
+        "auth": true
+      },
+      {
+        "method": "POST",
+        "path": "/{id}/share",
+        "description": "Create share link",
+        "auth": true
+      },
+      {
+        "method": "GET",
+        "path": "/folders",
+        "description": "List folders",
+        "auth": true
+      },
+      {
+        "method": "POST",
+        "path": "/folders",
+        "description": "Create a folder",
+        "auth": true
+      },
+      {
+        "method": "GET",
+        "path": "/download/{token}",
+        "description": "Download via share link",
+        "auth": false
+      }
+    ]
+  },
+
+  "health_check": {
+    "path": "/api/v1/files/health",
+    "interval_seconds": 30,
+    "timeout_seconds": 5,
+    "healthy_threshold": 2,
+    "unhealthy_threshold": 3
+  },
+
+  "logging": {
+    "level": "info",
+    "structured": true,
+    "include_request_id": true,
+    "sensitive_fields": ["storage_key", "token"]
+  }
+}

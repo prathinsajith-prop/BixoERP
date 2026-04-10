@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { LoadingSpinner } from "@erp/ui";
+import { LoadingSpinner, PageHeader, KPICard, PageErrorState } from "@erp/ui";
 import { api } from "../lib/api";
 
 export default function ManufacturingDashboardPage() {
@@ -30,7 +30,7 @@ export default function ManufacturingDashboardPage() {
   useEffect(() => { load(); }, [load]);
 
   if (loading) return <LoadingSpinner />;
-  if (error) return <div className="p-6 text-sm text-red-600">{error}</div>;
+  if (error) return <PageErrorState error={error} onRetry={load} />;
 
   const kpis = [
     { title: "Bill of Materials", value: stats.boms },
@@ -41,16 +41,10 @@ export default function ManufacturingDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Manufacturing Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">Production overview</p>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <PageHeader title="Manufacturing Dashboard" description="Production overview" />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {kpis.map((k) => (
-          <div key={k.title} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-            <p className="text-sm font-medium text-gray-500">{k.title}</p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">{k.value}</p>
-          </div>
+          <KPICard key={k.title} title={k.title} value={String(k.value)} />
         ))}
       </div>
     </div>

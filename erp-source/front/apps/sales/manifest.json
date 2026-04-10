@@ -1,0 +1,815 @@
+{
+  "manifest_version": "1.0.0",
+
+  "module": {
+    "id": "sales_module",
+    "name": "Sales",
+    "version": "1.0.0",
+    "description": "End-to-end sales management — quotations, sales orders, delivery, invoicing, returns, and revenue analytics.",
+    "author": "Bixo",
+    "license": "proprietary",
+    "namespace": "erp.modules.sales"
+  },
+
+  "compatibility": {
+    "core_min_version": "1.0.0",
+    "core_max_version": "2.x",
+    "api_version": "v1",
+    "dependencies": [
+      { "module": "core", "version": ">=1.0.0", "optional": false },
+      { "module": "finance_module", "version": ">=1.0.0", "optional": false },
+      { "module": "inventory_module", "version": ">=1.0.0", "optional": false },
+      { "module": "auth_module", "version": ">=1.0.0", "optional": false },
+      { "module": "apar_module", "version": ">=1.0.0", "optional": true },
+      {
+        "module": "notifications_module",
+        "version": ">=1.0.0",
+        "optional": true
+      }
+    ]
+  },
+
+  "sync": {
+    "strategy": "incremental",
+    "direction": "bidirectional",
+    "trigger": "event_driven",
+    "polling_interval_seconds": 300,
+    "retry_policy": {
+      "max_attempts": 3,
+      "backoff_strategy": "exponential",
+      "initial_delay_ms": 1000
+    },
+    "conflict_resolution": "last_write_wins",
+    "batch_size": 100
+  },
+
+  "ui": {
+    "icon": "ShoppingCart",
+    "color": "rose",
+    "basePath": "/sales",
+    "position": 5,
+    "menu": [
+      {
+        "label": "Dashboard",
+        "href": "/sales",
+        "icon": "LayoutDashboard",
+        "permission": "sales:dashboard.view",
+        "visibleTo": [
+          "sales_admin",
+          "sales_manager",
+          "sales_rep",
+          "sales_viewer"
+        ],
+        "position": 1
+      },
+      {
+        "label": "Customers",
+        "href": "/sales/customers",
+        "icon": "Users",
+        "permission": "sales:customer.read",
+        "visibleTo": [
+          "sales_admin",
+          "sales_manager",
+          "sales_rep",
+          "sales_viewer"
+        ],
+        "position": 2
+      },
+      {
+        "label": "Quotations",
+        "href": "/sales/quotations",
+        "icon": "FileText",
+        "permission": "sales:quotation.read",
+        "visibleTo": [
+          "sales_admin",
+          "sales_manager",
+          "sales_rep",
+          "sales_viewer"
+        ],
+        "position": 3
+      },
+      {
+        "label": "Sales Orders",
+        "href": "/sales/orders",
+        "icon": "ShoppingBag",
+        "permission": "sales:order.read",
+        "visibleTo": [
+          "sales_admin",
+          "sales_manager",
+          "sales_rep",
+          "sales_viewer"
+        ],
+        "position": 4
+      },
+      {
+        "label": "Delivery Orders",
+        "href": "/sales/deliveries",
+        "icon": "Truck",
+        "permission": "sales:delivery.read",
+        "visibleTo": ["sales_admin", "sales_manager", "sales_rep"],
+        "position": 5
+      },
+      {
+        "label": "Sales Invoices",
+        "href": "/sales/invoices",
+        "icon": "FileOutput",
+        "permission": "sales:invoice.read",
+        "visibleTo": ["sales_admin", "sales_manager", "sales_viewer"],
+        "position": 6
+      },
+      {
+        "label": "Returns",
+        "href": "/sales/returns",
+        "icon": "RotateCcw",
+        "permission": "sales:return.read",
+        "visibleTo": ["sales_admin", "sales_manager", "sales_rep"],
+        "position": 7
+      },
+      {
+        "label": "Price Lists",
+        "href": "/sales/price-lists",
+        "icon": "Tag",
+        "permission": "sales:pricelist.read",
+        "visibleTo": ["sales_admin", "sales_manager", "sales_viewer"],
+        "position": 8
+      },
+      {
+        "label": "Analytics",
+        "href": "/sales/analytics",
+        "icon": "TrendingUp",
+        "permission": "sales:reports.view",
+        "visibleTo": ["sales_admin", "sales_manager", "sales_viewer"],
+        "position": 9
+      },
+      {
+        "label": "Settings",
+        "href": "/sales/settings",
+        "icon": "Settings",
+        "permission": "sales:settings.manage",
+        "visibleTo": ["sales_admin"],
+        "position": 10
+      }
+    ],
+    "widgets": [
+      {
+        "id": "sales_revenue_today",
+        "label": "Revenue Today",
+        "dashboard": true,
+        "size": "small"
+      },
+      {
+        "id": "sales_orders_pipeline",
+        "label": "Orders Pipeline",
+        "dashboard": true,
+        "size": "large"
+      },
+      {
+        "id": "sales_top_customers",
+        "label": "Top Customers",
+        "dashboard": true,
+        "size": "medium"
+      },
+      {
+        "id": "sales_overdue_invoices",
+        "label": "Overdue Invoices",
+        "dashboard": true,
+        "size": "small"
+      },
+      {
+        "id": "sales_monthly_trend",
+        "label": "Monthly Sales Trend",
+        "dashboard": true,
+        "size": "medium"
+      }
+    ]
+  },
+
+  "ports": {
+    "frontend": 4007,
+    "backend": 3004
+  },
+
+  "tier": "standard",
+
+  "roles": [
+    {
+      "id": "sales_admin",
+      "name": "Sales Administrator",
+      "description": "Full access to all sales features",
+      "scopes": [
+        "sales:dashboard.view",
+        "sales:customer.read",
+        "sales:customer.create",
+        "sales:customer.update",
+        "sales:customer.delete",
+        "sales:quotation.read",
+        "sales:quotation.create",
+        "sales:quotation.update",
+        "sales:quotation.delete",
+        "sales:quotation.approve",
+        "sales:order.read",
+        "sales:order.create",
+        "sales:order.update",
+        "sales:order.cancel",
+        "sales:delivery.read",
+        "sales:delivery.create",
+        "sales:delivery.confirm",
+        "sales:invoice.read",
+        "sales:invoice.create",
+        "sales:return.read",
+        "sales:return.create",
+        "sales:return.approve",
+        "sales:pricelist.read",
+        "sales:pricelist.manage",
+        "sales:reports.view",
+        "sales:settings.manage",
+        "sales:sync.pull",
+        "sales:sync.push"
+      ]
+    },
+    {
+      "id": "sales_manager",
+      "name": "Sales Manager",
+      "description": "Manage sales orders, approve quotations, and view analytics",
+      "scopes": [
+        "sales:dashboard.view",
+        "sales:customer.read",
+        "sales:customer.create",
+        "sales:customer.update",
+        "sales:quotation.read",
+        "sales:quotation.create",
+        "sales:quotation.update",
+        "sales:quotation.approve",
+        "sales:order.read",
+        "sales:order.create",
+        "sales:order.update",
+        "sales:order.cancel",
+        "sales:delivery.read",
+        "sales:delivery.create",
+        "sales:delivery.confirm",
+        "sales:invoice.read",
+        "sales:return.read",
+        "sales:return.approve",
+        "sales:pricelist.read",
+        "sales:reports.view"
+      ]
+    },
+    {
+      "id": "sales_rep",
+      "name": "Sales Representative",
+      "description": "Create and manage quotations and orders",
+      "scopes": [
+        "sales:dashboard.view",
+        "sales:customer.read",
+        "sales:customer.create",
+        "sales:customer.update",
+        "sales:quotation.read",
+        "sales:quotation.create",
+        "sales:quotation.update",
+        "sales:order.read",
+        "sales:order.create",
+        "sales:delivery.read",
+        "sales:pricelist.read"
+      ]
+    },
+    {
+      "id": "sales_viewer",
+      "name": "Sales Viewer",
+      "description": "Read-only access to sales data",
+      "scopes": [
+        "sales:dashboard.view",
+        "sales:customer.read",
+        "sales:quotation.read",
+        "sales:order.read",
+        "sales:invoice.read",
+        "sales:pricelist.read",
+        "sales:reports.view"
+      ]
+    }
+  ],
+
+  "permissions": [
+    {
+      "resource": "dashboard",
+      "actions": [
+        {
+          "id": "sales:dashboard.view",
+          "name": "View Dashboard",
+          "description": "View sales KPIs"
+        }
+      ]
+    },
+    {
+      "resource": "customer",
+      "actions": [
+        {
+          "id": "sales:customer.read",
+          "name": "View Customers",
+          "description": "View customer records"
+        },
+        {
+          "id": "sales:customer.create",
+          "name": "Create Customer",
+          "description": "Add new customers"
+        },
+        {
+          "id": "sales:customer.update",
+          "name": "Update Customer",
+          "description": "Edit customer details"
+        },
+        {
+          "id": "sales:customer.delete",
+          "name": "Delete Customer",
+          "description": "Remove customers"
+        }
+      ]
+    },
+    {
+      "resource": "quotation",
+      "actions": [
+        {
+          "id": "sales:quotation.read",
+          "name": "View Quotations",
+          "description": "View all quotations"
+        },
+        {
+          "id": "sales:quotation.create",
+          "name": "Create Quotation",
+          "description": "Create quotations"
+        },
+        {
+          "id": "sales:quotation.update",
+          "name": "Update Quotation",
+          "description": "Edit quotations"
+        },
+        {
+          "id": "sales:quotation.delete",
+          "name": "Delete Quotation",
+          "description": "Remove quotations"
+        },
+        {
+          "id": "sales:quotation.approve",
+          "name": "Approve Quotation",
+          "description": "Approve and convert to order"
+        }
+      ]
+    },
+    {
+      "resource": "order",
+      "actions": [
+        {
+          "id": "sales:order.read",
+          "name": "View Sales Orders",
+          "description": "View all sales orders"
+        },
+        {
+          "id": "sales:order.create",
+          "name": "Create Sales Order",
+          "description": "Create sales orders"
+        },
+        {
+          "id": "sales:order.update",
+          "name": "Update Sales Order",
+          "description": "Edit orders"
+        },
+        {
+          "id": "sales:order.cancel",
+          "name": "Cancel Sales Order",
+          "description": "Cancel orders"
+        }
+      ]
+    },
+    {
+      "resource": "delivery",
+      "actions": [
+        {
+          "id": "sales:delivery.read",
+          "name": "View Deliveries",
+          "description": "View delivery orders"
+        },
+        {
+          "id": "sales:delivery.create",
+          "name": "Create Delivery",
+          "description": "Create delivery orders"
+        },
+        {
+          "id": "sales:delivery.confirm",
+          "name": "Confirm Delivery",
+          "description": "Mark delivery as completed"
+        }
+      ]
+    },
+    {
+      "resource": "invoice",
+      "actions": [
+        {
+          "id": "sales:invoice.read",
+          "name": "View Invoices",
+          "description": "View sales invoices"
+        },
+        {
+          "id": "sales:invoice.create",
+          "name": "Create Invoice",
+          "description": "Issue sales invoices"
+        }
+      ]
+    },
+    {
+      "resource": "return",
+      "actions": [
+        {
+          "id": "sales:return.read",
+          "name": "View Returns",
+          "description": "View return requests"
+        },
+        {
+          "id": "sales:return.create",
+          "name": "Create Return",
+          "description": "Initiate returns"
+        },
+        {
+          "id": "sales:return.approve",
+          "name": "Approve Return",
+          "description": "Approve return and refund"
+        }
+      ]
+    },
+    {
+      "resource": "pricelist",
+      "actions": [
+        {
+          "id": "sales:pricelist.read",
+          "name": "View Price Lists",
+          "description": "View pricing rules"
+        },
+        {
+          "id": "sales:pricelist.manage",
+          "name": "Manage Price Lists",
+          "description": "Create and update price lists"
+        }
+      ]
+    },
+    {
+      "resource": "reports",
+      "actions": [
+        {
+          "id": "sales:reports.view",
+          "name": "View Reports",
+          "description": "Access sales analytics"
+        }
+      ]
+    },
+    {
+      "resource": "settings",
+      "actions": [
+        {
+          "id": "sales:settings.manage",
+          "name": "Manage Settings",
+          "description": "Configure sales settings"
+        }
+      ]
+    },
+    {
+      "resource": "sync",
+      "actions": [
+        {
+          "id": "sales:sync.pull",
+          "name": "Sync Pull",
+          "description": "Pull data from core"
+        },
+        {
+          "id": "sales:sync.push",
+          "name": "Sync Push",
+          "description": "Push data to core"
+        }
+      ]
+    }
+  ],
+
+  "entities": [
+    {
+      "name": "SalesOrder",
+      "plural": "Sales Orders",
+      "icon": "ShoppingBag",
+      "table": "sales_orders",
+      "primary_key": "order_id",
+      "apiPath": "/api/v1/sales/orders",
+      "sync_enabled": true,
+      "sync_direction": "bidirectional",
+      "fields": [
+        {
+          "name": "order_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "order_number",
+          "type": "string",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "customer_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "order_date",
+          "type": "date",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "expected_delivery_date",
+          "type": "date",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": [
+            "draft",
+            "confirmed",
+            "processing",
+            "shipped",
+            "delivered",
+            "cancelled",
+            "returned"
+          ]
+        },
+        {
+          "name": "subtotal",
+          "type": "decimal",
+          "required": false,
+          "readonly": true,
+          "sensitive": true
+        },
+        {
+          "name": "discount_amount",
+          "type": "decimal",
+          "required": false,
+          "readonly": false,
+          "sensitive": true
+        },
+        {
+          "name": "tax_amount",
+          "type": "decimal",
+          "required": false,
+          "readonly": true,
+          "sensitive": true
+        },
+        {
+          "name": "total_amount",
+          "type": "decimal",
+          "required": false,
+          "readonly": true,
+          "sensitive": true
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "assigned_to",
+          "type": "uuid",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": true,
+          "readonly": true
+        }
+      ],
+      "indexes": ["order_number", "customer_id", "status", "order_date"],
+      "soft_delete": true,
+      "deleted_at_field": "deleted_at"
+    },
+    {
+      "name": "Quotation",
+      "plural": "Quotations",
+      "icon": "FileText",
+      "table": "sales_quotations",
+      "primary_key": "quotation_id",
+      "apiPath": "/api/v1/sales/quotations",
+      "sync_enabled": false,
+      "fields": [
+        {
+          "name": "quotation_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "quotation_number",
+          "type": "string",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "customer_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "issue_date",
+          "type": "date",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "expiry_date",
+          "type": "date",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": [
+            "draft",
+            "sent",
+            "accepted",
+            "rejected",
+            "expired",
+            "converted"
+          ]
+        },
+        {
+          "name": "total_amount",
+          "type": "decimal",
+          "required": false,
+          "readonly": true,
+          "sensitive": true
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": true,
+          "readonly": true
+        }
+      ],
+      "indexes": ["quotation_number", "customer_id", "status"],
+      "soft_delete": true,
+      "deleted_at_field": "deleted_at"
+    }
+  ],
+
+  "events": {
+    "published": [
+      {
+        "name": "sales:order.created",
+        "description": "Fired when a sales order is created"
+      },
+      {
+        "name": "sales:order.confirmed",
+        "description": "Fired when a sales order is confirmed"
+      },
+      {
+        "name": "sales:order.cancelled",
+        "description": "Fired when an order is cancelled"
+      },
+      {
+        "name": "sales:order.invoiced",
+        "description": "Fired when an invoice is issued for an order"
+      },
+      {
+        "name": "sales:order.picked",
+        "description": "Fired when inventory is picked for an order"
+      },
+      {
+        "name": "sales:delivery.confirmed",
+        "description": "Fired when delivery is completed"
+      }
+    ],
+    "subscribed": [
+      {
+        "name": "inventory:stock.adjusted",
+        "handler": "sales:sync.check_availability"
+      },
+      {
+        "name": "apar:payment.processed",
+        "handler": "sales:sync.mark_invoice_paid"
+      }
+    ]
+  },
+
+  "api": {
+    "base_path": "/api/v1/sales",
+    "auth": "bearer_token",
+    "rate_limit": { "requests_per_minute": 350, "burst": 60 },
+    "endpoints": [
+      { "method": "GET", "path": "/customers", "scope": "sales:customer.read" },
+      {
+        "method": "POST",
+        "path": "/customers",
+        "scope": "sales:customer.create"
+      },
+      {
+        "method": "GET",
+        "path": "/quotations",
+        "scope": "sales:quotation.read"
+      },
+      {
+        "method": "POST",
+        "path": "/quotations",
+        "scope": "sales:quotation.create"
+      },
+      {
+        "method": "PUT",
+        "path": "/quotations/:id",
+        "scope": "sales:quotation.update"
+      },
+      {
+        "method": "POST",
+        "path": "/quotations/:id/approve",
+        "scope": "sales:quotation.approve"
+      },
+      {
+        "method": "POST",
+        "path": "/quotations/:id/convert",
+        "scope": "sales:quotation.approve"
+      },
+      { "method": "GET", "path": "/orders", "scope": "sales:order.read" },
+      { "method": "POST", "path": "/orders", "scope": "sales:order.create" },
+      { "method": "GET", "path": "/orders/:id", "scope": "sales:order.read" },
+      { "method": "PUT", "path": "/orders/:id", "scope": "sales:order.update" },
+      {
+        "method": "POST",
+        "path": "/orders/:id/cancel",
+        "scope": "sales:order.cancel"
+      },
+      {
+        "method": "GET",
+        "path": "/deliveries",
+        "scope": "sales:delivery.read"
+      },
+      {
+        "method": "POST",
+        "path": "/deliveries",
+        "scope": "sales:delivery.create"
+      },
+      {
+        "method": "POST",
+        "path": "/deliveries/:id/confirm",
+        "scope": "sales:delivery.confirm"
+      },
+      { "method": "GET", "path": "/invoices", "scope": "sales:invoice.read" },
+      {
+        "method": "POST",
+        "path": "/invoices",
+        "scope": "sales:invoice.create"
+      },
+      { "method": "GET", "path": "/returns", "scope": "sales:return.read" },
+      { "method": "POST", "path": "/returns", "scope": "sales:return.create" },
+      {
+        "method": "GET",
+        "path": "/price-lists",
+        "scope": "sales:pricelist.read"
+      },
+      { "method": "GET", "path": "/analytics", "scope": "sales:reports.view" },
+      { "method": "POST", "path": "/sync/pull", "scope": "sales:sync.pull" },
+      { "method": "POST", "path": "/sync/push", "scope": "sales:sync.push" }
+    ]
+  },
+
+  "health_check": {
+    "endpoint": "/api/v1/sales/health",
+    "interval_seconds": 60,
+    "timeout_seconds": 5
+  },
+
+  "logging": {
+    "level": "info",
+    "audit_trail": true,
+    "sensitive_fields_masked": [
+      "total_amount",
+      "subtotal",
+      "tax_amount",
+      "discount_amount"
+    ]
+  }
+}

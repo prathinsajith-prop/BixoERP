@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Plus } from "lucide-react";
-import { LoadingSpinner, EmptyState } from "@erp/ui";
+import { Alert, LoadingSpinner, EmptyState, PageHeader, ActionButtons, type ActionButtonItem } from "@erp/ui";
 import { api, type Budget } from "../../lib/api";
 
 export default function BudgetsPage() {
@@ -25,21 +25,20 @@ export default function BudgetsPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  const pageActions: ActionButtonItem[] = [
+    { key: "create", label: "New Budget", icon: <Plus className="h-3.5 w-3.5" />, variant: "primary", size: "sm", onClick: () => { } },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Budgets</h1>
-          <p className="text-sm text-gray-500 mt-1">Track budget allocation and spending</p>
-        </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2 bg-accent-600 text-white text-sm font-medium rounded-lg hover:bg-accent-700">
-          <Plus className="w-4 h-4" />
-          New Budget
-        </button>
-      </div>
+      <PageHeader
+        title="Budgets"
+        description="Track budget allocation and spending"
+        actions={<ActionButtons actions={pageActions} />}
+      />
 
       {loading && <LoadingSpinner />}
-      {error && <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+      {error && <Alert variant="error">{error}</Alert>}
 
       {!loading && !error && (
         budgets.length === 0 ? (

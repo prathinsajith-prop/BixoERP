@@ -34,6 +34,11 @@ import { SelectOrgUseCase } from '../../application/use-case/select-org.use-case
 
 @Controller('api/v1/auth')
 export class AuthController {
+  private readonly cookieSecure =
+    process.env.COOKIE_SECURE !== undefined
+      ? process.env.COOKIE_SECURE === 'true'
+      : process.env.NODE_ENV === 'production';
+
   constructor(
     private readonly registerUser: RegisterUserUseCase,
     private readonly loginUseCase: LoginUseCase,
@@ -106,7 +111,7 @@ export class AuthController {
     if (result.refreshToken) {
       res.cookie('__erp_rt', result.refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: this.cookieSecure,
         sameSite: 'strict',
         path: '/api/v1/auth',       // scoped: only sent to auth endpoints
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in ms
@@ -147,7 +152,7 @@ export class AuthController {
     // Re-issue the cookie with the rotated refresh token
     res.cookie('__erp_rt', result.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: this.cookieSecure,
       sameSite: 'strict',
       path: '/api/v1/auth',
       maxAge: 30 * 24 * 60 * 60 * 1000,
@@ -180,7 +185,7 @@ export class AuthController {
     // Immediately expire the cookie
     res.clearCookie('__erp_rt', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: this.cookieSecure,
       sameSite: 'strict',
       path: '/api/v1/auth',
     });
@@ -244,7 +249,7 @@ export class AuthController {
 
     res.cookie('__erp_rt', result.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: this.cookieSecure,
       sameSite: 'strict',
       path: '/api/v1/auth',
       maxAge: 30 * 24 * 60 * 60 * 1000,

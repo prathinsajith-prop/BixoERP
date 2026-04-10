@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Bell, CheckCheck } from "lucide-react";
-import { LoadingSpinner, EmptyState } from "@erp/ui";
+import { Alert, LoadingSpinner, EmptyState, PageHeader } from "@erp/ui";
 import { api, type Notification } from "../lib/api";
 
 export default function NotificationsPage() {
@@ -47,12 +47,10 @@ export default function NotificationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
-          <p className="text-sm text-gray-500 mt-1">{unread} unread</p>
-        </div>
-        {unread > 0 && (
+      <PageHeader
+        title="Notifications"
+        description={`${unread} unread`}
+        actions={unread > 0 ? (
           <button
             onClick={handleMarkAllRead}
             className="inline-flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
@@ -60,11 +58,11 @@ export default function NotificationsPage() {
             <CheckCheck className="w-4 h-4" />
             Mark all read
           </button>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {loading && <LoadingSpinner />}
-      {error && <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+      {error && <Alert variant="error">{error}</Alert>}
 
       {!loading && !error && (
         notifications.length === 0 ? (
@@ -79,9 +77,8 @@ export default function NotificationsPage() {
               <div
                 key={n.id}
                 onClick={() => !n.isRead && handleMarkRead(n.id)}
-                className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${
-                  n.isRead ? "bg-white border-gray-200" : "bg-accent-50 border-accent-200 hover:bg-accent-100"
-                }`}
+                className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${n.isRead ? "bg-white border-gray-200" : "bg-accent-50 border-accent-200 hover:bg-accent-100"
+                  }`}
               >
                 <div className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${n.isRead ? "bg-gray-300" : "bg-accent-600"}`} />
                 <div className="flex-1 min-w-0">

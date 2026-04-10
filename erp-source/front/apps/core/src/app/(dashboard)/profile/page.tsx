@@ -10,8 +10,7 @@ import { useAuthStore } from '@/store/auth';
 import { authApi } from '@/lib/api/auth';
 import { filesApi } from '@/lib/api/files';
 import { showToast } from '@erp/shell';
-import Input from '@/components/ui/input';
-import Button from '@/components/ui/button';
+import { Tabs, Input, Button } from '@erp/ui';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -200,7 +199,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     authApi.getProfile()
-      .then(({ data }) => {
+      .then(({ data }: { data: any }) => {
         const p = data.data;
         if (p) {
           const u = p.user ?? {};
@@ -246,7 +245,7 @@ export default function ProfilePage() {
             const match = personal.avatarUrl.match(/\/api\/v1\/files\/([^/]+)\/download/);
             if (match) {
               filesApi.download(match[1])
-                .then((blobUrl) => setAvatarPreview(blobUrl))
+                .then((blobUrl: string | null) => setAvatarPreview(blobUrl))
                 .catch(() => setAvatarPreview(null));
             } else {
               setAvatarPreview(personal.avatarUrl);
@@ -440,20 +439,13 @@ export default function ProfilePage() {
 
         {/* Right content */}
         <div className="lg:col-span-2">
-          <div className="mb-6 flex gap-1 overflow-x-auto rounded-xl bg-white p-1 shadow-sm ring-1 ring-gray-100 dark:bg-gray-900 dark:ring-gray-800">
-            {TABS.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition ${activeTab === tab.key
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white'
-                  }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          <Tabs
+            tabs={TABS}
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            variant="pills"
+            className="mb-6"
+          />
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {activeTab === 'personal' && (

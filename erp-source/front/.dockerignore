@@ -1,5 +1,7 @@
-node_modules
-.next
+# Exclude ALL node_modules everywhere (root + nested workspaces)
+**/node_modules
+# Exclude ALL Next.js build output — only the standalone copy is used
+**/.next
 .turbo
 *.tsbuildinfo
 .git

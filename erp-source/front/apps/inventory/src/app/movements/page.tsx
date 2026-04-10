@@ -1,15 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { LoadingSpinner, EmptyState } from "@erp/ui";
+import { Alert, DataTable, LoadingSpinner, EmptyState, PageHeader, StatusBadge, type TableColumn } from "@erp/ui";
 import { api, type StockMovement } from "../../lib/api";
-
-const typeColors: Record<string, string> = {
-  receipt: "bg-green-100 text-green-800",
-  issue: "bg-red-100 text-red-800",
-  transfer: "bg-blue-100 text-blue-800",
-  adjustment: "bg-yellow-100 text-yellow-800",
-};
 
 export default function StockMovementsPage() {
   const [movements, setMovements] = useState<StockMovement[]>([]);
@@ -33,48 +26,26 @@ export default function StockMovementsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Stock Movements</h1>
-        <p className="text-sm text-gray-500 mt-1">History of inventory transactions</p>
-      </div>
+      <PageHeader title="Stock Movements" description="History of inventory transactions" />
 
       {loading && <LoadingSpinner />}
-      {error && <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+      {error && <Alert variant="error">{error}</Alert>}
 
-      {!loading && !error && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          {movements.length === 0 ? (
-            <EmptyState title="No movements" description="No stock movements recorded." />
-          ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Item</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Qty</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reference</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reason</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {movements.map((m) => (
-                  <tr key={m.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium capitalize ${typeColors[m.type] ?? "bg-gray-100 text-gray-700"}`}>{m.type}</span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{m.itemName}</td>
-                    <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">{m.quantity}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{m.reference ?? "—"}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{m.reason ?? "—"}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{new Date(m.createdAt).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
+      {!loading && !error && (() => {
+        const movementColumns: TableColumn<StockMovement>[] = [
+          {
+            key: 'type', header: 'Type', render: (m) => <StatusBadge status={m.type} />,
+          },
+          { key: 'itemName', header: 'Item', render: (m) => <span className="text-sm text-gray-900">{m.itemName}</span> },
+          { key: 'quantity', header: 'Qty', align: 'right' as const, render: (m) => <span className="text-sm font-medium text-gray-900">{m.quantity}</span> },
+          { key: 'reference', header: 'Reference', render: (m) => <span className="text-sm text-gray-500">{m.reference ?? '—'}</span> },
+          { key: 'reason', header: 'Reason', render: (m) => <span className="text-sm text-gray-500">{m.reason ?? '—'}</span> },
+          { key: 'createdAt', header: 'Date', render: (m) => <span className="text-sm text-gray-500">{new Date(m.createdAt).toLocaleDateString()}</span> },
+        ];
+        return movements.length === 0
+          ? <EmptyState title="No movements" description="No stock movements recorded." />
+          : <DataTable<StockMovement> columns={movementColumns} data={movements} keyExtractor={(m) => m.id} />;
+      })()}
     </div>
   );
 }

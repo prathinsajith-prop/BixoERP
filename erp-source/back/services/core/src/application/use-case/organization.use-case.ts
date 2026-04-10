@@ -80,8 +80,12 @@ export class OrganizationUseCase {
 
   // ─── Superuser: List Organizations ────────────────────────────
 
-  async listOrganizations(page: number, limit: number) {
-    return this.orgRepo.findAll(page, limit);
+  async listOrganizations(
+    page: number,
+    limit: number,
+    filters?: { search?: string; filter?: string; sortBy?: string; sortDir?: 'ASC' | 'DESC' },
+  ) {
+    return this.orgRepo.findAll(page, limit, filters);
   }
 
   // ─── Superuser: Get Organization ──────────────────────────────
@@ -211,6 +215,7 @@ export class OrganizationUseCase {
       name: string;
       slug: string;
       role: string;
+      logoUrl?: string;
     }> = [];
 
     for (const m of memberships) {
@@ -221,6 +226,7 @@ export class OrganizationUseCase {
           name: org.name,
           slug: org.slug,
           role: m.role,
+          logoUrl: org.logoUrl || undefined,
         });
       }
     }

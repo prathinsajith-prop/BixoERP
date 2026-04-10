@@ -1,6 +1,7 @@
 import { Inject, Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { DEPARTMENT_REPOSITORY, DepartmentRepository } from '../../domain/repository/department.repository';
 import { DIVISION_REPOSITORY, DivisionRepository } from '../../domain/repository/division.repository';
+import { OrgEntityFilters, OrgEntitySummary } from '../../domain/repository/division.repository';
 import { TEAM_REPOSITORY, TeamRepository } from '../../domain/repository/team.repository';
 import { Department } from '../../domain/entity/department.entity';
 import { Division } from '../../domain/entity/division.entity';
@@ -12,7 +13,7 @@ export class OrgStructureUseCase {
     @Inject(DEPARTMENT_REPOSITORY) private readonly deptRepo: DepartmentRepository,
     @Inject(DIVISION_REPOSITORY) private readonly divRepo: DivisionRepository,
     @Inject(TEAM_REPOSITORY) private readonly teamRepo: TeamRepository,
-  ) {}
+  ) { }
 
   // ─── Divisions ────────────────────────────────────────────
 
@@ -36,6 +37,16 @@ export class OrgStructureUseCase {
 
   async listDivisions(tenantId: string, organizationId: string): Promise<Division[]> {
     return this.divRepo.findByOrganization(tenantId, organizationId);
+  }
+
+  async listDivisionsFiltered(
+    tenantId: string,
+    organizationId: string,
+    page: number,
+    limit: number,
+    filters?: OrgEntityFilters,
+  ): Promise<{ divisions: Division[]; total: number; summary: OrgEntitySummary }> {
+    return this.divRepo.findByOrganizationFiltered(tenantId, organizationId, page, limit, filters);
   }
 
   async getDivision(tenantId: string, id: string): Promise<Division> {
@@ -92,6 +103,16 @@ export class OrgStructureUseCase {
     return this.deptRepo.findByOrganization(tenantId, organizationId);
   }
 
+  async listDepartmentsFiltered(
+    tenantId: string,
+    organizationId: string,
+    page: number,
+    limit: number,
+    filters?: OrgEntityFilters,
+  ): Promise<{ departments: Department[]; total: number; summary: OrgEntitySummary }> {
+    return this.deptRepo.findByOrganizationFiltered(tenantId, organizationId, page, limit, filters);
+  }
+
   async getDepartment(tenantId: string, id: string): Promise<Department> {
     const dept = await this.deptRepo.findById(tenantId, id);
     if (!dept) throw new NotFoundException('Department not found');
@@ -144,6 +165,16 @@ export class OrgStructureUseCase {
 
   async listTeams(tenantId: string, organizationId: string): Promise<Team[]> {
     return this.teamRepo.findByOrganization(tenantId, organizationId);
+  }
+
+  async listTeamsFiltered(
+    tenantId: string,
+    organizationId: string,
+    page: number,
+    limit: number,
+    filters?: OrgEntityFilters,
+  ): Promise<{ teams: Team[]; total: number; summary: OrgEntitySummary }> {
+    return this.teamRepo.findByOrganizationFiltered(tenantId, organizationId, page, limit, filters);
   }
 
   async listTeamsByDepartment(tenantId: string, departmentId: string): Promise<Team[]> {

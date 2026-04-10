@@ -1,0 +1,280 @@
+{
+  "manifest_version": "1.0.0",
+
+  "module": {
+    "id": "audit_module",
+    "name": "Audit Trail",
+    "version": "1.0.0",
+    "description": "Comprehensive action logging, compliance tracking, change history, and regulatory audit support across all ERP modules.",
+    "author": "Bixo",
+    "license": "proprietary",
+    "namespace": "erp.modules.audit"
+  },
+
+  "compatibility": {
+    "core_min_version": "1.0.0",
+    "core_max_version": "2.x",
+    "api_version": "v1",
+    "dependencies": [
+      { "module": "core", "version": ">=1.0.0", "optional": false },
+      { "module": "auth_module", "version": ">=1.0.0", "optional": false }
+    ]
+  },
+
+  "sync": {
+    "strategy": "append_only",
+    "direction": "read_only",
+    "trigger": "event_driven",
+    "polling_interval_seconds": 60,
+    "retry_policy": {
+      "max_attempts": 5,
+      "backoff_strategy": "exponential",
+      "initial_delay_ms": 500
+    },
+    "conflict_resolution": "immutable",
+    "batch_size": 500
+  },
+
+  "ui": {
+    "menu": [
+      {
+        "key": "audit",
+        "label": "Audit Trail",
+        "icon": "shield-check",
+        "basePath": "/audit",
+        "position": 13,
+        "color": "slate",
+        "children": [
+          { "key": "audit.log", "label": "Activity Log", "path": "/audit" },
+          {
+            "key": "audit.changes",
+            "label": "Change History",
+            "path": "/audit/changes"
+          },
+          {
+            "key": "audit.compliance",
+            "label": "Compliance Reports",
+            "path": "/audit/compliance"
+          },
+          {
+            "key": "audit.settings",
+            "label": "Retention Settings",
+            "path": "/audit/settings"
+          }
+        ]
+      }
+    ]
+  },
+
+  "ports": {
+    "frontend": 4013,
+    "backend": 3014
+  },
+
+  "tier": "governance",
+
+  "roles": [
+    {
+      "key": "audit_admin",
+      "label": "Audit Admin",
+      "description": "Full access including retention settings, report generation, and log export.",
+      "permissions": ["audit.*"]
+    },
+    {
+      "key": "audit_viewer",
+      "label": "Audit Viewer",
+      "description": "Read-only access to audit logs and compliance reports.",
+      "permissions": [
+        "audit.log.view",
+        "audit.changes.view",
+        "audit.compliance.view",
+        "audit.export"
+      ]
+    },
+    {
+      "key": "compliance_officer",
+      "label": "Compliance Officer",
+      "description": "Access to compliance reports and ability to generate and export audit data.",
+      "permissions": [
+        "audit.log.view",
+        "audit.changes.view",
+        "audit.compliance.view",
+        "audit.compliance.generate",
+        "audit.export"
+      ]
+    }
+  ],
+
+  "permissions": [
+    {
+      "key": "audit.log.view",
+      "label": "View Activity Log",
+      "description": "Browse the full activity log"
+    },
+    {
+      "key": "audit.changes.view",
+      "label": "View Change History",
+      "description": "See field-level change records"
+    },
+    {
+      "key": "audit.compliance.view",
+      "label": "View Compliance Reports",
+      "description": "Access pre-built compliance reports"
+    },
+    {
+      "key": "audit.compliance.generate",
+      "label": "Generate Compliance Reports",
+      "description": "Run and schedule compliance report generation"
+    },
+    {
+      "key": "audit.export",
+      "label": "Export Audit Data",
+      "description": "Export logs to CSV/JSON"
+    },
+    {
+      "key": "audit.retention.manage",
+      "label": "Manage Retention",
+      "description": "Configure log retention policies"
+    }
+  ],
+
+  "entities": [
+    {
+      "name": "AuditLog",
+      "table": "audit_logs",
+      "description": "An immutable record of a user action in the ERP system.",
+      "fields": [
+        "id",
+        "user_id",
+        "user_email",
+        "action",
+        "module",
+        "resource_type",
+        "resource_id",
+        "ip_address",
+        "user_agent",
+        "metadata",
+        "created_at"
+      ]
+    },
+    {
+      "name": "AuditEvent",
+      "table": "audit_events",
+      "description": "A field-level change event recording before and after values.",
+      "fields": [
+        "id",
+        "audit_log_id",
+        "field_name",
+        "old_value",
+        "new_value",
+        "created_at"
+      ]
+    },
+    {
+      "name": "RetentionPolicy",
+      "table": "audit_retention_policies",
+      "description": "Defines how long audit logs are retained per module or action type.",
+      "fields": [
+        "id",
+        "module",
+        "action_pattern",
+        "retention_days",
+        "created_by",
+        "updated_at"
+      ]
+    }
+  ],
+
+  "events": {
+    "publishes": ["audit.log.created", "audit.compliance.report_generated"],
+    "subscribes": [
+      "*.*.created",
+      "*.*.updated",
+      "*.*.deleted",
+      "auth.user.login",
+      "auth.user.logout",
+      "auth.user.password_changed"
+    ]
+  },
+
+  "api": {
+    "base_path": "/api/v1/audit",
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/logs",
+        "description": "List audit logs with filters",
+        "auth": true
+      },
+      {
+        "method": "GET",
+        "path": "/logs/{id}",
+        "description": "Get a specific audit log entry",
+        "auth": true
+      },
+      {
+        "method": "GET",
+        "path": "/logs/{id}/events",
+        "description": "Get field-level changes for a log entry",
+        "auth": true
+      },
+      {
+        "method": "GET",
+        "path": "/changes",
+        "description": "Query change history by resource",
+        "auth": true
+      },
+      {
+        "method": "GET",
+        "path": "/compliance/reports",
+        "description": "List available compliance reports",
+        "auth": true
+      },
+      {
+        "method": "POST",
+        "path": "/compliance/reports/run",
+        "description": "Generate a compliance report",
+        "auth": true
+      },
+      {
+        "method": "GET",
+        "path": "/export",
+        "description": "Export audit logs as CSV or JSON",
+        "auth": true
+      },
+      {
+        "method": "GET",
+        "path": "/retention",
+        "description": "List retention policies",
+        "auth": true
+      },
+      {
+        "method": "POST",
+        "path": "/retention",
+        "description": "Create a retention policy",
+        "auth": true
+      },
+      {
+        "method": "PUT",
+        "path": "/retention/{id}",
+        "description": "Update a retention policy",
+        "auth": true
+      }
+    ]
+  },
+
+  "health_check": {
+    "path": "/api/v1/audit/health",
+    "interval_seconds": 30,
+    "timeout_seconds": 5,
+    "healthy_threshold": 2,
+    "unhealthy_threshold": 3
+  },
+
+  "logging": {
+    "level": "warn",
+    "structured": true,
+    "include_request_id": true,
+    "sensitive_fields": ["ip_address", "user_agent"]
+  }
+}

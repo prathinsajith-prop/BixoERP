@@ -27,9 +27,9 @@ import { LoginHistoryOrmEntity } from './entity/login-history.orm-entity';
 export default new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST ?? 'localhost',
-  port: parseInt(process.env.DB_PORT ?? '5432', 10),
+  port: parseInt(process.env.DB_PORT ?? '5436', 10),
   username: process.env.DB_USER ?? 'erp_app',
-  password: process.env.DB_PASSWORD ?? 'erp_secret',
+  password: process.env.DB_PASSWORD ?? 'erp_app_password',
   database: process.env.DB_NAME ?? 'auth_db',
   extra: {
     max: parseInt(process.env.DB_POOL_MAX ?? '20', 10),
