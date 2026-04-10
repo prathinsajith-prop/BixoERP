@@ -1,6 +1,8 @@
 export { StatusBadge } from "./badge";
 export { EmptyState, LoadingSpinner } from "./empty-state";
 export type { EmptyStateProps } from "./empty-state";
+export { Skeleton, TablePageSkeleton, RolesCardSkeleton, PermissionsGroupSkeleton, UserDetailSkeleton, OrgSettingsTabSkeleton, OrgSettingsSkeleton } from "./skeleton";
+export type { TablePageSkeletonProps, RolesCardSkeletonProps, PermissionsGroupSkeletonProps } from "./skeleton";
 export { Modal } from "./modal";
 export type { ModalProps } from "./modal";
 export { Dropdown } from "./dropdown";

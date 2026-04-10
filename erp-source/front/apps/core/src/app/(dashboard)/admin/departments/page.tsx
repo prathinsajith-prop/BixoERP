@@ -19,6 +19,7 @@ import {
   OrgAvatar,
   PageHeader,
   PageLoadingState,
+  TablePageSkeleton,
   Pagination,
   SearchFilter,
   Stats,
@@ -474,7 +475,7 @@ export default function DepartmentsPage() {
 
       {/* Content */}
       {loading ? (
-        <PageLoadingState message="Loading departments…" size="lg" />
+        <TablePageSkeleton />
       ) : items.length === 0 ? (
         <EmptyState
           title="No departments found"

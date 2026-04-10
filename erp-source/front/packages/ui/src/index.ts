@@ -89,6 +89,8 @@ export { PageErrorState } from "./feedback/page-error-state";
 export type { PageErrorStateProps } from "./feedback/page-error-state";
 export { PageLoadingState } from "./feedback/page-loading-state";
 export type { PageLoadingStateProps } from "./feedback/page-loading-state";
+export { Skeleton, TablePageSkeleton, RolesCardSkeleton, PermissionsGroupSkeleton, UserDetailSkeleton, OrgSettingsTabSkeleton, OrgSettingsSkeleton } from "./feedback/skeleton";
+export type { TablePageSkeletonProps, RolesCardSkeletonProps, PermissionsGroupSkeletonProps } from "./feedback/skeleton";
 export { QuickPreviewDrawer } from "./feedback/quick-preview-drawer";
 export type { QuickPreviewDrawerProps, QuickPreviewChip, QuickPreviewAction } from "./feedback/quick-preview-drawer";
 

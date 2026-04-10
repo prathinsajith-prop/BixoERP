@@ -75,9 +75,16 @@ function Flyout({ open, onClose, title, children, anchorRef }: {
 
   // Position the panel relative to its trigger button, opening upward when
   // the trigger is near the bottom of the sidebar so the panel stays visible.
-  const [panelPos, setPanelPos] = useState<{ top?: string; bottom?: string }>({ top: '0px' });
+  const [panelPos, setPanelPos] = useState<{ top?: string; bottom?: string }>({});
   useEffect(() => {
     if (!open) return;
+    // On mobile (<768px) the flyout is a fixed bottom sheet — Tailwind's
+    // bottom-[68px] class handles positioning; don't add any inline top/bottom
+    // or the panel will stretch from y:0 (behind the header) downward.
+    if (window.innerWidth < 768) {
+      setPanelPos({});
+      return;
+    }
     const headerHeight = parseInt(
       getComputedStyle(document.documentElement).getPropertyValue('--gogo-header-height') || '64', 10
     );

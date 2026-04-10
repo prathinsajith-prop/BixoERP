@@ -3,7 +3,7 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { authApi } from '@/lib/api/auth';
 import { filesApi } from '@/lib/api/files';
-import { Input, Select, Textarea, Switch } from '@erp/ui';
+import { Input, Select, Textarea, Switch, OrgSettingsSkeleton } from '@erp/ui';
 
 
 const SECTIONS = [
@@ -536,9 +536,7 @@ export default function OrganizationSettingsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: 'var(--gogo-primary)', borderTopColor: 'transparent' }} /></div>
-    );
+    return <OrgSettingsSkeleton />;
   }
 
   return (

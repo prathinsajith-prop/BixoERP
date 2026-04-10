@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Input, Stats, Textarea, PageHeader } from '@erp/ui';
+import { Input, Stats, Textarea, PageHeader, RolesCardSkeleton } from '@erp/ui';
 import { authApi } from '@/lib/api/auth';
 import { showToast } from '@erp/shell';
 
@@ -173,7 +173,7 @@ export default function RolesPage() {
 
       <div className="space-y-4">
         {loading ? (
-          <div className="flex items-center justify-center py-20"><svg className="h-8 w-8 animate-spin" style={{ color: 'var(--gogo-primary)' }} fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg></div>
+          <RolesCardSkeleton cards={6} />
         ) : filteredRoles.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-2xl bg-white py-20 shadow-sm ring-1 ring-gray-100 dark:bg-gray-900 dark:ring-gray-800">
             <svg className="h-12 w-12 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
@@ -243,64 +243,64 @@ export default function RolesPage() {
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{editingRole ? 'Update role details and permissions' : 'Define a new role with permissions'}</p>
               </div>              <div className="min-h-0 flex-1 overflow-y-auto px-6">
                 <div className="space-y-4 py-2">
-                <div>
-                  <Input label="Role Name" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="e.g. Editor, Viewer, Manager" />
-                </div>
-                <div>
-                  <Textarea label="Description" value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder="Brief description of this role..." rows={2} />
-                </div>
-                <div>
-                  <div className="mb-2 flex items-center justify-between">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Permissions</label>
-                      <p className="mt-0.5 text-xs text-gray-400">
-                        {formPermissionIds.length} of {permissions.length} selected
-                      </p>
+                  <div>
+                    <Input label="Role Name" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="e.g. Editor, Viewer, Manager" />
+                  </div>
+                  <div>
+                    <Textarea label="Description" value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder="Brief description of this role..." rows={2} />
+                  </div>
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Permissions</label>
+                        <p className="mt-0.5 text-xs text-gray-400">
+                          {formPermissionIds.length} of {permissions.length} selected
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => setFormPermissionIds(permissions.map((p) => p.id))} className="rounded-md px-2 py-1 text-xs font-medium hover:opacity-80" style={{ color: 'var(--gogo-primary)' }}>All</button>
+                        <button type="button" onClick={() => setFormPermissionIds([])} className="rounded-md px-2 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800">None</button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button type="button" onClick={() => setFormPermissionIds(permissions.map((p) => p.id))} className="rounded-md px-2 py-1 text-xs font-medium hover:opacity-80" style={{ color: 'var(--gogo-primary)' }}>All</button>
-                      <button type="button" onClick={() => setFormPermissionIds([])} className="rounded-md px-2 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800">None</button>
+                    {/* Permission search */}
+                    <div className="relative mb-2">
+                      <svg className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
+                      <input type="text" value={permSearch} onChange={(e) => setPermSearch(e.target.value)} placeholder="Filter permissions…" className="w-full rounded-lg border border-gray-200 bg-gray-50 py-1.5 pl-8 pr-3 text-xs text-gray-900 placeholder-gray-400 outline-none focus:border-[var(--gogo-primary)] focus:ring-1 focus:ring-[var(--gogo-primary)] dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500" />
+                    </div>
+                    <div className="max-h-64 space-y-3 overflow-y-auto rounded-xl border border-gray-200 bg-gray-50/50 p-3 dark:border-gray-700 dark:bg-gray-800/30">
+                      {Object.entries(permissionsByResource).length === 0 && (
+                        <p className="py-4 text-center text-xs text-gray-400">{permissions.length === 0 ? 'No permissions available' : 'No matching permissions'}</p>
+                      )}
+                      {Object.entries(permissionsByResource).map(([resource, perms]) => {
+                        const allSelected = perms.every((p) => formPermissionIds.includes(p.id));
+                        const someSelected = perms.some((p) => formPermissionIds.includes(p.id));
+                        return (
+                          <div key={resource}>
+                            <div className="mb-1.5 flex items-center justify-between">
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">{resource}</p>
+                              <button type="button" onClick={() => toggleAllInResource(perms)} className={`text-[10px] font-medium transition ${allSelected ? 'hover:opacity-80' : someSelected ? 'text-amber-600 hover:text-amber-800 dark:text-amber-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`} style={allSelected ? { color: 'var(--gogo-primary)' } : undefined}>
+                                {allSelected ? 'Deselect all' : 'Select all'}
+                              </button>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {perms.map((perm) => {
+                                const selected = formPermissionIds.includes(perm.id);
+                                const code = perm.code || `${perm.resource}:${perm.action}`;
+                                return (
+                                  <button key={perm.id} type="button" onClick={() => togglePermission(perm.id)} title={perm.description || code} className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${selected ? 'text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'}`} style={selected ? { borderColor: 'color-mix(in srgb, var(--gogo-primary) 30%, transparent)', backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 10%, transparent)', color: 'var(--gogo-primary)' } : undefined}>
+                                    <span className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border ${selected ? 'border-transparent' : 'border-gray-300 dark:border-gray-600'}`} style={selected ? { backgroundColor: 'var(--gogo-primary)', borderColor: 'var(--gogo-primary)' } : undefined}>
+                                      {selected && <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>}
+                                    </span>
+                                    {perm.action}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                  {/* Permission search */}
-                  <div className="relative mb-2">
-                    <svg className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
-                    <input type="text" value={permSearch} onChange={(e) => setPermSearch(e.target.value)} placeholder="Filter permissions…" className="w-full rounded-lg border border-gray-200 bg-gray-50 py-1.5 pl-8 pr-3 text-xs text-gray-900 placeholder-gray-400 outline-none focus:border-[var(--gogo-primary)] focus:ring-1 focus:ring-[var(--gogo-primary)] dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500" />
-                  </div>
-                  <div className="max-h-64 space-y-3 overflow-y-auto rounded-xl border border-gray-200 bg-gray-50/50 p-3 dark:border-gray-700 dark:bg-gray-800/30">
-                    {Object.entries(permissionsByResource).length === 0 && (
-                      <p className="py-4 text-center text-xs text-gray-400">{permissions.length === 0 ? 'No permissions available' : 'No matching permissions'}</p>
-                    )}
-                    {Object.entries(permissionsByResource).map(([resource, perms]) => {
-                      const allSelected = perms.every((p) => formPermissionIds.includes(p.id));
-                      const someSelected = perms.some((p) => formPermissionIds.includes(p.id));
-                      return (
-                        <div key={resource}>
-                          <div className="mb-1.5 flex items-center justify-between">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">{resource}</p>
-                            <button type="button" onClick={() => toggleAllInResource(perms)} className={`text-[10px] font-medium transition ${allSelected ? 'hover:opacity-80' : someSelected ? 'text-amber-600 hover:text-amber-800 dark:text-amber-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`} style={allSelected ? { color: 'var(--gogo-primary)' } : undefined}>
-                              {allSelected ? 'Deselect all' : 'Select all'}
-                            </button>
-                          </div>
-                          <div className="flex flex-wrap gap-1.5">
-                            {perms.map((perm) => {
-                              const selected = formPermissionIds.includes(perm.id);
-                              const code = perm.code || `${perm.resource}:${perm.action}`;
-                              return (
-                                <button key={perm.id} type="button" onClick={() => togglePermission(perm.id)} title={perm.description || code} className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${selected ? 'text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'}`} style={selected ? { borderColor: 'color-mix(in srgb, var(--gogo-primary) 30%, transparent)', backgroundColor: 'color-mix(in srgb, var(--gogo-primary) 10%, transparent)', color: 'var(--gogo-primary)' } : undefined}>
-                                  <span className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border ${selected ? 'border-transparent' : 'border-gray-300 dark:border-gray-600'}`} style={selected ? { backgroundColor: 'var(--gogo-primary)', borderColor: 'var(--gogo-primary)' } : undefined}>
-                                    {selected && <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>}
-                                  </span>
-                                  {perm.action}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
                 </div>
               </div>
 

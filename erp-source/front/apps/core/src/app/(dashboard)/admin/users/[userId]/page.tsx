@@ -12,6 +12,7 @@ import {
   PageErrorState,
   PageLoadingState,
   StatusBadge,
+  UserDetailSkeleton,
 } from "@erp/ui";
 import PageHeader from "@/components/page-header";
 import CanDo from "@/components/can-do";
@@ -326,8 +327,7 @@ export default function UserDetailsPage() {
     }
   };
 
-  if (loading)
-    return <PageLoadingState message="Loading user details..." size="lg" />;
+  if (loading) return <UserDetailSkeleton />;
 
   if (error || !user)
     return (

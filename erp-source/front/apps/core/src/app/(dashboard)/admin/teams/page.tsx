@@ -19,6 +19,7 @@ import {
   OrgAvatar,
   PageHeader,
   PageLoadingState,
+  TablePageSkeleton,
   Pagination,
   SearchFilter,
   Stats,
@@ -325,7 +326,7 @@ export default function TeamsPage() {
   const tableColumns: TableColumn<Team>[] = useMemo(() => [
     {
       key: 'name',
-      header: 'Department',
+      header: 'Team',
       render: (item) => (
         <div className="flex items-center gap-3">
           <OrgAvatar name={item.name} size="sm" shape="rounded-lg" />
@@ -474,7 +475,7 @@ export default function TeamsPage() {
 
       {/* Content */}
       {loading ? (
-        <PageLoadingState message="Loading teams…" size="lg" />
+        <TablePageSkeleton />
       ) : items.length === 0 ? (
         <EmptyState
           title="No teams found"
