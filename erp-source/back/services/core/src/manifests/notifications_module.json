@@ -1,0 +1,548 @@
+{
+  "manifest_version": "1.0.0",
+
+  "module": {
+    "id": "notifications_module",
+    "name": "Notifications",
+    "version": "1.0.0",
+    "description": "Multi-channel notification engine — manage email, in-app, SMS, and push notification templates, delivery preferences, and delivery history.",
+    "author": "Bixo",
+    "license": "proprietary",
+    "namespace": "erp.modules.notifications"
+  },
+
+  "compatibility": {
+    "core_min_version": "1.0.0",
+    "core_max_version": "2.x",
+    "api_version": "v1",
+    "dependencies": [
+      { "module": "core", "version": ">=1.0.0", "optional": false },
+      { "module": "auth_module", "version": ">=1.0.0", "optional": false }
+    ]
+  },
+
+  "sync": {
+    "strategy": "incremental",
+    "direction": "pull",
+    "trigger": "event_driven",
+    "polling_interval_seconds": 120,
+    "retry_policy": {
+      "max_attempts": 5,
+      "backoff_strategy": "exponential",
+      "initial_delay_ms": 500
+    },
+    "conflict_resolution": "server_wins",
+    "batch_size": 200
+  },
+
+  "ui": {
+    "icon": "Bell",
+    "color": "sky",
+    "basePath": "/notifications",
+    "position": 10,
+    "menu": [
+      {
+        "label": "Dashboard",
+        "href": "/notifications",
+        "icon": "LayoutDashboard",
+        "permission": "notifications:dashboard.view",
+        "visibleTo": [
+          "notifications_admin",
+          "notifications_manager",
+          "notifications_viewer"
+        ],
+        "position": 1
+      },
+      {
+        "label": "Templates",
+        "href": "/notifications/templates",
+        "icon": "LayoutTemplate",
+        "permission": "notifications:template.read",
+        "visibleTo": ["notifications_admin", "notifications_manager"],
+        "position": 2
+      },
+      {
+        "label": "Channels",
+        "href": "/notifications/channels",
+        "icon": "Radio",
+        "permission": "notifications:channel.read",
+        "visibleTo": ["notifications_admin"],
+        "position": 3
+      },
+      {
+        "label": "Preferences",
+        "href": "/notifications/preferences",
+        "icon": "Sliders",
+        "permission": "notifications:preferences.read",
+        "visibleTo": ["notifications_admin", "notifications_manager"],
+        "position": 4
+      },
+      {
+        "label": "Scheduled",
+        "href": "/notifications/scheduled",
+        "icon": "CalendarClock",
+        "permission": "notifications:schedule.read",
+        "visibleTo": ["notifications_admin", "notifications_manager"],
+        "position": 5
+      },
+      {
+        "label": "Delivery Logs",
+        "href": "/notifications/logs",
+        "icon": "ScrollText",
+        "permission": "notifications:log.read",
+        "visibleTo": [
+          "notifications_admin",
+          "notifications_manager",
+          "notifications_viewer"
+        ],
+        "position": 6
+      },
+      {
+        "label": "Settings",
+        "href": "/notifications/settings",
+        "icon": "Settings",
+        "permission": "notifications:settings.manage",
+        "visibleTo": ["notifications_admin"],
+        "position": 7
+      }
+    ],
+    "widgets": [
+      {
+        "id": "notif_sent_today",
+        "label": "Notifications Sent Today",
+        "dashboard": true,
+        "size": "small"
+      },
+      {
+        "id": "notif_delivery_rate",
+        "label": "Delivery Success Rate",
+        "dashboard": true,
+        "size": "small"
+      },
+      {
+        "id": "notif_failed_count",
+        "label": "Failed Deliveries",
+        "dashboard": true,
+        "size": "small"
+      },
+      {
+        "id": "notif_channel_breakdown",
+        "label": "Delivery by Channel",
+        "dashboard": true,
+        "size": "medium"
+      }
+    ]
+  },
+
+  "ports": {
+    "frontend": 4011,
+    "backend": 3010
+  },
+
+  "tier": "standard",
+
+  "roles": [
+    {
+      "id": "notifications_admin",
+      "name": "Notifications Administrator",
+      "description": "Full access to notification configuration and delivery management",
+      "scopes": [
+        "notifications:dashboard.view",
+        "notifications:template.read",
+        "notifications:template.create",
+        "notifications:template.update",
+        "notifications:template.delete",
+        "notifications:channel.read",
+        "notifications:channel.configure",
+        "notifications:preferences.read",
+        "notifications:preferences.update",
+        "notifications:schedule.read",
+        "notifications:schedule.create",
+        "notifications:log.read",
+        "notifications:settings.manage",
+        "notifications:sync.pull"
+      ]
+    },
+    {
+      "id": "notifications_manager",
+      "name": "Notifications Manager",
+      "description": "Manage templates and view delivery reports",
+      "scopes": [
+        "notifications:dashboard.view",
+        "notifications:template.read",
+        "notifications:template.create",
+        "notifications:template.update",
+        "notifications:preferences.read",
+        "notifications:preferences.update",
+        "notifications:schedule.read",
+        "notifications:schedule.create",
+        "notifications:log.read"
+      ]
+    },
+    {
+      "id": "notifications_viewer",
+      "name": "Notifications Viewer",
+      "description": "View-only access to notification logs and delivery status",
+      "scopes": ["notifications:dashboard.view", "notifications:log.read"]
+    }
+  ],
+
+  "permissions": [
+    {
+      "resource": "dashboard",
+      "actions": [
+        {
+          "id": "notifications:dashboard.view",
+          "name": "View Dashboard",
+          "description": "View notification KPIs"
+        }
+      ]
+    },
+    {
+      "resource": "template",
+      "actions": [
+        {
+          "id": "notifications:template.read",
+          "name": "View Templates",
+          "description": "Browse notification templates"
+        },
+        {
+          "id": "notifications:template.create",
+          "name": "Create Template",
+          "description": "Create notification templates"
+        },
+        {
+          "id": "notifications:template.update",
+          "name": "Update Template",
+          "description": "Edit templates"
+        },
+        {
+          "id": "notifications:template.delete",
+          "name": "Delete Template",
+          "description": "Remove templates"
+        }
+      ]
+    },
+    {
+      "resource": "channel",
+      "actions": [
+        {
+          "id": "notifications:channel.read",
+          "name": "View Channels",
+          "description": "View channel configurations"
+        },
+        {
+          "id": "notifications:channel.configure",
+          "name": "Configure Channel",
+          "description": "Set up email, SMS, push channels"
+        }
+      ]
+    },
+    {
+      "resource": "preferences",
+      "actions": [
+        {
+          "id": "notifications:preferences.read",
+          "name": "View Preferences",
+          "description": "View user notification preferences"
+        },
+        {
+          "id": "notifications:preferences.update",
+          "name": "Update Preferences",
+          "description": "Change notification preferences"
+        }
+      ]
+    },
+    {
+      "resource": "schedule",
+      "actions": [
+        {
+          "id": "notifications:schedule.read",
+          "name": "View Scheduled Notifications",
+          "description": "View queued notifications"
+        },
+        {
+          "id": "notifications:schedule.create",
+          "name": "Schedule Notification",
+          "description": "Queue future notifications"
+        }
+      ]
+    },
+    {
+      "resource": "log",
+      "actions": [
+        {
+          "id": "notifications:log.read",
+          "name": "View Delivery Logs",
+          "description": "Access notification delivery history"
+        }
+      ]
+    },
+    {
+      "resource": "settings",
+      "actions": [
+        {
+          "id": "notifications:settings.manage",
+          "name": "Manage Settings",
+          "description": "Configure notification engine settings"
+        }
+      ]
+    },
+    {
+      "resource": "sync",
+      "actions": [
+        {
+          "id": "notifications:sync.pull",
+          "name": "Sync Pull",
+          "description": "Pull event subscriptions from core"
+        }
+      ]
+    }
+  ],
+
+  "entities": [
+    {
+      "name": "NotificationTemplate",
+      "plural": "Notification Templates",
+      "icon": "LayoutTemplate",
+      "table": "notification_templates",
+      "primary_key": "template_id",
+      "apiPath": "/api/v1/notifications/templates",
+      "sync_enabled": false,
+      "fields": [
+        {
+          "name": "template_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "event_key",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "channel",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": ["email", "in_app", "sms", "push"]
+        },
+        {
+          "name": "subject",
+          "type": "string",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "body_template",
+          "type": "text",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "locale",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        }
+      ],
+      "indexes": ["event_key", "channel", "is_active"],
+      "soft_delete": true,
+      "deleted_at_field": "deleted_at"
+    },
+    {
+      "name": "NotificationLog",
+      "plural": "Notification Logs",
+      "icon": "ScrollText",
+      "table": "notification_logs",
+      "primary_key": "log_id",
+      "apiPath": "/api/v1/notifications/logs",
+      "sync_enabled": false,
+      "fields": [
+        {
+          "name": "log_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "template_id",
+          "type": "uuid",
+          "required": false,
+          "readonly": true
+        },
+        {
+          "name": "recipient_id",
+          "type": "uuid",
+          "required": false,
+          "readonly": true
+        },
+        {
+          "name": "recipient_address",
+          "type": "string",
+          "required": true,
+          "readonly": true,
+          "sensitive": true
+        },
+        {
+          "name": "channel",
+          "type": "string",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "event_key",
+          "type": "string",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": ["queued", "sent", "delivered", "failed", "bounced"]
+        },
+        {
+          "name": "sent_at",
+          "type": "timestamp",
+          "required": false,
+          "readonly": true
+        },
+        {
+          "name": "error_message",
+          "type": "text",
+          "required": false,
+          "readonly": true
+        }
+      ],
+      "indexes": ["recipient_id", "channel", "status", "sent_at"],
+      "soft_delete": false
+    }
+  ],
+
+  "events": {
+    "published": [
+      {
+        "name": "notifications:sent",
+        "description": "Fired when a notification is dispatched"
+      },
+      {
+        "name": "notifications:failed",
+        "description": "Fired when notification delivery fails"
+      }
+    ],
+    "subscribed": [
+      {
+        "name": "workflow:approval.requested",
+        "handler": "notifications:trigger.send_approval_request"
+      },
+      {
+        "name": "sales:order.confirmed",
+        "handler": "notifications:trigger.send_order_confirmation"
+      },
+      {
+        "name": "procurement:po.approved",
+        "handler": "notifications:trigger.send_po_approval"
+      },
+      {
+        "name": "hr:leave.approved",
+        "handler": "notifications:trigger.send_leave_status"
+      },
+      {
+        "name": "projects:task.overdue",
+        "handler": "notifications:trigger.send_overdue_alert"
+      }
+    ]
+  },
+
+  "api": {
+    "base_path": "/api/v1/notifications",
+    "auth": "bearer_token",
+    "rate_limit": { "requests_per_minute": 500, "burst": 100 },
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/templates",
+        "scope": "notifications:template.read"
+      },
+      {
+        "method": "POST",
+        "path": "/templates",
+        "scope": "notifications:template.create"
+      },
+      {
+        "method": "PUT",
+        "path": "/templates/:id",
+        "scope": "notifications:template.update"
+      },
+      {
+        "method": "DELETE",
+        "path": "/templates/:id",
+        "scope": "notifications:template.delete"
+      },
+      {
+        "method": "GET",
+        "path": "/channels",
+        "scope": "notifications:channel.read"
+      },
+      {
+        "method": "PUT",
+        "path": "/channels/:id",
+        "scope": "notifications:channel.configure"
+      },
+      {
+        "method": "GET",
+        "path": "/preferences",
+        "scope": "notifications:preferences.read"
+      },
+      {
+        "method": "PUT",
+        "path": "/preferences",
+        "scope": "notifications:preferences.update"
+      },
+      {
+        "method": "GET",
+        "path": "/scheduled",
+        "scope": "notifications:schedule.read"
+      },
+      {
+        "method": "POST",
+        "path": "/send",
+        "scope": "notifications:schedule.create"
+      },
+      { "method": "GET", "path": "/logs", "scope": "notifications:log.read" },
+      {
+        "method": "POST",
+        "path": "/sync/pull",
+        "scope": "notifications:sync.pull"
+      }
+    ]
+  },
+
+  "health_check": {
+    "endpoint": "/api/v1/notifications/health",
+    "interval_seconds": 30,
+    "timeout_seconds": 5
+  },
+
+  "logging": {
+    "level": "info",
+    "audit_trail": false,
+    "sensitive_fields_masked": ["recipient_address", "body_template"]
+  }
+}

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ModuleLayout, ThemeProvider } from "@erp/shell";
+import { ModuleLayout, ModuleStartup, ThemeProvider } from "@erp/shell";
 import "./globals.css";
 
 export const metadata: Metadata = { title: "Projects — Bixo", description: "Project Management, Tasks & Time Tracking" };
@@ -11,6 +11,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <ModuleLayout moduleId="projects">{children}</ModuleLayout>
         </ThemeProvider>
+        <ModuleStartup />
       </body>
     </html>
   );

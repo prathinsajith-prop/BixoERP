@@ -7,6 +7,7 @@ export interface CurrentUser {
   sub: string;
   tenantId: string;
   email: string;
+  orgRole?: string;
   roles: string[];
   permissions: string[];
 }
@@ -20,6 +21,7 @@ function decodeJwtPayload(token: string): CurrentUser | null {
       sub: payload.sub ?? "",
       tenantId: payload.tenantId ?? "",
       email: payload.email ?? "",
+      orgRole: payload.orgRole ?? payload.org_role ?? undefined,
       roles: Array.isArray(payload.roles) ? payload.roles : [],
       permissions: Array.isArray(payload.permissions) ? payload.permissions : [],
     };

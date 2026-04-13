@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ModuleLayout, ThemeProvider } from "@erp/shell";
+import { ModuleLayout, ModuleStartup, ThemeProvider } from "@erp/shell";
 import "./globals.css";
 
 export const metadata: Metadata = { title: "Audit — Bixo", description: "Audit Trail & Compliance Logging" };
@@ -11,6 +11,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <ModuleLayout moduleId="audit">{children}</ModuleLayout>
         </ThemeProvider>
+        <ModuleStartup />
       </body>
     </html>
   );

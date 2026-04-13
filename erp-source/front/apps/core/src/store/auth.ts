@@ -47,13 +47,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   hydrate: async () => {
     const tenantId = sessionStorage.getItem('tenantId');
     if (tenantId) set({ tenantId });
-    try {
-      const { data } = await authApi.silentRefresh();
-      const accessToken = data?.data?.accessToken ?? null;
-      if (accessToken) set({ accessToken, isAuthenticated: true });
-    } catch {
-      set({ isAuthenticated: false });
-    }
+    const accessToken = await authApi.silentRefresh();
+    if (accessToken) set({ accessToken, isAuthenticated: true });
+    else set({ isAuthenticated: false });
   },
 
   login: async (credentials) => {
@@ -178,6 +174,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (result?.accessToken) {
       const tenantId = result.tenantId ?? organizationId;
       if (tenantId) sessionStorage.setItem('tenantId', tenantId);
+      sessionStorage.removeItem('activeModule');
       localStorage.setItem('organizationId', organizationId);
       set({ accessToken: result.accessToken, tenantId, isAuthenticated: true });
     }

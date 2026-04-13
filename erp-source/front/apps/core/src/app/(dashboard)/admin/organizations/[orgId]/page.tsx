@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
-import { showToast, filesApi } from '@erp/shell';
+import { showToast, filesApi, useCurrentUser } from '@erp/shell';
 import PageHeader from '@/components/page-header';
 import { DataTable, OrgAvatar, RoleBadge, StatusBadge, Tabs, Avatar, OrgSettingsTabSkeleton, type TableColumn } from '@erp/ui';
 
@@ -48,7 +48,7 @@ interface Member {
     employeeId?: string | null;
 }
 
-type TabKey = 'overview' | 'members' | 'settings';
+type TabKey = 'overview' | 'members' | 'settings' | 'modules';
 
 
 /* ── Inline editable field ──────────────────────────────────────── */
@@ -293,6 +293,7 @@ export default function OrganizationDetailPage() {
     const TABS: { key: TabKey; label: string }[] = [
         { key: 'overview', label: 'Overview' },
         { key: 'members', label: `Members${members.length > 0 ? ` (${members.length})` : ''}` },
+        { key: 'modules', label: 'Modules' },
         { key: 'settings', label: 'Settings' },
     ];
 
@@ -580,6 +581,11 @@ export default function OrganizationDetailPage() {
                     </div>
                 )}
 
+                {/* ── Modules ──────────────────────────────────────────── */}
+                {activeTab === 'modules' && (
+                    <OrgModulesTab orgId={orgId} />
+                )}
+
                 {/* ── Settings ──────────────────────────────────────────── */}
                 {activeTab === 'settings' && (
                     <SettingsTab orgId={orgId} org={org} onOrgUpdate={(updated) => setOrg({ ...org, ...updated })} />
@@ -713,3 +719,129 @@ function SettingsTab({
         </div>
     );
 }
+
+/* ── Org Modules Tab ─────────────────────────────────────────────── */
+interface OrgModCfg { moduleId: string; moduleKey: string; moduleName: string; tier: string; enabled: boolean; adoptedVersion: string | null; pendingVersion: string | null; hasUpdate: boolean; featureFlags: Record<string, boolean>; manifest: { module?: { description?: string }; ui?: { icon?: string }; permissions?: { resource: string; actions: { id: string; name: string }[] }[]; compatibility?: { dependencies: { module: string; optional: boolean }[] } }; }
+
+const MOD_GRADIENTS: Record<string, string> = { finance: 'from-emerald-500 to-teal-600', apar: 'from-blue-500 to-indigo-600', hr: 'from-violet-500 to-purple-600', inventory: 'from-amber-500 to-orange-600', sales: 'from-rose-500 to-pink-600', procurement: 'from-cyan-500 to-sky-600', manufacturing: 'from-orange-500 to-red-600', projects: 'from-indigo-500 to-blue-600', reports: 'from-teal-500 to-green-600', workflow: 'from-fuchsia-500 to-purple-600', notifications: 'from-rose-500 to-red-600', files: 'from-sky-500 to-blue-600', audit: 'from-slate-500 to-gray-600', integrations: 'from-lime-500 to-green-600' };
+
+function ModToggle({ checked, onChange, disabled }: { checked: boolean; onChange: () => void; disabled?: boolean }) {
+    return <button type="button" role="switch" aria-checked={checked} onClick={onChange} disabled={disabled} className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${checked ? 'bg-[var(--gogo-primary)]' : 'bg-gray-200 dark:bg-gray-600'}`}><span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition-transform ${checked ? 'translate-x-4' : 'translate-x-0'}`} /></button>;
+}
+
+function OrgModCard({ cfg, allConfigs, saving, canWrite, onToggle, onFeatureToggle, onAdopt }: { cfg: OrgModCfg; allConfigs: OrgModCfg[]; saving: boolean; canWrite: boolean; onToggle: (id: string, en: boolean) => void; onFeatureToggle: (id: string, perm: string, val: boolean) => void; onAdopt: (id: string) => void }) {
+    const [expanded, setExpanded] = useState(false);
+    const gr = MOD_GRADIENTS[cfg.moduleKey] ?? 'from-gray-400 to-gray-500';
+    const deps = cfg.manifest?.compatibility?.dependencies ?? [];
+    const missingDeps = deps.filter(d => !d.optional && !allConfigs.find(c => (c.moduleId === d.module || c.moduleKey === d.module) && c.enabled));
+    return (
+        <div className={`rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 dark:bg-gray-900 dark:ring-gray-800 transition-opacity ${cfg.enabled ? '' : 'opacity-75'}`}>
+            <div className="p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${cfg.enabled ? gr : 'from-gray-300 to-gray-400'} text-white font-bold text-sm`}>{cfg.moduleKey.charAt(0).toUpperCase()}</span>
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{cfg.moduleName}</p>
+                                    {cfg.adoptedVersion && <span className="text-[10px] font-mono rounded px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">v{cfg.adoptedVersion}</span>}
+                                </div>
+                                <p className="mt-0.5 text-xs line-clamp-2 text-gray-500 dark:text-gray-400">{cfg.manifest?.module?.description ?? ''}</p>
+                            </div>
+                            <ModToggle checked={cfg.enabled} onChange={() => onToggle(cfg.moduleId, !cfg.enabled)} disabled={!canWrite || saving} />
+                        </div>
+                    </div>
+                </div>
+                {cfg.hasUpdate && cfg.pendingVersion && (
+                    <div className="rounded-lg px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+                        <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-medium text-blue-700 dark:text-blue-300">Update: v{cfg.adoptedVersion} → v{cfg.pendingVersion}</p>
+                            {canWrite && <button onClick={() => onAdopt(cfg.moduleId)} className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">Adopt</button>}
+                        </div>
+                    </div>
+                )}
+                {missingDeps.length > 0 && (
+                    <p className="text-xs text-yellow-600 dark:text-yellow-400">Requires: {missingDeps.map(d => d.module.replace(/_module$/, '')).join(', ')}</p>
+                )}
+                <button onClick={() => setExpanded(e => !e)} className="flex items-center gap-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                    <svg className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                    {expanded ? 'Hide features' : 'Feature flags'}
+                </button>
+                {expanded && (
+                    <div className="space-y-3 border-t border-gray-100 dark:border-gray-800 pt-3">
+                        {(cfg.manifest?.permissions ?? []).map(group => (
+                            <div key={group.resource} className="space-y-1.5">
+                                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{group.resource}</p>
+                                {group.actions?.map(action => (
+                                    <div key={action.id} className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 bg-gray-50 dark:bg-gray-800">
+                                        <p className="text-xs truncate text-gray-700 dark:text-gray-300">{action.name}</p>
+                                        <ModToggle checked={cfg.featureFlags[action.id] !== false} onChange={() => onFeatureToggle(cfg.moduleId, action.id, cfg.featureFlags[action.id] === false)} disabled={!canWrite} />
+                                    </div>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function OrgModulesTab({ orgId }: { orgId: string }) {
+    const currentUser = useCurrentUser();
+    const canWrite = currentUser?.permissions?.includes('auth:modules:write') ?? false;
+    const [modules, setModules] = useState<OrgModCfg[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+
+    const load = useCallback(async () => {
+        setLoading(true);
+        try { const res = await authApi.getOrgModules(orgId); setModules((res.data as any)?.data ?? []); }
+        catch { } finally { setLoading(false); }
+    }, [orgId]);
+
+    useEffect(() => { load(); }, [load]);
+
+    const handleToggle = useCallback(async (moduleId: string, enabled: boolean) => {
+        setSaving(true);
+        try {
+            await authApi.updateOrgModule(orgId, moduleId, { enabled });
+            await load();
+            window.dispatchEvent(new CustomEvent('erp:module-config-changed'));
+            showToast.success(enabled ? 'Module enabled' : 'Module disabled');
+        } catch (err: unknown) {
+            const e = err as { response?: { status?: number; data?: { missingDependencies?: string[]; conflictingModules?: string[] } } };
+            if (e?.response?.status === 409) {
+                const d = e.response?.data;
+                if (d?.missingDependencies) showToast.error(`Enable ${d.missingDependencies.map((m: string) => m.replace(/_module$/, '')).join(', ')} first`);
+                else if (d?.conflictingModules) showToast.error(`${d.conflictingModules.map((m: string) => m.replace(/_module$/, '')).join(', ')} depends on this`);
+            } else showToast.error('Failed to update module');
+        } finally { setSaving(false); }
+    }, [orgId, load]);
+
+    const handleFeatureToggle = useCallback(async (moduleId: string, permId: string, value: boolean) => {
+        setModules(p => p.map(m => m.moduleId === moduleId ? { ...m, featureFlags: { ...m.featureFlags, [permId]: value } } : m));
+        try { await authApi.updateOrgModule(orgId, moduleId, { featureFlags: { [permId]: value } }); }
+        catch { showToast.error('Failed'); setModules(p => p.map(m => m.moduleId === moduleId ? { ...m, featureFlags: { ...m.featureFlags, [permId]: !value } } : m)); }
+    }, [orgId]);
+
+    const handleAdopt = useCallback(async (moduleId: string) => {
+        setSaving(true);
+        try { await authApi.updateOrgModule(orgId, moduleId, { adoptVersion: true }); await load(); showToast.success('Version adopted'); }
+        catch { showToast.error('Failed to adopt version'); } finally { setSaving(false); }
+    }, [orgId, load]);
+
+    if (loading) return <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-24 rounded-2xl bg-gray-100 dark:bg-gray-800 animate-pulse" />)}</div>;
+
+    return (
+        <div>
+            <div className="mb-4 flex items-center justify-between">
+                <p className="text-sm text-gray-500 dark:text-gray-400">{modules.filter(m => m.enabled).length} of {modules.length} modules enabled</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {modules.map(cfg => <OrgModCard key={cfg.moduleId} cfg={cfg} allConfigs={modules} saving={saving} canWrite={canWrite} onToggle={handleToggle} onFeatureToggle={handleFeatureToggle} onAdopt={handleAdopt} />)}
+            </div>
+        </div>
+    );
+}
+

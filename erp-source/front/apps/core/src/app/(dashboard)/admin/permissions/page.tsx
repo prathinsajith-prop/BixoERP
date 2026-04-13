@@ -15,7 +15,8 @@ const RESOURCE_COLORS: Record<string, string> = {
 };
 const getResourceColor = (resource: string) => RESOURCE_COLORS[resource] || 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400';
 
-interface Permission { id: string; resource?: string; action: string; description?: string }
+interface Permission { id: string; resource?: string; action: string; description?: string; code?: string }
+interface ModuleConfig { moduleId: string; moduleKey: string; enabled: boolean }
 
 export default function PermissionsPage() {
   const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -27,13 +28,17 @@ export default function PermissionsPage() {
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Permission | null>(null);
   const [search, setSearch] = useState('');
+  const [moduleConfigs, setModuleConfigs] = useState<ModuleConfig[]>([]);
 
   const fetchPermissions = useCallback(async () => {
     setLoading(true);
     try { const res = await authApi.listPermissions(); setPermissions(res.data?.data || res.data || []); } catch { setPermissions([]); } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { fetchPermissions(); }, [fetchPermissions]);
+  useEffect(() => {
+    fetchPermissions();
+    authApi.listModuleConfigs().then((res) => setModuleConfigs((res.data as any)?.data ?? [])).catch(() => { });
+  }, [fetchPermissions]);
 
   const handleCreate = async () => {
     if (!formResource.trim() || !formAction.trim()) return;
@@ -133,29 +138,37 @@ export default function PermissionsPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {Object.entries(grouped).map(([resource, perms]) => (
-              <div key={resource} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 dark:bg-gray-900 dark:ring-gray-800">
-                <div className="flex items-center gap-3 border-b border-gray-100 bg-gray-50/50 px-4 py-3 sm:px-5 dark:border-gray-800 dark:bg-gray-800/50">
-                  <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg sm:h-8 sm:w-8 ${getResourceColor(resource)}`}>
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" /></svg>
-                  </span>
-                  <div><h3 className="text-sm font-bold capitalize text-gray-900 dark:text-white">{resource}</h3><p className="text-xs text-gray-500 dark:text-gray-400">{perms.length} action{perms.length !== 1 ? 's' : ''}</p></div>
-                </div>
-                <div className="divide-y divide-gray-50 dark:divide-gray-800">
-                  {perms.map((perm) => (
-                    <div key={perm.id} className="group flex items-center justify-between gap-3 px-4 py-3 transition hover:bg-gray-50/50 sm:px-5 dark:hover:bg-gray-800/50">
-                      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-                        <span className="inline-flex shrink-0 items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">{perm.action}</span>
-                        {perm.description && <span className="hidden truncate text-xs text-gray-500 sm:block dark:text-gray-400">{perm.description}</span>}
+            {Object.entries(grouped).map(([resource, perms]) => {
+              const sampleCode = perms[0]?.code ?? '';
+              const moduleKey = sampleCode.includes(':') ? sampleCode.split(':')[0] : null;
+              const moduleCfg = moduleKey ? moduleConfigs.find(m => m.moduleKey === moduleKey) : null;
+              const moduleDisabled = moduleCfg ? !moduleCfg.enabled : false;
+              return (
+                <div key={resource} className={`overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 dark:bg-gray-900 dark:ring-gray-800 ${moduleDisabled ? 'opacity-60' : ''}`}>
+                  <div className="flex items-center gap-3 border-b border-gray-100 bg-gray-50/50 px-4 py-3 sm:px-5 dark:border-gray-800 dark:bg-gray-800/50">
+                    <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg sm:h-8 sm:w-8 ${getResourceColor(resource)}`}>
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" /></svg>
+                    </span>
+                    <div className="flex-1 min-w-0"><h3 className="text-sm font-bold capitalize text-gray-900 dark:text-white">{resource}</h3><p className="text-xs text-gray-500 dark:text-gray-400">{perms.length} action{perms.length !== 1 ? 's' : ''}</p></div>
+                    {moduleCfg && <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${moduleCfg.enabled ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>{moduleKey} {moduleCfg.enabled ? 'active' : 'inactive'}</span>}
+                  </div>
+                  {moduleDisabled && <div className="bg-amber-50 dark:bg-amber-900/10 border-b border-amber-100 dark:border-amber-800/30 px-4 py-2 text-xs text-amber-700 dark:text-amber-400">Module <strong>{moduleKey}</strong> is disabled for this organization — these permissions are inactive.</div>}
+                  <div className="divide-y divide-gray-50 dark:divide-gray-800">
+                    {perms.map((perm) => (
+                      <div key={perm.id} className="group flex items-center justify-between gap-3 px-4 py-3 transition hover:bg-gray-50/50 sm:px-5 dark:hover:bg-gray-800/50">
+                        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+                          <span className="inline-flex shrink-0 items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">{perm.action}</span>
+                          {perm.description && <span className="hidden truncate text-xs text-gray-500 sm:block dark:text-gray-400">{perm.description}</span>}
+                        </div>
+                        <Tooltip content="Delete permission"><button onClick={() => setConfirmDelete(perm)} className="shrink-0 rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-500 md:opacity-0 md:group-hover:opacity-100 dark:hover:bg-red-900/20">
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                        </button></Tooltip>
                       </div>
-                      <Tooltip content="Delete permission"><button onClick={() => setConfirmDelete(perm)} className="shrink-0 rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-500 md:opacity-0 md:group-hover:opacity-100 dark:hover:bg-red-900/20">
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
-                      </button></Tooltip>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

@@ -73,7 +73,7 @@ export default function OrganisationsPage() {
         setSwitching(orgId);
         try {
             await switchOrg(orgId);
-            window.location.reload();
+            window.location.replace('/');
         } catch {
             showToast.error('Something went wrong', 'Failed to switch organisation.');
             setSwitching(null);

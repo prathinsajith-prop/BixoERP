@@ -21,8 +21,22 @@ const refreshClient = axios.create({
   withCredentials: true,
 });
 
-let isRefreshing = false;
-let refreshQueue: { resolve: (token: string) => void; reject: (err: unknown) => void }[] = [];
+// ─── Global singleton refresh ─────────────────────────────────────────────────
+// Guards all concurrent refresh callers so only ONE POST /refresh reaches the
+// backend at a time, preventing token-rotation replay-detection from revoking
+// user sessions when hydrate() races with a concurrent 401-interceptor retry.
+let _refreshPromise: Promise<string | null> | null = null;
+
+function sharedRefresh(): Promise<string | null> {
+  if (!_refreshPromise) {
+    _refreshPromise = refreshClient
+      .post('/refresh')
+      .then(({ data }) => (data?.data?.accessToken as string) ?? null)
+      .catch(() => null)
+      .finally(() => { _refreshPromise = null; });
+  }
+  return _refreshPromise;
+}
 
 api.interceptors.response.use(
   (res) => res,
@@ -31,35 +45,16 @@ api.interceptors.response.use(
     if (original.url === '/refresh' || original._retry) return Promise.reject(error);
 
     if (error.response?.status === 401) {
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          refreshQueue.push({ resolve, reject });
-        }).then((token) => {
-          original.headers.Authorization = `Bearer ${token}`;
-          return api(original);
-        });
-      }
-
       original._retry = true;
-      isRefreshing = true;
-
-      try {
-        const { data } = await refreshClient.post('/refresh');
-        const newAccessToken = data.data.accessToken;
-        useAuthStore.setState({ accessToken: newAccessToken, isAuthenticated: true });
-        refreshQueue.forEach((p) => p.resolve(newAccessToken));
-        refreshQueue = [];
-        original.headers.Authorization = `Bearer ${newAccessToken}`;
+      const token = await sharedRefresh();
+      if (token) {
+        useAuthStore.setState({ accessToken: token, isAuthenticated: true });
+        original.headers.Authorization = `Bearer ${token}`;
         return api(original);
-      } catch (refreshError) {
-        refreshQueue.forEach((p) => p.reject(error));
-        refreshQueue = [];
-        useAuthStore.setState({ accessToken: null, isAuthenticated: false });
-        sessionStorage.removeItem('tenantId');
-        window.location.href = '/login';
-      } finally {
-        isRefreshing = false;
       }
+      useAuthStore.setState({ accessToken: null, isAuthenticated: false });
+      sessionStorage.removeItem('tenantId');
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   },
@@ -70,7 +65,7 @@ export const authApi = {
   login: (body: { email: string; password: string }) => api.post('/login', body),
   register: (body: { email: string; password: string; firstName: string; lastName: string }) => api.post('/register', body),
   logout: () => api.post('/logout'),
-  silentRefresh: () => refreshClient.post('/refresh'),
+  silentRefresh: sharedRefresh,
   changePassword: (body: { currentPassword: string; newPassword: string }) => api.post('/change-password', body),
   getProfile: () => api.get('/profile'),
   updateProfile: (body: Record<string, unknown>) => api.put('/profile', body),
@@ -156,4 +151,35 @@ export const authApi = {
   listPendingInvites: (orgId: string) => api.get(`/invitations/${orgId}/pending`),
   revokeInvite: (inviteId: string, organisationId: string) => api.delete(`/invitations/${inviteId}`, { data: { organisationId } }),
   healthCheck: () => axios.get('/health'),
+
+  // ─── Module management ──────────────────────────────────────────
+  listModuleConfigs: () =>
+    api.get('/modules'),
+  getModuleConfig: (moduleId: string) =>
+    api.get(`/modules/${moduleId}`),
+  toggleModule: (moduleId: string, body: { enabled: boolean; settings?: Record<string, unknown> }) =>
+    api.patch(`/modules/${moduleId}`, body),
+  getModuleManifest: (moduleId: string) =>
+    api.get(`/modules/${moduleId}/manifest`),
+
+  // ─── Module registry (super-admin) ─────────────────────────────
+  listRegisteredModules: () =>
+    api.get('/modules/registry'),
+  getOrgModules: (orgId: string) =>
+    api.get(`/modules/org/${orgId}`),
+  getOrgModuleSummary: (orgId: string) =>
+    api.get(`/modules/org/${orgId}/summary`),
+  updateOrgModule: (orgId: string, moduleId: string, body: {
+    enabled?: boolean;
+    featureFlags?: Record<string, boolean>;
+    notes?: string;
+    adoptVersion?: boolean;
+    menuOverride?: unknown[] | null;
+  }) => api.patch(`/modules/org/${orgId}/${moduleId}`, body),
+  applyModulePreset: (orgId: string, body: {
+    preset: 'starter' | 'standard' | 'full' | 'custom';
+    moduleIds?: string[];
+  }) => api.post(`/modules/org/${orgId}/apply-defaults`, body),
+  registerModule: (manifest: Record<string, unknown>) =>
+    api.post('/modules/register', manifest),
 };

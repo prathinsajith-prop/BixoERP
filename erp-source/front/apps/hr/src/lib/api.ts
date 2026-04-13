@@ -144,7 +144,7 @@ export interface LeaveBalance {
 
 export const api = {
   employees: {
-    list: () => request<EmployeeResponse[]>("GET", "/api/v1/hr/employees"),
+    list: () => request<{ data: EmployeeResponse[]; total: number; page: number; limit: number; totalPages: number }>("GET", "/api/v1/hr/employees").then((r) => r.data),
     listPaginated: (params: {
       search?: string; departmentId?: string; status?: string;
       page?: number; limit?: number; sortBy?: string; sortOrder?: string;

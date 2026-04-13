@@ -17,6 +17,11 @@ export class PostgresRefreshTokenRepository implements RefreshTokenRepository {
     return row ? this.toDomain(row) : null;
   }
 
+  async findById(id: string): Promise<RefreshToken | null> {
+    const row = await this.repo.findOne({ where: { id } });
+    return row ? this.toDomain(row) : null;
+  }
+
   async findActiveByUserId(tenantId: string, userId: string): Promise<RefreshToken[]> {
     const rows = await this.repo.find({
       where: { tenant_id: tenantId, user_id: userId, revoked_at: IsNull() },

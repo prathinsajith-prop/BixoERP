@@ -39,27 +39,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const activeModule = sessionStorage.getItem('activeModule');
     if (tenantId) set({ tenantId, activeModule });
 
-    // Attempt a silent token refresh. The browser automatically sends the
-    // HttpOnly __erp_rt cookie so we don't need to read any token from storage.
-    try {
-      const { data } = await authApi.silentRefresh();
-      const accessToken = data?.data?.accessToken ?? null;
-      if (accessToken) {
-        // Decode JWT to restore tenantId without needing sessionStorage
-        // This fixes the new-tab problem where sessionStorage is empty
-        const payload = decodeJwt(accessToken);
-        const restoredTenantId = (payload?.orgId ?? payload?.tenantId ?? null) as string | null;
-        if (restoredTenantId && !sessionStorage.getItem('tenantId')) {
-          sessionStorage.setItem('tenantId', restoredTenantId);
-        }
-        set({
-          accessToken,
-          fullAccessToken: accessToken,
-          tenantId: restoredTenantId ?? tenantId,
-          isAuthenticated: true,
-        });
+    // Attempt a silent token refresh via the global singleton (sharedRefresh).
+    // Using sharedRefresh ensures that even if hydrate() runs concurrently with
+    // a 401 interceptor retry, only ONE HTTP POST /refresh reaches the backend —
+    // preventing the token-rotation replay-detection from revoking the session.
+    const accessToken = await authApi.silentRefresh();
+    if (accessToken) {
+      // Decode JWT to restore tenantId without needing sessionStorage
+      // (fixes the new-tab problem where sessionStorage is empty)
+      const payload = decodeJwt(accessToken);
+      const restoredTenantId = (payload?.orgId ?? payload?.tenantId ?? null) as string | null;
+      if (restoredTenantId && !sessionStorage.getItem('tenantId')) {
+        sessionStorage.setItem('tenantId', restoredTenantId);
       }
-    } catch {
+      set({
+        accessToken,
+        fullAccessToken: accessToken,
+        tenantId: restoredTenantId ?? tenantId,
+        isAuthenticated: true,
+      });
+    } else {
       // Cookie absent or expired — user must log in
       set({ isAuthenticated: false });
     }

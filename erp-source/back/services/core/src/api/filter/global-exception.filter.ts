@@ -44,8 +44,20 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exResponse = exception.getResponse();
-      message = typeof exResponse === 'string' ? exResponse : (exResponse as any).message ?? message;
-      code = (exResponse as any).code ?? 'HTTP_ERROR';
+      if (typeof exResponse === 'string') {
+        message = exResponse;
+        code = 'HTTP_ERROR';
+      } else {
+        // Preserve the full structured payload (e.g. missingDependencies, conflictingModules)
+        // so the frontend can render specific error reasons.
+        response.status(status).json({
+          statusCode: status,
+          code: (exResponse as any).code ?? 'HTTP_ERROR',
+          timestamp: new Date().toISOString(),
+          ...(exResponse as object),
+        });
+        return;
+      }
     } else if (exception instanceof EntityNotFoundException) {
       status = HttpStatus.NOT_FOUND;
       code = exception.code;

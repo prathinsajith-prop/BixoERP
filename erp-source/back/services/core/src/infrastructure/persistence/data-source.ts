@@ -23,6 +23,7 @@ import { ManagerSettingsOrmEntity } from './entity/manager-settings.orm-entity';
 import { MembershipPermissionOrmEntity } from './entity/membership-permission.orm-entity';
 import { InviteTokenOrmEntity } from './entity/invite-token.orm-entity';
 import { LoginHistoryOrmEntity } from './entity/login-history.orm-entity';
+import { OrgModuleConfigOrmEntity } from './entity/org-module-config.orm-entity';
 
 export default new DataSource({
   type: 'postgres',
@@ -59,6 +60,7 @@ export default new DataSource({
     MembershipPermissionOrmEntity,
     InviteTokenOrmEntity,
     LoginHistoryOrmEntity,
+    OrgModuleConfigOrmEntity,
   ],
   // In Docker the TS sources aren't present — use compiled JS; locally ts-node picks up .ts
   migrations: [

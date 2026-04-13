@@ -25,6 +25,26 @@ const MODULE_COLORS: Record<string, string> = {
   integrations: 'bg-sky-600',
 };
 
+interface ModuleConfigRow {
+  moduleId?: string;
+  moduleKey?: string;
+  enabled?: boolean;
+}
+
+function normalizeModuleId(value?: string | null): string | null {
+  if (!value || typeof value !== 'string') return null;
+  return value.trim().toLowerCase().replace(/_module$/, '');
+}
+
+function extractModuleConfigs(payload: unknown): ModuleConfigRow[] {
+  const root = payload as { data?: unknown } | undefined;
+  const inner = (root?.data as { data?: unknown } | undefined)?.data;
+  if (Array.isArray(inner)) return inner as ModuleConfigRow[];
+  if (Array.isArray(root?.data)) return root?.data as ModuleConfigRow[];
+  if (Array.isArray(payload)) return payload as ModuleConfigRow[];
+  return [];
+}
+
 function useClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () => void) {
   useEffect(() => {
     const listener = (e: MouseEvent) => {
@@ -39,15 +59,60 @@ function useClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () =
 export function AppSelector() {
   const [open, setOpen] = useState(false);
   const [switching, setSwitching] = useState<string | null>(null);
+  const [enabledKeys, setEnabledKeys] = useState<Set<string> | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const close = useCallback(() => setOpen(false), []);
   useClickOutside(ref, close);
   const user = useCurrentUser();
   const userPermissions = user?.permissions ?? [];
+  const accessToken = useAuthStore((s) => s.accessToken);
   const fullToken = useAuthStore((s) => s.fullAccessToken) || useAuthStore((s) => s.accessToken);
 
+  const loadEnabledModules = useCallback(async () => {
+    try {
+      const res = await authApi.listModuleConfigs();
+      const configs = extractModuleConfigs(res.data);
+      const enabled = configs
+        .filter((c) => !!c.enabled)
+        .map((c) => normalizeModuleId(c.moduleKey ?? c.moduleId))
+        .filter((v): v is string => !!v);
+
+      // Unknown/empty payload => fail-open to avoid locking navigation.
+      if (configs.length === 0) {
+        setEnabledKeys(null);
+        return;
+      }
+
+      setEnabledKeys(new Set(enabled));
+    } catch {
+      // fallback: show all modules if the endpoint is unavailable
+      setEnabledKeys(null);
+    }
+    // NOTE: silentRefresh was removed here — it caused token-reuse revocations when
+    // this effect ran concurrently (e.g. React StrictMode double-invoke or org switch),
+    // triggering the backend's replay-attack detection and revoking all user sessions.
+  }, []);
+
+  useEffect(() => {
+    loadEnabledModules();
+    const handler = () => loadEnabledModules();
+    window.addEventListener('erp:module-config-changed', handler);
+    return () => {
+      window.removeEventListener('erp:module-config-changed', handler);
+    };
+  }, [loadEnabledModules, accessToken]);
+
+  // Only show modules the org has enabled (or all if fetch failed)
+  const visibleModules = enabledKeys === null
+    ? modules
+    : modules.filter((m) => enabledKeys.has(normalizeModuleId(m.id) ?? m.id));
+
   const handleSelect = async (path: string, moduleId: string) => {
-    if (!hasModuleAccess(userPermissions, moduleId) || switching) return;
+    // If we have a verified enabled-module list, any org member can enter enabled modules.
+    // Fine-grained role/permission checks are enforced by each module's own pages and APIs.
+    const normalizedModuleId = normalizeModuleId(moduleId) ?? moduleId;
+    const isAllowed = enabledKeys !== null ? enabledKeys.has(normalizedModuleId) : hasModuleAccess(userPermissions, moduleId);
+    if (!isAllowed || switching) return;
     setSwitching(moduleId);
     try {
       // Restore full token in memory before requesting a scoped one
@@ -75,7 +140,11 @@ export function AppSelector() {
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          const next = !open;
+          setOpen(next);
+          if (next) loadEnabledModules();
+        }}
         className={`flex h-11 w-11 items-center justify-center rounded-xl text-gray-600 transition-all duration-200 hover:bg-gray-100 hover:text-gray-900 hover:shadow-sm active:scale-95 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white ${open ? 'bg-gray-100 text-gray-900 shadow-sm dark:bg-white/10 dark:text-white' : ''}`}
         aria-label="Apps"
       >
@@ -118,10 +187,11 @@ export function AppSelector() {
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">Switch to</p>
           </div>
           <div className="grid grid-cols-4 gap-1 px-3">
-            {modules.map((mod) => {
+            {visibleModules.map((mod) => {
               const icon = getIcon(mod.icon, "h-5 w-5");
               const color = MODULE_COLORS[mod.id] || 'bg-gray-500';
-              const allowed = hasModuleAccess(userPermissions, mod.id);
+              const normalizedModId = normalizeModuleId(mod.id) ?? mod.id;
+              const allowed = enabledKeys !== null ? enabledKeys.has(normalizedModId) : hasModuleAccess(userPermissions, mod.id);
               return (
                 <button
                   key={mod.id}

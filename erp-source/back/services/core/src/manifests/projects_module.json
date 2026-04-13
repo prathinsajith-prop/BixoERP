@@ -1,0 +1,873 @@
+{
+  "manifest_version": "1.0.0",
+
+  "module": {
+    "id": "projects_module",
+    "name": "Projects",
+    "version": "1.0.0",
+    "description": "End-to-end project management — projects, tasks, milestones, Gantt, timesheets, resource allocation, budget tracking, and delivery reports.",
+    "author": "Bixo",
+    "license": "proprietary",
+    "namespace": "erp.modules.projects"
+  },
+
+  "compatibility": {
+    "core_min_version": "1.0.0",
+    "core_max_version": "2.x",
+    "api_version": "v1",
+    "dependencies": [
+      { "module": "core", "version": ">=1.0.0", "optional": false },
+      { "module": "auth_module", "version": ">=1.0.0", "optional": false },
+      { "module": "hr_module", "version": ">=1.0.0", "optional": true },
+      { "module": "finance_module", "version": ">=1.0.0", "optional": true },
+      { "module": "workflow_module", "version": ">=1.0.0", "optional": true },
+      {
+        "module": "notifications_module",
+        "version": ">=1.0.0",
+        "optional": true
+      }
+    ]
+  },
+
+  "sync": {
+    "strategy": "incremental",
+    "direction": "bidirectional",
+    "trigger": "event_driven",
+    "polling_interval_seconds": 300,
+    "retry_policy": {
+      "max_attempts": 3,
+      "backoff_strategy": "exponential",
+      "initial_delay_ms": 1000
+    },
+    "conflict_resolution": "last_write_wins",
+    "batch_size": 100
+  },
+
+  "ui": {
+    "icon": "FolderKanban",
+    "color": "indigo",
+    "basePath": "/projects",
+    "position": 8,
+    "menu": [
+      {
+        "label": "Dashboard",
+        "href": "/projects",
+        "icon": "LayoutDashboard",
+        "permission": "projects:dashboard.view",
+        "visibleTo": [
+          "project_admin",
+          "project_manager",
+          "project_member",
+          "project_viewer"
+        ],
+        "position": 1
+      },
+      {
+        "label": "Projects",
+        "href": "/projects/list",
+        "icon": "FolderKanban",
+        "permission": "projects:project.read",
+        "visibleTo": [
+          "project_admin",
+          "project_manager",
+          "project_member",
+          "project_viewer"
+        ],
+        "position": 2
+      },
+      {
+        "label": "Tasks",
+        "href": "/projects/tasks",
+        "icon": "CheckSquare",
+        "permission": "projects:task.read",
+        "visibleTo": [
+          "project_admin",
+          "project_manager",
+          "project_member",
+          "project_viewer"
+        ],
+        "position": 3
+      },
+      {
+        "label": "Gantt Chart",
+        "href": "/projects/gantt",
+        "icon": "GanttChart",
+        "permission": "projects:gantt.view",
+        "visibleTo": ["project_admin", "project_manager", "project_viewer"],
+        "position": 4
+      },
+      {
+        "label": "Milestones",
+        "href": "/projects/milestones",
+        "icon": "Flag",
+        "permission": "projects:milestone.read",
+        "visibleTo": [
+          "project_admin",
+          "project_manager",
+          "project_member",
+          "project_viewer"
+        ],
+        "position": 5
+      },
+      {
+        "label": "Timesheets",
+        "href": "/projects/timesheets",
+        "icon": "Clock",
+        "permission": "projects:timesheet.read",
+        "visibleTo": ["project_admin", "project_manager", "project_member"],
+        "position": 6
+      },
+      {
+        "label": "Resources",
+        "href": "/projects/resources",
+        "icon": "Users",
+        "permission": "projects:resource.read",
+        "visibleTo": ["project_admin", "project_manager"],
+        "position": 7
+      },
+      {
+        "label": "Budget",
+        "href": "/projects/budget",
+        "icon": "Wallet",
+        "permission": "projects:budget.read",
+        "visibleTo": ["project_admin", "project_manager"],
+        "position": 8
+      },
+      {
+        "label": "Reports",
+        "href": "/projects/reports",
+        "icon": "BarChart2",
+        "permission": "projects:reports.view",
+        "visibleTo": ["project_admin", "project_manager", "project_viewer"],
+        "position": 9
+      },
+      {
+        "label": "Settings",
+        "href": "/projects/settings",
+        "icon": "Settings",
+        "permission": "projects:settings.manage",
+        "visibleTo": ["project_admin"],
+        "position": 10
+      }
+    ],
+    "widgets": [
+      {
+        "id": "projects_active_count",
+        "label": "Active Projects",
+        "dashboard": true,
+        "size": "small"
+      },
+      {
+        "id": "projects_overdue_tasks",
+        "label": "Overdue Tasks",
+        "dashboard": true,
+        "size": "small"
+      },
+      {
+        "id": "projects_resource_utilization",
+        "label": "Resource Utilization",
+        "dashboard": true,
+        "size": "medium"
+      },
+      {
+        "id": "projects_budget_status",
+        "label": "Budget vs Actual",
+        "dashboard": true,
+        "size": "medium"
+      },
+      {
+        "id": "projects_milestone_timeline",
+        "label": "Upcoming Milestones",
+        "dashboard": true,
+        "size": "large"
+      }
+    ]
+  },
+
+  "ports": {
+    "frontend": 4008,
+    "backend": 3008
+  },
+
+  "tier": "standard",
+
+  "roles": [
+    {
+      "id": "project_admin",
+      "name": "Project Administrator",
+      "description": "Full access to all project features",
+      "scopes": [
+        "projects:dashboard.view",
+        "projects:project.read",
+        "projects:project.create",
+        "projects:project.update",
+        "projects:project.delete",
+        "projects:task.read",
+        "projects:task.create",
+        "projects:task.update",
+        "projects:task.delete",
+        "projects:task.assign",
+        "projects:gantt.view",
+        "projects:milestone.read",
+        "projects:milestone.create",
+        "projects:milestone.update",
+        "projects:timesheet.read",
+        "projects:timesheet.create",
+        "projects:timesheet.update",
+        "projects:timesheet.approve",
+        "projects:resource.read",
+        "projects:resource.assign",
+        "projects:budget.read",
+        "projects:budget.manage",
+        "projects:reports.view",
+        "projects:settings.manage",
+        "projects:sync.pull",
+        "projects:sync.push"
+      ]
+    },
+    {
+      "id": "project_manager",
+      "name": "Project Manager",
+      "description": "Manage projects, tasks, resources and budgets",
+      "scopes": [
+        "projects:dashboard.view",
+        "projects:project.read",
+        "projects:project.create",
+        "projects:project.update",
+        "projects:task.read",
+        "projects:task.create",
+        "projects:task.update",
+        "projects:task.assign",
+        "projects:gantt.view",
+        "projects:milestone.read",
+        "projects:milestone.create",
+        "projects:milestone.update",
+        "projects:timesheet.read",
+        "projects:timesheet.approve",
+        "projects:resource.read",
+        "projects:resource.assign",
+        "projects:budget.read",
+        "projects:budget.manage",
+        "projects:reports.view"
+      ]
+    },
+    {
+      "id": "project_member",
+      "name": "Project Member",
+      "description": "Work on assigned tasks and log timesheets",
+      "scopes": [
+        "projects:dashboard.view",
+        "projects:project.read",
+        "projects:task.read",
+        "projects:task.update",
+        "projects:milestone.read",
+        "projects:timesheet.read",
+        "projects:timesheet.create",
+        "projects:timesheet.update"
+      ]
+    },
+    {
+      "id": "project_viewer",
+      "name": "Project Viewer",
+      "description": "Read-only access to project data",
+      "scopes": [
+        "projects:dashboard.view",
+        "projects:project.read",
+        "projects:task.read",
+        "projects:gantt.view",
+        "projects:milestone.read",
+        "projects:budget.read",
+        "projects:reports.view"
+      ]
+    }
+  ],
+
+  "permissions": [
+    {
+      "resource": "dashboard",
+      "actions": [
+        {
+          "id": "projects:dashboard.view",
+          "name": "View Dashboard",
+          "description": "View project KPIs"
+        }
+      ]
+    },
+    {
+      "resource": "project",
+      "actions": [
+        {
+          "id": "projects:project.read",
+          "name": "View Projects",
+          "description": "View all projects"
+        },
+        {
+          "id": "projects:project.create",
+          "name": "Create Project",
+          "description": "Create new projects"
+        },
+        {
+          "id": "projects:project.update",
+          "name": "Update Project",
+          "description": "Edit project details"
+        },
+        {
+          "id": "projects:project.delete",
+          "name": "Delete Project",
+          "description": "Remove projects"
+        }
+      ]
+    },
+    {
+      "resource": "task",
+      "actions": [
+        {
+          "id": "projects:task.read",
+          "name": "View Tasks",
+          "description": "View all tasks"
+        },
+        {
+          "id": "projects:task.create",
+          "name": "Create Task",
+          "description": "Create tasks"
+        },
+        {
+          "id": "projects:task.update",
+          "name": "Update Task",
+          "description": "Edit task details"
+        },
+        {
+          "id": "projects:task.delete",
+          "name": "Delete Task",
+          "description": "Remove tasks"
+        },
+        {
+          "id": "projects:task.assign",
+          "name": "Assign Task",
+          "description": "Assign tasks to team members"
+        }
+      ]
+    },
+    {
+      "resource": "gantt",
+      "actions": [
+        {
+          "id": "projects:gantt.view",
+          "name": "View Gantt Chart",
+          "description": "Access the Gantt chart view"
+        }
+      ]
+    },
+    {
+      "resource": "milestone",
+      "actions": [
+        {
+          "id": "projects:milestone.read",
+          "name": "View Milestones",
+          "description": "View project milestones"
+        },
+        {
+          "id": "projects:milestone.create",
+          "name": "Create Milestone",
+          "description": "Add milestones"
+        },
+        {
+          "id": "projects:milestone.update",
+          "name": "Update Milestone",
+          "description": "Edit milestones"
+        }
+      ]
+    },
+    {
+      "resource": "timesheet",
+      "actions": [
+        {
+          "id": "projects:timesheet.read",
+          "name": "View Timesheets",
+          "description": "View timesheet entries"
+        },
+        {
+          "id": "projects:timesheet.create",
+          "name": "Log Time",
+          "description": "Submit timesheet entries"
+        },
+        {
+          "id": "projects:timesheet.update",
+          "name": "Update Timesheet",
+          "description": "Edit submitted timesheets"
+        },
+        {
+          "id": "projects:timesheet.approve",
+          "name": "Approve Timesheet",
+          "description": "Approve or reject timesheets"
+        }
+      ]
+    },
+    {
+      "resource": "resource",
+      "actions": [
+        {
+          "id": "projects:resource.read",
+          "name": "View Resources",
+          "description": "View team resource availability"
+        },
+        {
+          "id": "projects:resource.assign",
+          "name": "Assign Resources",
+          "description": "Allocate resources to projects"
+        }
+      ]
+    },
+    {
+      "resource": "budget",
+      "actions": [
+        {
+          "id": "projects:budget.read",
+          "name": "View Budget",
+          "description": "View project budgets"
+        },
+        {
+          "id": "projects:budget.manage",
+          "name": "Manage Budget",
+          "description": "Set and update project budgets"
+        }
+      ]
+    },
+    {
+      "resource": "reports",
+      "actions": [
+        {
+          "id": "projects:reports.view",
+          "name": "View Reports",
+          "description": "Access project reports"
+        }
+      ]
+    },
+    {
+      "resource": "settings",
+      "actions": [
+        {
+          "id": "projects:settings.manage",
+          "name": "Manage Settings",
+          "description": "Configure project settings"
+        }
+      ]
+    },
+    {
+      "resource": "sync",
+      "actions": [
+        {
+          "id": "projects:sync.pull",
+          "name": "Sync Pull",
+          "description": "Pull data from core"
+        },
+        {
+          "id": "projects:sync.push",
+          "name": "Sync Push",
+          "description": "Push data to core"
+        }
+      ]
+    }
+  ],
+
+  "entities": [
+    {
+      "name": "Project",
+      "plural": "Projects",
+      "icon": "FolderKanban",
+      "table": "projects",
+      "primary_key": "project_id",
+      "apiPath": "/api/v1/projects",
+      "sync_enabled": true,
+      "sync_direction": "bidirectional",
+      "fields": [
+        {
+          "name": "project_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "project_code",
+          "type": "string",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "client_id",
+          "type": "uuid",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "manager_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": [
+            "draft",
+            "active",
+            "on_hold",
+            "completed",
+            "cancelled"
+          ]
+        },
+        {
+          "name": "budget",
+          "type": "decimal",
+          "required": false,
+          "readonly": false,
+          "sensitive": true
+        },
+        {
+          "name": "actual_cost",
+          "type": "decimal",
+          "required": false,
+          "readonly": true,
+          "sensitive": true
+        },
+        {
+          "name": "priority",
+          "type": "enum",
+          "required": false,
+          "readonly": false,
+          "enum_values": ["low", "medium", "high", "critical"]
+        }
+      ],
+      "indexes": ["project_code", "manager_id", "status"],
+      "soft_delete": true,
+      "deleted_at_field": "deleted_at"
+    },
+    {
+      "name": "Task",
+      "plural": "Tasks",
+      "icon": "CheckSquare",
+      "table": "project_tasks",
+      "primary_key": "task_id",
+      "apiPath": "/api/v1/projects/tasks",
+      "sync_enabled": false,
+      "fields": [
+        {
+          "name": "task_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "project_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "parent_task_id",
+          "type": "uuid",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "assigned_to",
+          "type": "uuid",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "due_date",
+          "type": "date",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": [
+            "backlog",
+            "todo",
+            "in_progress",
+            "review",
+            "done",
+            "blocked"
+          ]
+        },
+        {
+          "name": "priority",
+          "type": "enum",
+          "required": false,
+          "readonly": false,
+          "enum_values": ["low", "medium", "high", "critical"]
+        },
+        {
+          "name": "estimated_hours",
+          "type": "decimal",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "actual_hours",
+          "type": "decimal",
+          "required": false,
+          "readonly": true
+        }
+      ],
+      "indexes": ["project_id", "assigned_to", "status"],
+      "soft_delete": true,
+      "deleted_at_field": "deleted_at"
+    },
+    {
+      "name": "Milestone",
+      "plural": "Milestones",
+      "icon": "Flag",
+      "table": "project_milestones",
+      "primary_key": "milestone_id",
+      "apiPath": "/api/v1/projects/milestones",
+      "sync_enabled": false,
+      "fields": [
+        {
+          "name": "milestone_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "project_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "due_date",
+          "type": "date",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": ["pending", "in_progress", "completed", "overdue"]
+        }
+      ],
+      "indexes": ["project_id", "status"],
+      "soft_delete": false
+    },
+    {
+      "name": "Timesheet",
+      "plural": "Timesheets",
+      "icon": "Clock",
+      "table": "project_timesheets",
+      "primary_key": "timesheet_id",
+      "apiPath": "/api/v1/projects/timesheets",
+      "sync_enabled": true,
+      "sync_direction": "push",
+      "fields": [
+        {
+          "name": "timesheet_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "task_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "project_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "employee_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        { "name": "date", "type": "date", "required": true, "readonly": false },
+        {
+          "name": "hours",
+          "type": "decimal",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": ["draft", "submitted", "approved", "rejected"]
+        }
+      ],
+      "indexes": ["task_id", "project_id", "employee_id", "status"],
+      "soft_delete": false
+    }
+  ],
+
+  "events": {
+    "published": [
+      {
+        "name": "projects:project.created",
+        "description": "Fired when a project is created"
+      },
+      {
+        "name": "projects:project.status_changed",
+        "description": "Fired when a project status changes"
+      },
+      {
+        "name": "projects:milestone.completed",
+        "description": "Fired when a milestone is completed"
+      },
+      {
+        "name": "projects:task.overdue",
+        "description": "Fired when a task passes its due date"
+      },
+      {
+        "name": "projects:timesheet.approved",
+        "description": "Fired when timesheets are approved"
+      }
+    ],
+    "subscribed": [
+      {
+        "name": "hr:employee.terminated",
+        "handler": "projects:sync.reassign_tasks"
+      },
+      {
+        "name": "finance:budget.updated",
+        "handler": "projects:sync.update_budget"
+      }
+    ]
+  },
+
+  "api": {
+    "base_path": "/api/v1/projects",
+    "auth": "bearer_token",
+    "rate_limit": { "requests_per_minute": 350, "burst": 60 },
+    "endpoints": [
+      { "method": "GET", "path": "/", "scope": "projects:project.read" },
+      { "method": "POST", "path": "/", "scope": "projects:project.create" },
+      { "method": "GET", "path": "/:id", "scope": "projects:project.read" },
+      { "method": "PUT", "path": "/:id", "scope": "projects:project.update" },
+      {
+        "method": "DELETE",
+        "path": "/:id",
+        "scope": "projects:project.delete"
+      },
+      { "method": "GET", "path": "/tasks", "scope": "projects:task.read" },
+      { "method": "POST", "path": "/tasks", "scope": "projects:task.create" },
+      {
+        "method": "PUT",
+        "path": "/tasks/:id",
+        "scope": "projects:task.update"
+      },
+      {
+        "method": "POST",
+        "path": "/tasks/:id/assign",
+        "scope": "projects:task.assign"
+      },
+      {
+        "method": "GET",
+        "path": "/milestones",
+        "scope": "projects:milestone.read"
+      },
+      {
+        "method": "POST",
+        "path": "/milestones",
+        "scope": "projects:milestone.create"
+      },
+      {
+        "method": "GET",
+        "path": "/timesheets",
+        "scope": "projects:timesheet.read"
+      },
+      {
+        "method": "POST",
+        "path": "/timesheets",
+        "scope": "projects:timesheet.create"
+      },
+      {
+        "method": "POST",
+        "path": "/timesheets/:id/approve",
+        "scope": "projects:timesheet.approve"
+      },
+      {
+        "method": "GET",
+        "path": "/resources",
+        "scope": "projects:resource.read"
+      },
+      { "method": "GET", "path": "/budget", "scope": "projects:budget.read" },
+      { "method": "GET", "path": "/reports", "scope": "projects:reports.view" },
+      { "method": "POST", "path": "/sync/pull", "scope": "projects:sync.pull" },
+      { "method": "POST", "path": "/sync/push", "scope": "projects:sync.push" }
+    ]
+  },
+
+  "health_check": {
+    "endpoint": "/api/v1/projects/health",
+    "interval_seconds": 60,
+    "timeout_seconds": 5
+  },
+
+  "logging": {
+    "level": "info",
+    "audit_trail": true,
+    "sensitive_fields_masked": ["budget", "actual_cost"]
+  }
+}
