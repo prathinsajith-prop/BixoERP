@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ModuleLayout, ThemeProvider } from "@erp/shell";
+import { ModuleLayout, ModuleStartup, ThemeProvider } from "@erp/shell";
 import { Toaster } from 'sonner';
 import { HRModuleScope } from "./module-scope";
 import "./globals.css";
@@ -21,6 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </HRModuleScope>
           </ModuleLayout>
         </ThemeProvider>
+        <ModuleStartup />
       </body>
     </html>
   );

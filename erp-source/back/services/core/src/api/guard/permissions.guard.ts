@@ -49,6 +49,7 @@ export class PermissionsGuard implements CanActivate {
     }
 
     const jwtPerms: string[] = Array.isArray(user.permissions) ? user.permissions : [];
+    const orgRole = typeof user.orgRole === 'string' ? user.orgRole.toUpperCase() : '';
 
     // For each required permission, check if any JWT permission starts with it
     // (allowing scope-level wildcards: "invoice:approve" covers "invoice:approve:department")
@@ -57,6 +58,15 @@ export class PermissionsGuard implements CanActivate {
     );
 
     if (missing.length > 0) {
+      // Membership OWNER/ADMIN should retain org-level management access even if
+      // token permissions are stale or partially synced during org switch/login.
+      const isOrgAdmin = orgRole === 'OWNER' || orgRole === 'ADMIN';
+      const orgScopedOnly = missing.every(
+        (perm) => perm === 'auth:organizations:read' || perm === 'auth:organizations:write',
+      );
+      if (isOrgAdmin && orgScopedOnly) {
+        return true;
+      }
       throw new ForbiddenException(`Missing required permissions: ${missing.join(', ')}`);
     }
 

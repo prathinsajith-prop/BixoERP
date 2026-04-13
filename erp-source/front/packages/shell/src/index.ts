@@ -12,6 +12,7 @@ export { AlertsDropdown } from "./components/alerts-dropdown";
 export { AuthGuard } from "./components/auth-guard";
 export { ModuleFooter } from "./components/module-footer";
 export { ModuleLayout } from "./components/module-layout";
+export { ModuleStartup } from "./components/module-startup";
 export { ThemeProvider, useTheme } from "./context/theme";
 export { PageTitleProvider, useSetPageTitle, usePageTitleState } from "./context/page-title";
 

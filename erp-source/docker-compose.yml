@@ -276,6 +276,7 @@ services:
       - "4003:4003"
     environment:
       NODE_ENV: production
+      CORE_API_URL: http://core:3015
 
   finance-frontend:
     <<: *svc-defaults
@@ -286,6 +287,7 @@ services:
       - "4001:4001"
     environment:
       NODE_ENV: production
+      CORE_API_URL: http://core:3015
 
   apar-frontend:
     <<: *svc-defaults
@@ -296,6 +298,7 @@ services:
       - "4002:4002"
     environment:
       NODE_ENV: production
+      CORE_API_URL: http://core:3015
 
   inventory-frontend:
     <<: *svc-defaults
@@ -306,6 +309,7 @@ services:
       - "4004:4004"
     environment:
       NODE_ENV: production
+      CORE_API_URL: http://core:3015
 
   procurement-frontend:
     <<: *svc-defaults
@@ -316,6 +320,7 @@ services:
       - "4005:4005"
     environment:
       NODE_ENV: production
+      CORE_API_URL: http://core:3015
 
   manufacturing-frontend:
     <<: *svc-defaults
@@ -326,6 +331,7 @@ services:
       - "4006:4006"
     environment:
       NODE_ENV: production
+      CORE_API_URL: http://core:3015
 
   sales-frontend:
     <<: *svc-defaults
@@ -336,6 +342,7 @@ services:
       - "4007:4007"
     environment:
       NODE_ENV: production
+      CORE_API_URL: http://core:3015
 
   projects-frontend:
     <<: *svc-defaults
@@ -346,6 +353,7 @@ services:
       - "4008:4008"
     environment:
       NODE_ENV: production
+      CORE_API_URL: http://core:3015
 
   reports-frontend:
     <<: *svc-defaults
@@ -356,6 +364,7 @@ services:
       - "4009:4009"
     environment:
       NODE_ENV: production
+      CORE_API_URL: http://core:3015
 
   workflow-frontend:
     <<: *svc-defaults
@@ -366,6 +375,7 @@ services:
       - "4010:4010"
     environment:
       NODE_ENV: production
+      CORE_API_URL: http://core:3015
 
   notifications-frontend:
     <<: *svc-defaults
@@ -376,6 +386,7 @@ services:
       - "4011:4011"
     environment:
       NODE_ENV: production
+      CORE_API_URL: http://core:3015
 
   files-frontend:
     <<: *svc-defaults
@@ -386,6 +397,7 @@ services:
       - "4012:4012"
     environment:
       NODE_ENV: production
+      CORE_API_URL: http://core:3015
 
   audit-frontend:
     <<: *svc-defaults
@@ -396,6 +408,7 @@ services:
       - "4013:4013"
     environment:
       NODE_ENV: production
+      CORE_API_URL: http://core:3015
 
   integrations-frontend:
     <<: *svc-defaults
@@ -406,6 +419,7 @@ services:
       - "4014:4014"
     environment:
       NODE_ENV: production
+      CORE_API_URL: http://core:3015
 
 networks:
   infra:

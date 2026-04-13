@@ -19,6 +19,7 @@ import { PermissionsGuard, RequirePermissions } from '../guard/permissions.guard
 import { ZodValidationPipe } from '../pipe/zod-validation.pipe';
 import { TenantId, UserTenantId, CurrentUser } from '../decorator/auth.decorators';
 import { OrganizationUseCase } from '../../application/use-case/organization.use-case';
+import { OrgDefaultSeedingService } from '../../application/service/org-default-seeding.service';
 import { AuditLogService } from '../../infrastructure/audit/audit-log.service';
 import { OrgMemberRole } from '../../domain/entity/user-organization.entity';
 import {
@@ -35,6 +36,7 @@ import {
 export class OrganizationController {
   constructor(
     private readonly orgUseCase: OrganizationUseCase,
+    private readonly seedingService: OrgDefaultSeedingService,
     private readonly auditLog: AuditLogService,
   ) { }
 
@@ -53,6 +55,10 @@ export class OrganizationController {
       description: dto.description,
       ownerId: user.sub,
     });
+
+    // Seed core/auth default permissions and roles for the new org
+    await this.seedingService.seedForOrg(org.id, user.sub);
+
     return {
       statusCode: 201,
       data: {

@@ -32,6 +32,9 @@ export class PermissionOrmEntity {
   @Column({ type: 'text', default: '' })
   description: string;
 
+  @Column({ nullable: true, type: 'text' })
+  code: string | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 

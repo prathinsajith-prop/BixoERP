@@ -10,6 +10,7 @@ import {
 
 @TypeOrmEntity('roles')
 @Index(['tenant_id', 'name'], { unique: true })
+@Index(['tenant_id', 'code'], { unique: true, where: '"code" IS NOT NULL' })
 export class RoleOrmEntity {
   @PrimaryColumn('uuid')
   id: string;
@@ -26,6 +27,9 @@ export class RoleOrmEntity {
 
   @Column('uuid', { array: true, default: '{}' })
   permissions: string[];
+
+  @Column({ nullable: true, type: 'text' })
+  code: string | null;
 
   @Column({ type: 'boolean', default: false })
   is_system: boolean;

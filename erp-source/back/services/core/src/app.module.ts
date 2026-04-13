@@ -29,6 +29,8 @@ import { ManagerAssignmentOrmEntity } from './infrastructure/persistence/entity/
 import { ManagerSettingsOrmEntity } from './infrastructure/persistence/entity/manager-settings.orm-entity';
 import { MembershipPermissionOrmEntity } from './infrastructure/persistence/entity/membership-permission.orm-entity';
 import { InviteTokenOrmEntity } from './infrastructure/persistence/entity/invite-token.orm-entity';
+import { OrgModuleConfigOrmEntity } from './infrastructure/persistence/entity/org-module-config.orm-entity';
+import { ModuleRegistryOrmEntity } from './infrastructure/persistence/entity/module-registry.orm-entity';
 
 // Repositories
 import { PostgresUserRepository } from './infrastructure/persistence/repository/postgres-user.repository';
@@ -88,6 +90,7 @@ import { OrganizationUseCase } from './application/use-case/organization.use-cas
 import { OrgStructureUseCase } from './application/use-case/org-structure.use-case';
 import { SelectOrgUseCase } from './application/use-case/select-org.use-case';
 import { InvitationUseCase } from './application/use-case/invitation.use-case';
+import { OrgDefaultSeedingService } from './application/service/org-default-seeding.service';
 
 // Controllers
 import { AuthController } from './api/controller/auth.controller';
@@ -100,6 +103,8 @@ import { SocialLoginController } from './api/controller/social-login.controller'
 import { OrganizationController } from './api/controller/organization.controller';
 import { OrgStructureController } from './api/controller/org-structure.controller';
 import { InvitationController } from './api/controller/invitation.controller';
+import { ModuleConfigController } from './api/controller/module-config.controller';
+import { ModuleRegistryController } from './api/controller/module-registry.controller';
 
 // Guards
 import { JwtAuthGuard } from './api/guard/jwt-auth.guard';
@@ -130,6 +135,8 @@ const ormEntities = [
   ManagerSettingsOrmEntity,
   MembershipPermissionOrmEntity,
   InviteTokenOrmEntity,
+  OrgModuleConfigOrmEntity,
+  ModuleRegistryOrmEntity,
 ];
 
 @Module({
@@ -165,7 +172,7 @@ const ormEntities = [
       ],
     }),
   ],
-  controllers: [AuthController, AdminController, HealthController, SettingsController, ProfileController, TwoFactorController, SocialLoginController, OrganizationController, OrgStructureController, InvitationController],
+  controllers: [AuthController, AdminController, HealthController, SettingsController, ProfileController, TwoFactorController, SocialLoginController, OrganizationController, OrgStructureController, InvitationController, ModuleRegistryController, ModuleConfigController],
   providers: [
     // Infrastructure → Port bindings
     { provide: USER_REPOSITORY, useClass: PostgresUserRepository },
@@ -196,6 +203,7 @@ const ormEntities = [
     OrgStructureUseCase,
     SelectOrgUseCase,
     InvitationUseCase,
+    OrgDefaultSeedingService,
 
     // Infrastructure services
     OutboxRelay,

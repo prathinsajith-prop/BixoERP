@@ -1,0 +1,1267 @@
+{
+  "manifest_version": "1.0.0",
+
+  "module": {
+    "id": "inventory_module",
+    "name": "Inventory",
+    "version": "2.1.0",
+    "description": "Advanced inventory management with multi-warehouse support, batch/serial tracking, demand forecasting, and real-time stock visibility across locations.",
+    "author": "Bixo",
+    "license": "proprietary",
+    "namespace": "erp.modules.inventory"
+  },
+
+  "compatibility": {
+    "core_min_version": "1.0.0",
+    "core_max_version": "2.x",
+    "api_version": "v2",
+    "dependencies": [
+      { "module": "core", "version": ">=1.0.0", "optional": false },
+      { "module": "auth_module", "version": ">=1.0.0", "optional": false },
+      {
+        "module": "notifications_module",
+        "version": ">=1.0.0",
+        "optional": true
+      },
+      { "module": "finance_module", "version": ">=1.0.0", "optional": true }
+    ]
+  },
+
+  "sync": {
+    "strategy": "incremental",
+    "direction": "bidirectional",
+    "trigger": "event_driven",
+    "polling_interval_seconds": 120,
+    "retry_policy": {
+      "max_attempts": 3,
+      "backoff_strategy": "exponential",
+      "initial_delay_ms": 500
+    },
+    "conflict_resolution": "last_write_wins",
+    "batch_size": 500
+  },
+
+  "ui": {
+    "icon": "Package",
+    "color": "amber",
+    "basePath": "/inventory",
+    "position": 4,
+    "menu": [
+      {
+        "label": "Dashboard",
+        "href": "/inventory",
+        "icon": "LayoutDashboard",
+        "permission": "inventory:dashboard.view",
+        "visibleTo": [
+          "inventory_admin",
+          "inventory_manager",
+          "inventory_officer",
+          "inventory_viewer"
+        ],
+        "position": 1
+      },
+      {
+        "label": "Products",
+        "href": "/inventory/products",
+        "icon": "Package",
+        "permission": "inventory:product.read",
+        "visibleTo": [
+          "inventory_admin",
+          "inventory_manager",
+          "inventory_officer",
+          "inventory_viewer"
+        ],
+        "position": 2
+      },
+      {
+        "label": "Warehouses",
+        "href": "/inventory/warehouses",
+        "icon": "Warehouse",
+        "permission": "inventory:warehouse.read",
+        "visibleTo": [
+          "inventory_admin",
+          "inventory_manager",
+          "inventory_officer",
+          "inventory_viewer"
+        ],
+        "position": 3
+      },
+      {
+        "label": "Stock Levels",
+        "href": "/inventory/stock",
+        "icon": "BarChart2",
+        "permission": "inventory:stock.read",
+        "visibleTo": [
+          "inventory_admin",
+          "inventory_manager",
+          "inventory_officer",
+          "inventory_viewer"
+        ],
+        "position": 4
+      },
+      {
+        "label": "Stock Transfers",
+        "href": "/inventory/transfers",
+        "icon": "ArrowLeftRight",
+        "permission": "inventory:transfer.read",
+        "visibleTo": [
+          "inventory_admin",
+          "inventory_manager",
+          "inventory_officer"
+        ],
+        "position": 5
+      },
+      {
+        "label": "Adjustments",
+        "href": "/inventory/adjustments",
+        "icon": "SlidersHorizontal",
+        "permission": "inventory:adjustment.read",
+        "visibleTo": [
+          "inventory_admin",
+          "inventory_manager",
+          "inventory_officer"
+        ],
+        "position": 6
+      },
+      {
+        "label": "Batch & Serial",
+        "href": "/inventory/batch-serial",
+        "icon": "Hash",
+        "permission": "inventory:batch.read",
+        "visibleTo": [
+          "inventory_admin",
+          "inventory_manager",
+          "inventory_officer",
+          "inventory_viewer"
+        ],
+        "position": 7
+      },
+      {
+        "label": "Bin Locations",
+        "href": "/inventory/bins",
+        "icon": "MapPin",
+        "permission": "inventory:bin.read",
+        "visibleTo": [
+          "inventory_admin",
+          "inventory_manager",
+          "inventory_officer"
+        ],
+        "position": 8
+      },
+      {
+        "label": "Forecasting",
+        "href": "/inventory/forecasting",
+        "icon": "TrendingUp",
+        "permission": "inventory:forecast.view",
+        "visibleTo": ["inventory_admin", "inventory_manager"],
+        "position": 9
+      },
+      {
+        "label": "Reports",
+        "href": "/inventory/reports",
+        "icon": "FileBarChart",
+        "permission": "inventory:reports.view",
+        "visibleTo": [
+          "inventory_admin",
+          "inventory_manager",
+          "inventory_viewer"
+        ],
+        "position": 10
+      },
+      {
+        "label": "Settings",
+        "href": "/inventory/settings",
+        "icon": "Settings",
+        "permission": "inventory:settings.manage",
+        "visibleTo": ["inventory_admin"],
+        "position": 11
+      }
+    ],
+    "widgets": [
+      {
+        "id": "inventory_stock_value",
+        "label": "Total Stock Value",
+        "dashboard": true,
+        "size": "medium"
+      },
+      {
+        "id": "inventory_low_stock",
+        "label": "Low Stock Alerts",
+        "dashboard": true,
+        "size": "small"
+      },
+      {
+        "id": "inventory_movements",
+        "label": "Recent Movements",
+        "dashboard": true,
+        "size": "medium"
+      },
+      {
+        "id": "inventory_warehouse_utilization",
+        "label": "Warehouse Utilization",
+        "dashboard": true,
+        "size": "large"
+      },
+      {
+        "id": "inventory_expiry_alerts",
+        "label": "Expiry Alerts",
+        "dashboard": true,
+        "size": "small"
+      }
+    ]
+  },
+
+  "ports": {
+    "frontend": 4004,
+    "backend": 3005
+  },
+
+  "tier": "standard",
+
+  "roles": [
+    {
+      "id": "inventory_admin",
+      "name": "Inventory Administrator",
+      "description": "Full access to all inventory features",
+      "scopes": [
+        "inventory:dashboard.view",
+        "inventory:product.read",
+        "inventory:product.create",
+        "inventory:product.update",
+        "inventory:product.delete",
+        "inventory:warehouse.read",
+        "inventory:warehouse.create",
+        "inventory:warehouse.update",
+        "inventory:warehouse.delete",
+        "inventory:stock.read",
+        "inventory:stock.adjust",
+        "inventory:transfer.read",
+        "inventory:transfer.create",
+        "inventory:transfer.approve",
+        "inventory:adjustment.read",
+        "inventory:adjustment.create",
+        "inventory:adjustment.approve",
+        "inventory:batch.read",
+        "inventory:batch.create",
+        "inventory:bin.read",
+        "inventory:bin.manage",
+        "inventory:forecast.view",
+        "inventory:reports.view",
+        "inventory:settings.manage",
+        "inventory:sync.pull",
+        "inventory:sync.push"
+      ]
+    },
+    {
+      "id": "inventory_manager",
+      "name": "Inventory Manager",
+      "description": "Manage stock, transfers, and approve adjustments",
+      "scopes": [
+        "inventory:dashboard.view",
+        "inventory:product.read",
+        "inventory:product.create",
+        "inventory:product.update",
+        "inventory:warehouse.read",
+        "inventory:stock.read",
+        "inventory:stock.adjust",
+        "inventory:transfer.read",
+        "inventory:transfer.create",
+        "inventory:transfer.approve",
+        "inventory:adjustment.read",
+        "inventory:adjustment.create",
+        "inventory:adjustment.approve",
+        "inventory:batch.read",
+        "inventory:batch.create",
+        "inventory:bin.read",
+        "inventory:bin.manage",
+        "inventory:forecast.view",
+        "inventory:reports.view"
+      ]
+    },
+    {
+      "id": "inventory_officer",
+      "name": "Inventory Officer",
+      "description": "Manage stock movements and transfers",
+      "scopes": [
+        "inventory:dashboard.view",
+        "inventory:product.read",
+        "inventory:warehouse.read",
+        "inventory:stock.read",
+        "inventory:transfer.read",
+        "inventory:transfer.create",
+        "inventory:adjustment.read",
+        "inventory:adjustment.create",
+        "inventory:batch.read",
+        "inventory:bin.read"
+      ]
+    },
+    {
+      "id": "inventory_viewer",
+      "name": "Inventory Viewer",
+      "description": "Read-only access to inventory data",
+      "scopes": [
+        "inventory:dashboard.view",
+        "inventory:product.read",
+        "inventory:warehouse.read",
+        "inventory:stock.read",
+        "inventory:batch.read",
+        "inventory:reports.view"
+      ]
+    }
+  ],
+
+  "permissions": [
+    {
+      "resource": "dashboard",
+      "actions": [
+        {
+          "id": "inventory:dashboard.view",
+          "name": "View Dashboard",
+          "description": "View inventory KPIs"
+        }
+      ]
+    },
+    {
+      "resource": "product",
+      "actions": [
+        {
+          "id": "inventory:product.read",
+          "name": "View Products",
+          "description": "View product catalog"
+        },
+        {
+          "id": "inventory:product.create",
+          "name": "Create Product",
+          "description": "Add new products"
+        },
+        {
+          "id": "inventory:product.update",
+          "name": "Update Product",
+          "description": "Edit product details"
+        },
+        {
+          "id": "inventory:product.delete",
+          "name": "Delete Product",
+          "description": "Remove products"
+        }
+      ]
+    },
+    {
+      "resource": "warehouse",
+      "actions": [
+        {
+          "id": "inventory:warehouse.read",
+          "name": "View Warehouses",
+          "description": "View warehouse list"
+        },
+        {
+          "id": "inventory:warehouse.create",
+          "name": "Create Warehouse",
+          "description": "Add new warehouses"
+        },
+        {
+          "id": "inventory:warehouse.update",
+          "name": "Update Warehouse",
+          "description": "Edit warehouse details"
+        },
+        {
+          "id": "inventory:warehouse.delete",
+          "name": "Delete Warehouse",
+          "description": "Remove warehouses"
+        }
+      ]
+    },
+    {
+      "resource": "stock",
+      "actions": [
+        {
+          "id": "inventory:stock.read",
+          "name": "View Stock Levels",
+          "description": "View current stock quantities"
+        },
+        {
+          "id": "inventory:stock.adjust",
+          "name": "Adjust Stock",
+          "description": "Manually adjust stock quantities"
+        }
+      ]
+    },
+    {
+      "resource": "transfer",
+      "actions": [
+        {
+          "id": "inventory:transfer.read",
+          "name": "View Transfers",
+          "description": "View stock transfer orders"
+        },
+        {
+          "id": "inventory:transfer.create",
+          "name": "Create Transfer",
+          "description": "Create stock transfers"
+        },
+        {
+          "id": "inventory:transfer.approve",
+          "name": "Approve Transfer",
+          "description": "Approve and execute transfers"
+        }
+      ]
+    },
+    {
+      "resource": "adjustment",
+      "actions": [
+        {
+          "id": "inventory:adjustment.read",
+          "name": "View Adjustments",
+          "description": "View inventory adjustments"
+        },
+        {
+          "id": "inventory:adjustment.create",
+          "name": "Create Adjustment",
+          "description": "Create adjustment entries"
+        },
+        {
+          "id": "inventory:adjustment.approve",
+          "name": "Approve Adjustment",
+          "description": "Approve adjustments"
+        }
+      ]
+    },
+    {
+      "resource": "batch",
+      "actions": [
+        {
+          "id": "inventory:batch.read",
+          "name": "View Batches/Serials",
+          "description": "View batch and serial tracking"
+        },
+        {
+          "id": "inventory:batch.create",
+          "name": "Create Batch/Serial",
+          "description": "Create batch or serial records"
+        }
+      ]
+    },
+    {
+      "resource": "bin",
+      "actions": [
+        {
+          "id": "inventory:bin.read",
+          "name": "View Bin Locations",
+          "description": "View bin location data"
+        },
+        {
+          "id": "inventory:bin.manage",
+          "name": "Manage Bin Locations",
+          "description": "Create and configure bin locations"
+        }
+      ]
+    },
+    {
+      "resource": "forecast",
+      "actions": [
+        {
+          "id": "inventory:forecast.view",
+          "name": "View Forecasting",
+          "description": "View demand forecasting reports"
+        }
+      ]
+    },
+    {
+      "resource": "reports",
+      "actions": [
+        {
+          "id": "inventory:reports.view",
+          "name": "View Reports",
+          "description": "Access inventory analytics"
+        }
+      ]
+    },
+    {
+      "resource": "settings",
+      "actions": [
+        {
+          "id": "inventory:settings.manage",
+          "name": "Manage Settings",
+          "description": "Configure inventory settings"
+        }
+      ]
+    },
+    {
+      "resource": "sync",
+      "actions": [
+        {
+          "id": "inventory:sync.pull",
+          "name": "Sync Pull",
+          "description": "Pull data from core"
+        },
+        {
+          "id": "inventory:sync.push",
+          "name": "Sync Push",
+          "description": "Push data to core"
+        }
+      ]
+    }
+  ],
+
+  "entities": [
+    {
+      "name": "Product",
+      "plural": "Products",
+      "icon": "Package",
+      "table": "inventory_products",
+      "primary_key": "product_id",
+      "apiPath": "/api/v2/inventory/products",
+      "sync_enabled": true,
+      "sync_direction": "bidirectional",
+      "fields": [
+        {
+          "name": "product_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "sku",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "barcode",
+          "type": "string",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "category_id",
+          "type": "uuid",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "unit_of_measure",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "unit_cost",
+          "type": "decimal",
+          "required": false,
+          "readonly": false,
+          "sensitive": true
+        },
+        {
+          "name": "reorder_point",
+          "type": "decimal",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "reorder_qty",
+          "type": "decimal",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "track_batch",
+          "type": "boolean",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "track_serial",
+          "type": "boolean",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "has_expiry",
+          "type": "boolean",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": true,
+          "readonly": true
+        }
+      ],
+      "indexes": ["sku", "barcode", "category_id", "is_active"],
+      "soft_delete": true,
+      "deleted_at_field": "deleted_at"
+    },
+    {
+      "name": "Warehouse",
+      "plural": "Warehouses",
+      "icon": "Warehouse",
+      "table": "inventory_warehouses",
+      "primary_key": "warehouse_id",
+      "apiPath": "/api/v2/inventory/warehouses",
+      "sync_enabled": false,
+      "fields": [
+        {
+          "name": "warehouse_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "code",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "address",
+          "type": "text",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "is_default",
+          "type": "boolean",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": true,
+          "readonly": false
+        }
+      ],
+      "indexes": ["code"]
+    },
+    {
+      "name": "StockLevel",
+      "plural": "Stock Levels",
+      "icon": "BarChart2",
+      "table": "inventory_stock_levels",
+      "primary_key": "stock_id",
+      "apiPath": "/api/v2/inventory/stock",
+      "sync_enabled": true,
+      "sync_direction": "push_to_core",
+      "fields": [
+        {
+          "name": "stock_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "product_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "warehouse_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "bin_id",
+          "type": "uuid",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "quantity_on_hand",
+          "type": "decimal",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "quantity_reserved",
+          "type": "decimal",
+          "required": false,
+          "readonly": true
+        },
+        {
+          "name": "quantity_available",
+          "type": "decimal",
+          "required": false,
+          "readonly": true
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": true,
+          "readonly": true
+        }
+      ],
+      "indexes": ["product_id", "warehouse_id", "bin_id"]
+    },
+    {
+      "name": "StockTransfer",
+      "plural": "Stock Transfers",
+      "icon": "ArrowLeftRight",
+      "table": "inventory_transfers",
+      "primary_key": "transfer_id",
+      "apiPath": "/api/v2/inventory/transfers",
+      "sync_enabled": false,
+      "fields": [
+        {
+          "name": "transfer_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "transfer_number",
+          "type": "string",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "from_warehouse_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "to_warehouse_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": ["draft", "in_transit", "completed", "cancelled"]
+        },
+        {
+          "name": "scheduled_date",
+          "type": "date",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "completed_at",
+          "type": "timestamp",
+          "required": false,
+          "readonly": true
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": true,
+          "readonly": true
+        }
+      ],
+      "indexes": [
+        "transfer_number",
+        "status",
+        "from_warehouse_id",
+        "to_warehouse_id"
+      ],
+      "soft_delete": true,
+      "deleted_at_field": "deleted_at"
+    },
+    {
+      "name": "Batch",
+      "plural": "Batches",
+      "icon": "Hash",
+      "table": "inventory_batches",
+      "primary_key": "batch_id",
+      "apiPath": "/api/v2/inventory/batches",
+      "sync_enabled": false,
+      "fields": [
+        {
+          "name": "batch_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": true
+        },
+        {
+          "name": "batch_number",
+          "type": "string",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "product_id",
+          "type": "uuid",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "manufacture_date",
+          "type": "date",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "expiry_date",
+          "type": "date",
+          "required": false,
+          "readonly": false
+        },
+        {
+          "name": "quantity",
+          "type": "decimal",
+          "required": true,
+          "readonly": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "readonly": false,
+          "enum_values": ["active", "quarantine", "expired", "consumed"]
+        }
+      ],
+      "indexes": ["batch_number", "product_id", "expiry_date", "status"]
+    }
+  ],
+
+  "events": {
+    "published": [
+      {
+        "name": "inventory:stock.low",
+        "description": "Fired when stock falls below reorder point"
+      },
+      {
+        "name": "inventory:stock.adjusted",
+        "description": "Fired when stock is manually adjusted"
+      },
+      {
+        "name": "inventory:transfer.completed",
+        "description": "Fired when a stock transfer is completed"
+      },
+      {
+        "name": "inventory:batch.expiring",
+        "description": "Fired when a batch is approaching expiry"
+      },
+      {
+        "name": "inventory:product.created",
+        "description": "Fired when a new product is added"
+      }
+    ],
+    "subscribed": [
+      {
+        "name": "procurement:grn.completed",
+        "handler": "inventory:sync.stock_in"
+      },
+      { "name": "sales:order.picked", "handler": "inventory:sync.stock_out" },
+      {
+        "name": "manufacturing:wo.completed",
+        "handler": "inventory:sync.production_output"
+      }
+    ]
+  },
+
+  "api": {
+    "base_path": "/api/v2/inventory",
+    "auth": "bearer_token",
+    "rate_limit": { "requests_per_minute": 500, "burst": 100 },
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/products",
+        "scope": "inventory:product.read"
+      },
+      {
+        "method": "POST",
+        "path": "/products",
+        "scope": "inventory:product.create"
+      },
+      {
+        "method": "GET",
+        "path": "/products/:id",
+        "scope": "inventory:product.read"
+      },
+      {
+        "method": "PUT",
+        "path": "/products/:id",
+        "scope": "inventory:product.update"
+      },
+      {
+        "method": "DELETE",
+        "path": "/products/:id",
+        "scope": "inventory:product.delete"
+      },
+      {
+        "method": "GET",
+        "path": "/warehouses",
+        "scope": "inventory:warehouse.read"
+      },
+      {
+        "method": "POST",
+        "path": "/warehouses",
+        "scope": "inventory:warehouse.create"
+      },
+      { "method": "GET", "path": "/stock", "scope": "inventory:stock.read" },
+      {
+        "method": "POST",
+        "path": "/stock/adjust",
+        "scope": "inventory:stock.adjust"
+      },
+      {
+        "method": "GET",
+        "path": "/transfers",
+        "scope": "inventory:transfer.read"
+      },
+      {
+        "method": "POST",
+        "path": "/transfers",
+        "scope": "inventory:transfer.create"
+      },
+      {
+        "method": "POST",
+        "path": "/transfers/:id/approve",
+        "scope": "inventory:transfer.approve"
+      },
+      { "method": "GET", "path": "/batches", "scope": "inventory:batch.read" },
+      {
+        "method": "POST",
+        "path": "/batches",
+        "scope": "inventory:batch.create"
+      },
+      { "method": "GET", "path": "/bins", "scope": "inventory:bin.read" },
+      {
+        "method": "GET",
+        "path": "/forecast",
+        "scope": "inventory:forecast.view"
+      },
+      {
+        "method": "GET",
+        "path": "/reports/valuation",
+        "scope": "inventory:reports.view"
+      },
+      {
+        "method": "POST",
+        "path": "/sync/pull",
+        "scope": "inventory:sync.pull"
+      },
+      { "method": "POST", "path": "/sync/push", "scope": "inventory:sync.push" }
+    ]
+  },
+
+  "health_check": {
+    "endpoint": "/api/v2/inventory/health",
+    "interval_seconds": 60,
+    "timeout_seconds": 5
+  },
+
+  "logging": {
+    "level": "info",
+    "audit_trail": true,
+    "sensitive_fields_masked": ["unit_cost"]
+  },
+
+  "versions": [
+    {
+      "version": "1.0.0",
+      "status": "deprecated",
+      "released": "2025-01-15",
+      "sunset_date": "2026-06-30",
+      "changelog": "Initial release — single warehouse stock management with basic product catalog and manual adjustments.",
+      "breaking_changes": [],
+      "api": {
+        "base_path": "/api/v1/inventory",
+        "removed_in": "2.0.0"
+      },
+      "ui": {
+        "menu": [
+          {
+            "label": "Dashboard",
+            "href": "/inventory",
+            "icon": "LayoutDashboard"
+          },
+          {
+            "label": "Products",
+            "href": "/inventory/products",
+            "icon": "Package"
+          },
+          {
+            "label": "Stock Levels",
+            "href": "/inventory/stock",
+            "icon": "BarChart2"
+          },
+          {
+            "label": "Adjustments",
+            "href": "/inventory/adjustments",
+            "icon": "SlidersHorizontal"
+          },
+          {
+            "label": "Reports",
+            "href": "/inventory/reports",
+            "icon": "FileBarChart"
+          },
+          {
+            "label": "Settings",
+            "href": "/inventory/settings",
+            "icon": "Settings"
+          }
+        ]
+      },
+      "entities": ["Product", "StockLevel", "StockAdjustment"],
+      "notable_features": [
+        "Single-warehouse stock tracking",
+        "Manual stock adjustments",
+        "Basic product catalog with SKU and barcode",
+        "Low-stock alerts",
+        "CSV import/export"
+      ],
+      "limitations": [
+        "No multi-warehouse support",
+        "No batch or serial number tracking",
+        "No bin location management",
+        "No demand forecasting"
+      ],
+      "migration": {
+        "from": null,
+        "to": "2.0.0",
+        "migration_guide": "https://docs.bixo.erp/inventory/migrate-v1-v2",
+        "data_migration_script": "migrations/inventory/v1_to_v2.sql",
+        "estimated_downtime_minutes": 15
+      }
+    },
+    {
+      "version": "2.0.0",
+      "status": "stable",
+      "released": "2025-09-01",
+      "changelog": "Major release — multi-warehouse support, batch/serial tracking, bin locations, and transfer orders.",
+      "breaking_changes": [
+        {
+          "type": "api_path",
+          "description": "API base path changed from /api/v1/inventory to /api/v2/inventory",
+          "migration": "Update all API clients to use the v2 base path"
+        },
+        {
+          "type": "schema",
+          "description": "StockLevel now requires warehouse_id; single default warehouse auto-assigned during migration",
+          "migration": "Run data migration script before upgrading"
+        },
+        {
+          "type": "permission",
+          "description": "New permissions inventory:warehouse.* and inventory:batch.* must be assigned to existing roles",
+          "migration": "Re-run role seeder after upgrade"
+        }
+      ],
+      "api": {
+        "base_path": "/api/v2/inventory"
+      },
+      "ui": {
+        "menu": [
+          {
+            "label": "Dashboard",
+            "href": "/inventory",
+            "icon": "LayoutDashboard"
+          },
+          {
+            "label": "Products",
+            "href": "/inventory/products",
+            "icon": "Package"
+          },
+          {
+            "label": "Warehouses",
+            "href": "/inventory/warehouses",
+            "icon": "Warehouse"
+          },
+          {
+            "label": "Stock Levels",
+            "href": "/inventory/stock",
+            "icon": "BarChart2"
+          },
+          {
+            "label": "Stock Transfers",
+            "href": "/inventory/transfers",
+            "icon": "ArrowLeftRight"
+          },
+          {
+            "label": "Adjustments",
+            "href": "/inventory/adjustments",
+            "icon": "SlidersHorizontal"
+          },
+          {
+            "label": "Batch & Serial",
+            "href": "/inventory/batch-serial",
+            "icon": "Hash"
+          },
+          {
+            "label": "Bin Locations",
+            "href": "/inventory/bins",
+            "icon": "MapPin"
+          },
+          {
+            "label": "Reports",
+            "href": "/inventory/reports",
+            "icon": "FileBarChart"
+          },
+          {
+            "label": "Settings",
+            "href": "/inventory/settings",
+            "icon": "Settings"
+          }
+        ]
+      },
+      "entities": [
+        "Product",
+        "Warehouse",
+        "StockLevel",
+        "StockTransfer",
+        "StockAdjustment",
+        "Batch",
+        "BinLocation"
+      ],
+      "notable_features": [
+        "Multi-warehouse with stock transfers",
+        "Batch and serial number tracking with expiry",
+        "Bin location management within warehouses",
+        "Transfer order workflow with approval",
+        "Barcode scanning support",
+        "Inventory valuation (FIFO/AVCO)"
+      ],
+      "migration": {
+        "from": "1.0.0",
+        "to": "2.1.0",
+        "migration_guide": "https://docs.bixo.erp/inventory/migrate-v2-v21",
+        "data_migration_script": "migrations/inventory/v2_to_v21.sql",
+        "estimated_downtime_minutes": 5
+      }
+    },
+    {
+      "version": "2.1.0",
+      "status": "current",
+      "released": "2026-02-01",
+      "changelog": "Minor release — demand forecasting engine, enhanced expiry alert system, and bulk import improvements.",
+      "breaking_changes": [],
+      "api": {
+        "base_path": "/api/v2/inventory",
+        "new_endpoints": [
+          {
+            "method": "GET",
+            "path": "/forecast",
+            "scope": "inventory:forecast.view",
+            "description": "Demand forecast by product and warehouse"
+          },
+          {
+            "method": "POST",
+            "path": "/products/bulk-import",
+            "scope": "inventory:product.create",
+            "description": "Bulk product import via CSV/XLSX"
+          }
+        ]
+      },
+      "ui": {
+        "menu": [
+          {
+            "label": "Dashboard",
+            "href": "/inventory",
+            "icon": "LayoutDashboard"
+          },
+          {
+            "label": "Products",
+            "href": "/inventory/products",
+            "icon": "Package"
+          },
+          {
+            "label": "Warehouses",
+            "href": "/inventory/warehouses",
+            "icon": "Warehouse"
+          },
+          {
+            "label": "Stock Levels",
+            "href": "/inventory/stock",
+            "icon": "BarChart2"
+          },
+          {
+            "label": "Stock Transfers",
+            "href": "/inventory/transfers",
+            "icon": "ArrowLeftRight"
+          },
+          {
+            "label": "Adjustments",
+            "href": "/inventory/adjustments",
+            "icon": "SlidersHorizontal"
+          },
+          {
+            "label": "Batch & Serial",
+            "href": "/inventory/batch-serial",
+            "icon": "Hash"
+          },
+          {
+            "label": "Bin Locations",
+            "href": "/inventory/bins",
+            "icon": "MapPin"
+          },
+          {
+            "label": "Forecasting",
+            "href": "/inventory/forecasting",
+            "icon": "TrendingUp"
+          },
+          {
+            "label": "Reports",
+            "href": "/inventory/reports",
+            "icon": "FileBarChart"
+          },
+          {
+            "label": "Settings",
+            "href": "/inventory/settings",
+            "icon": "Settings"
+          }
+        ]
+      },
+      "entities": [
+        "Product",
+        "Warehouse",
+        "StockLevel",
+        "StockTransfer",
+        "StockAdjustment",
+        "Batch",
+        "BinLocation",
+        "ForecastRule"
+      ],
+      "notable_features": [
+        "AI-assisted demand forecasting with configurable lookback window",
+        "Automated reorder suggestions based on forecast",
+        "Enhanced expiry alert scheduler (7/14/30-day warnings)",
+        "Bulk product import from CSV and XLSX",
+        "Inventory aging analysis"
+      ]
+    }
+  ]
+}

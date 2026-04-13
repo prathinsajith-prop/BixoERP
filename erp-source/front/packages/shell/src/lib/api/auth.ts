@@ -25,8 +25,23 @@ const refreshClient = axios.create({
   withCredentials: true, // must be true so the HttpOnly cookie is sent
 });
 
-let isRefreshing = false;
-let refreshQueue: { resolve: (token: string) => void; reject: (err: unknown) => void }[] = [];
+// ─── Global singleton refresh ─────────────────────────────────────────────────
+// Guards all concurrent callers (hydrate() on page load + 401 interceptors) so
+// only ONE HTTP POST /refresh ever reaches the backend at a time.  Multiple
+// concurrent callers all await the same promise and receive the same token,
+// preventing the token-rotation replay-detection from revoking user sessions.
+let _refreshPromise: Promise<string | null> | null = null;
+
+function sharedRefresh(): Promise<string | null> {
+  if (!_refreshPromise) {
+    _refreshPromise = refreshClient
+      .post('/refresh')
+      .then(({ data }) => (data?.data?.accessToken as string) ?? null)
+      .catch(() => null)
+      .finally(() => { _refreshPromise = null; });
+  }
+  return _refreshPromise;
+}
 
 api.interceptors.response.use(
   (res) => res,
@@ -35,38 +50,18 @@ api.interceptors.response.use(
     if (original.url === '/refresh' || original._retry) return Promise.reject(error);
 
     if (error.response?.status === 401) {
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          refreshQueue.push({ resolve, reject });
-        }).then((token) => {
-          original.headers.Authorization = `Bearer ${token}`;
-          return api(original);
-        });
-      }
-
       original._retry = true;
-      isRefreshing = true;
-
-      try {
-        // No body needed — the browser sends the HttpOnly __erp_rt cookie automatically
-        const { data } = await refreshClient.post('/refresh');
-        const newAccessToken = data.data.accessToken;
-        // Store only in memory — never in localStorage
-        useAuthStore.setState({ accessToken: newAccessToken, fullAccessToken: newAccessToken, isAuthenticated: true });
-        refreshQueue.forEach((p) => p.resolve(newAccessToken));
-        refreshQueue = [];
-        original.headers.Authorization = `Bearer ${newAccessToken}`;
+      const token = await sharedRefresh();
+      if (token) {
+        useAuthStore.setState({ accessToken: token, fullAccessToken: token, isAuthenticated: true });
+        original.headers.Authorization = `Bearer ${token}`;
         return api(original);
-      } catch (refreshError) {
-        refreshQueue.forEach((p) => p.reject(error));
-        refreshQueue = [];
-        useAuthStore.setState({ accessToken: null, fullAccessToken: null, isAuthenticated: false });
-        sessionStorage.removeItem('tenantId');
-        sessionStorage.removeItem('activeModule');
-        window.location.href = '/login';
-      } finally {
-        isRefreshing = false;
       }
+      // Refresh failed — clear auth state and redirect
+      useAuthStore.setState({ accessToken: null, fullAccessToken: null, isAuthenticated: false });
+      sessionStorage.removeItem('tenantId');
+      sessionStorage.removeItem('activeModule');
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   },
@@ -74,12 +69,13 @@ api.interceptors.response.use(
 
 export const authApi = {
   login: (body: { email: string; password: string }) => api.post('/login', body),
-  /** No body — refresh token is in the HttpOnly cookie, sent automatically */
-  silentRefresh: () => refreshClient.post('/refresh'),
+  /** Uses the shared singleton refresh — safe to call concurrently */
+  silentRefresh: sharedRefresh,
   /** No body — logout clears the cookie server-side */
   logout: () => api.post('/logout'),
   getProfile: () => api.get('/profile'),
   myOrganizations: () => api.get('/organizations/me/list'),
   switchOrganization: (body: { organizationId: string }) => api.post('/organizations/switch', body),
   scopeToken: (body: { module: string }) => api.post<{ data: { accessToken: string; module: string; permissions: string[] } }>('/scope-token', body),
+  listModuleConfigs: () => api.get<{ data: { moduleId: string; moduleKey: string; enabled: boolean }[] }>('/modules'),
 };
